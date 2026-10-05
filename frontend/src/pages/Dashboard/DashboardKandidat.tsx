@@ -50,6 +50,8 @@ interface BatchSummary {
   id: number
   nama?: string
   warna?: string | null
+  cabang_id?: number | null
+  cabang_nama?: string
   jumlahKandidat?: number
   kandidat: KandidatItem[]
 }
@@ -353,7 +355,7 @@ export default function DashboardKandidat() {
         if (seg && seg.label !== 'Cuti' && seg.label !== 'Lainnya') counts[seg.label]++
         else counts['Lainnya']++
       })
-      return { nama: b.nama || `Batch #${b.id}`, warna: b.warna || null, total: list.length, counts }
+      return { nama: b.nama || `Batch #${b.id}`, warna: b.warna || null, cabang_id: b.cabang_id ?? null, cabang_nama: b.cabang_nama || 'Tanpa Cabang', total: list.length, counts }
     })
     return rows.sort((a, b) => b.total - a.total)
   }, [kandidatStats])
@@ -413,6 +415,22 @@ export default function DashboardKandidat() {
 
   const totalKandidatPerBatch = batchRows.reduce((s, r) => s + r.total, 0)
   const rataRataPerBatch = batchRows.length ? Math.round(totalKandidatPerBatch / batchRows.length) : 0
+
+  // Groepeer batch-rijen per cabang (afdeling) voor de "Kandidat per Batch"-lijst.
+  const batchGroupsByCabang = useMemo(() => {
+    const order: string[] = []
+    const map = new Map<string, typeof batchRows>()
+    batchRows.forEach(r => {
+      const key = r.cabang_nama || 'Tanpa Cabang'
+      if (!map.has(key)) { map.set(key, []); order.push(key) }
+      map.get(key)!.push(r)
+    })
+    return order.map(cabang => ({
+      cabang,
+      total: map.get(cabang)!.reduce((s, r) => s + r.total, 0),
+      rows: map.get(cabang)!,
+    })).sort((a, b) => b.total - a.total)
+  }, [batchRows])
 
   const breakdownStats = [
     { label: 'Menunggu Pembayaran', value: pendaftar.filter(p => p.status_pembayaran === 'unpaid').length, icon: Clock },
@@ -648,12 +666,22 @@ export default function DashboardKandidat() {
             <div className="h-72 sm:h-96">
               <Bar data={batchChartData} options={batchChartOptions} plugins={[stackTotalPlugin]} />
             </div>
-            <div className="mt-4 flex flex-wrap gap-2 border-t border-[#e8eaed] pt-3">
-              {batchRows.map(r => (
-                <div key={r.nama} className="flex items-center gap-1.5 border border-[#dadce0] bg-white px-2.5 py-1 text-[11px]">
-                  <span className="inline-block h-2.5 w-2.5" style={{ backgroundColor: r.warna || '#bdc1c6' }} />
-                  <span className="text-[#5f6368]">{r.nama}</span>
-                  <span className="font-medium text-[#202124]">{r.total}</span>
+            <div className="mt-4 border-t border-[#e8eaed] pt-3">
+              {batchGroupsByCabang.map(g => (
+                <div key={g.cabang} className="mb-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-semibold text-[#202124]">{g.cabang}</span>
+                    <span className="text-[10px] font-medium text-[#5f6368]">{g.total} kandidat</span>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap gap-2">
+                    {g.rows.map(r => (
+                      <div key={r.nama} className="flex items-center gap-1.5 border border-[#dadce0] bg-white px-2.5 py-1 text-[11px]">
+                        <span className="inline-block h-2.5 w-2.5" style={{ backgroundColor: r.warna || '#bdc1c6' }} />
+                        <span className="text-[#5f6368]">{r.nama}</span>
+                        <span className="font-medium text-[#202124]">{r.total}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

@@ -531,24 +531,24 @@ const attDate = (kehadiran?.tanggal || lesson.pertemuan_date || '').slice(0, 10)
                           <td className="px-4 py-4 text-center font-medium text-[#3c4043]">{p.questions_count ?? '-'}</td>
                           <td className="px-4 py-4 text-center font-medium text-[#3c4043]">{p.attempts_count ?? '-'}</td>
                           <td className="px-6 py-4">
-                            <div className="flex items-center justify-end gap-2">
-                              <button onClick={() => navigate(`${base}/paket/${p.id}/soal`)}
-                                className="btn btn-neutral btn-sm w-8 h-8 p-0 shrink-0">
-                                <ListChecks size={12} /> Lihat Paket Soal
+                            <div className="flex items-center justify-end gap-1.5 flex-wrap whitespace-nowrap">
+                              <button onClick={() => navigate(`${base}/paket/${p.id}/soal`)} title="Lihat Paket Soal"
+                                className="btn btn-neutral btn-sm px-2.5">
+                                <ListChecks size={12} /><span className="hidden sm:inline">Lihat Paket Soal</span>
                               </button>
-                              <button onClick={() => openHasil({ id: p.id, title: p.title })}
-                                className="btn btn-neutral btn-sm w-8 h-8 p-0 shrink-0">
-                                <BarChart3 size={12} /> Hasil
+                              <button onClick={() => openHasil({ id: p.id, title: p.title })} title="Hasil"
+                                className="btn btn-neutral btn-sm px-2.5">
+                                <BarChart3 size={12} /><span className="hidden sm:inline">Hasil</span>
                               </button>
                               <button onClick={() => navigate(`${base}/course/${lesson.course_id}/monitor/live?paket=${p.id}&lesson_id=${lesson.id}`, { state: { title: p.title, pertemuan_ke: lesson.pertemuan_ke } })}
-                                className="btn btn-neutral btn-sm w-8 h-8 p-0 shrink-0">
-                                <Activity size={12} /> Monitor
+                                title="Monitor" className="btn btn-neutral btn-sm px-2.5">
+                                <Activity size={12} /><span className="hidden sm:inline">Monitor</span>
                               </button>
                               {p.pivot?.is_pembahasan !== undefined
-                                ? <span className="text-[11px] font-medium text-[#137333] bg-[#e6f4ea] px-2.5 py-1.5">Pembahasan</span>
-                                : <button onClick={() => navigate(pembahasanHref(p.id))}
-                                    className="btn btn-primary btn-sm disabled:opacity-40">
-                                    <Eye size={12} /> Lihat Pembahasan
+                                ? <span className="text-[11px] font-medium text-[#137333] bg-[#e6f4ea] px-2.5 py-1.5 whitespace-nowrap">Pembahasan</span>
+                                : <button onClick={() => navigate(pembahasanHref(p.id))} title="Lihat Pembahasan"
+                                    className="btn btn-primary btn-sm px-2.5">
+                                    <Eye size={12} /><span className="hidden sm:inline">Lihat Pembahasan</span>
                                   </button>}
                             </div>
                           </td>

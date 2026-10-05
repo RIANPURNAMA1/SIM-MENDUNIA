@@ -2734,7 +2734,7 @@ const visibleBatches = filterCabang
                       className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] bg-[#f1f3f4] px-2 py-1.5 hover:bg-[#f1f3f4] transition-colors">
                       <Eye size={13} /> Hasil
                     </button>
-                    {source === 'course' && (
+                    {false && (
                       <button onClick={() => openQuizMonitor(p)}
                         className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#c5221f] bg-[#fce8e6] px-2 py-1.5 hover:bg-[#f6d7d5] transition-colors">
                         <Radio size={13} /> Monitoring
@@ -3336,10 +3336,7 @@ const visibleBatches = filterCabang
                       {' · '}{activeCourse.kelas_sensei_id ? `${courseLessons.length} pertemuan · ` : ''}{quizPakets.length} paket soal
                     </p>
                   </div>
-                  <button onClick={() => openQuizMonitorById(activeCourse.id)}
-                    className="ml-auto inline-flex items-center gap-1.5 bg-[#d93025] px-3 py-2 text-[12px] font-bold text-white hover:bg-[#c5221f] transition-colors shrink-0">
-                    <Radio size={14} /> Monitoring
-                  </button>
+                  
                 </div>
                 {activeCourse.kelas_sensei_id ? (
                   <div className="mt-4 border-b border-[#dadce0] flex gap-1">
@@ -3438,10 +3435,7 @@ const visibleBatches = filterCabang
                               </span>
                             )}
                           </div>
-                          <button onClick={(e) => { e.stopPropagation(); openLessonMonitor(lesson) }}
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#c5221f] bg-[#fce8e6] px-2 py-1.5 hover:bg-[#f6d7d5] transition-colors" title="Monitoring kandidat">
-                            <Radio size={13} /> Monitoring
-                          </button>
+                          
                         </div>
                         {!isAdminCabang && (
                           <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">

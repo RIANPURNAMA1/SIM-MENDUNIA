@@ -2233,6 +2233,8 @@ class PendaftaranController extends Controller
                 'id' => $batchId,
                 'nama' => $batch?->nama_batch ?? 'Batch #' . $batchId,
                 'warna' => $batch?->warna ?? null,
+                'cabang_id' => $batch?->cabang_id ?? null,
+                'cabang_nama' => $batch?->cabang?->nama_cabang ?? 'Tanpa Cabang',
                 'jumlahKandidat' => $items->count(),
                 'kandidat' => $items->map($mapKandidat),
             ];
@@ -2243,6 +2245,8 @@ class PendaftaranController extends Controller
                 'id' => 0,
                 'nama' => 'Tanpa Batch',
                 'warna' => null,
+                'cabang_id' => null,
+                'cabang_nama' => 'Tanpa Cabang',
                 'jumlahKandidat' => $ungrouped->count(),
                 'kandidat' => $ungrouped->map($mapKandidat),
             ];

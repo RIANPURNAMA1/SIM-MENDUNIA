@@ -166,7 +166,7 @@ interface LessonProgress {
   completed?: boolean
 }
 
-type View = 'list' | 'materi' | 'rules' | 'play' | 'result'
+type View = 'materi' | 'rules' | 'play' | 'result'
 
 const bottomNav = [
   { label: 'Dashboard', to: '/siswa-dashboard', icon: LayoutDashboard },
@@ -439,7 +439,7 @@ export default function QuizKandidat() {
     const route = tpl === 'jft' ? 'play' : 'play-basic'
     return `/siswa-dashboard/quiz/${packageId}/${route}/${attemptId}${ctxQuery()}`
   }
-  const [view, setView] = useState<View>('list')
+  const [view, setView] = useState<View>('materi')
   const [pakets, setPakets] = useState<PaketList[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -552,7 +552,7 @@ export default function QuizKandidat() {
       setView('rules')
       openPaket(openId)
     } else {
-      setView('list')
+      setView('materi')
       setDetail(null)
       setActiveLesson(null)
       setLessonProgressMap({})
@@ -601,8 +601,8 @@ export default function QuizKandidat() {
         title: 'Paket tidak dapat diakses',
         text: typeof msg === 'string' && msg ? msg : 'Gagal memuat detail paket.',
       })
-      setView('list')
-      navigate('/siswa-dashboard/quiz')
+      setView('materi')
+      navigate('/siswa-dashboard/lms')
     })
   }
 
@@ -717,14 +717,14 @@ export default function QuizKandidat() {
     if (view === 'play' || view === 'result') {
       stopTimers()
       stopStream()
-      setView('list')
+      setView('materi')
       setResult(null)
       setSertifikatOpen(false)
       setQuestions([])
       attemptRef.current = null
       fetchPakets()
     } else if (view === 'rules') {
-      setView('list')
+      setView('materi')
       navigate('/siswa-dashboard/lms')
       refreshDetail()
     } else if (view === 'materi') {
@@ -1369,12 +1369,7 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
               </div>
             )}
 
-            <div className="mt-5">
-              <button onClick={selesaiHasil}
-                className="btn btn-primary btn-lg btn-block">
-                <ArrowLeft size={16} /> Kembali
-              </button>
-            </div>
+            
           </div>
         </div>
 
@@ -2089,104 +2084,11 @@ navigate(quizUrl(Number(detail?.paket.id ?? paketId ?? 0)))
     )
   }
 
-  // ==================== LIST VIEW ====================
+  // Fallback: toon laad-state zolang materi detail nog memuat (geen blanke pagina).
   return (
-    <div className="min-h-screen bg-[#f8f9fa] pb-24 lg:pb-8">
-      <header className="bg-[#0E6187] px-4 pb-6 pt-5 text-white">
-        <div className="mx-auto max-w-lg">
-          <div className="flex items-center gap-2">
-            <img src="/logo-sm1.png" alt="Kelas Mendunia" className="h-8 w-auto" />
-          </div>
-          <div className="mt-5 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-md bg-slate-700">
-              <ListChecks size={20} />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold">Paket Soal / Quiz</h1>
-              <p className="mt-0.5 text-[13px] text-teal-100">Evaluasi pemahaman materi kamu</p>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-lg mx-auto px-4 pt-4 space-y-3 pb-4">
-        {loading ? (
-          <div className="text-center text-xs text-slate-400 py-16">Memuat paket soal...</div>
-        ) : pakets.length === 0 ? (
-          <div className="bg-white rounded-md border border-dashed border-[#E5E7EF] p-10 text-center">
-            <ListChecks size={28} className="text-slate-300 mx-auto mb-2" />
-            <p className="text-base font-medium text-[#202124]">Belum ada paket soal</p>
-            <p className="text-sm text-[#5f6368] mt-1">Guru/instruktur belum membuka quiz untuk Anda</p>
-          </div>
-        ) : (
-          pakets.map(p => {
-            const lulus = p.best_score !== null && p.passing_score > 0 && p.best_score >= p.passing_score
-            const inProgressId = p.in_progress_attempt_id
-            return (
-              <button key={p.id} onClick={() => openPaket(p.id)}
-                className="w-full text-left bg-white rounded-md border border-slate-200 p-5 transition-colors hover:border-slate-300">
-                {p.cover_url && (
-                  <div className="w-full h-32 rounded-md overflow-hidden border border-slate-100 mb-4 -mt-1">
-                    <img src={p.cover_url} alt={p.title} className="w-full h-full object-cover" />
-                  </div>
-                )}
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="text-sm font-bold text-slate-800 truncate">{p.title}</h2>
-                    {p.description && <p className="text-[11px] text-slate-400 font-medium mt-1 line-clamp-2">{p.description}</p>}
-                  </div>
-                  {p.best_score !== null && (
-                    <span className={`text-[10px] font-bold px-2 py-1 rounded-md shrink-0 ${p.passing_score > 0 ? (lulus ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white') : 'bg-slate-200 text-slate-700'}`}>
-                      Nilai {p.best_score}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap gap-x-3 gap-y-1 mt-3 text-[10.5px] font-semibold text-slate-400">
-                  {[p.course_title, p.batch_name, `${p.questions_count} soal`, `${p.time_limit_minutes} menit`].filter(Boolean).map((t, i) => (
-                    <span key={i} className="inline-flex items-center gap-1">
-                      <span className="w-1 h-1 rounded-full bg-slate-300" /> {t}
-                    </span>
-                  ))}
-                </div>
-
-                <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
-                  <p className="text-[10.5px] font-semibold text-slate-400">
-                    {p.attempts_used}{p.max_attempts > 0 ? `/${p.max_attempts}` : '/∞'} percobaan dipakai
-                  </p>
-                  {inProgressId ? (
-                    <span role="button" onClick={e => { e.stopPropagation(); navigate(resumeUrl(p.id, inProgressId, p.quiz_template)) }}
-                      className="flex items-center gap-1.5 text-[11px] font-bold py-1.5 px-3 rounded-lg bg-emerald-500 text-white">
-                      <Play size={11} /> Lanjutkan
-                    </span>
-                  ) : (
-                    <span className={`flex items-center gap-1.5 text-[11px] font-bold py-1.5 px-3 rounded-lg ${p.can_start ? 'bg-[#0E6187] text-white' : 'bg-slate-100 text-slate-400'}`}>
-                      <Play size={11} /> {p.can_start ? 'Kerjakan' : 'Selesai'}
-                    </span>
-                  )}
-                </div>
-              </button>
-            )
-          })
-        )}
-      </div>
-
-      {/* Bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#dadce0] bg-white/95 backdrop-blur lg:hidden">
-        <div className="mx-auto grid max-w-lg grid-cols-5">
-          {bottomNav.map(nav => {
-            const Icon = nav.icon
-            const isActive = nav.to === location.pathname
-            return (
-              <Link key={nav.label} to={nav.to}
-                className={`flex flex-col items-center gap-1 py-2.5 transition ${isActive ? 'text-[#0E6187]' : 'text-slate-400'}`}>
-                <Icon size={20} strokeWidth={isActive ? 2.4 : 2} />
-                <span className="text-[10px] font-medium">{nav.label}</span>
-              </Link>
-            )
-          })}
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[#f8f9fa] py-16 text-center">
+      <div className="w-8 h-8 mx-auto border-2 border-[#0E6187]/20 border-t-[#0E6187] rounded-full animate-spin" />
+      <p className="text-sm text-slate-400 mt-3">Memuat materi...</p>
     </div>
   )
 }
