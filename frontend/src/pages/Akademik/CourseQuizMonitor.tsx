@@ -335,7 +335,7 @@ export default function CourseQuizMonitor() {
     return (
       <div className="flex min-h-[70vh] items-center justify-center bg-[#f8f9fa]">
         <div className="text-center">
-          <div className="w-10 h-10 border-4 border-[#1a73e8]/20 border-t-[#1a73e8] rounded-full animate-spin mx-auto mb-3" />
+          <div className="w-10 h-10 border-4 border-[#1a73e8]/20 border-t-[#1a73e8] -full animate-spin mx-auto mb-3" />
           <p className="text-sm text-[#5f6368]">Membuka ruang monitoring...</p>
         </div>
       </div>
@@ -373,7 +373,7 @@ export default function CourseQuizMonitor() {
                 <div className="flex items-center gap-2">
                   <h1 className="text-base font-medium text-[#202124] truncate">{navTitle || lessonInfo?.title || courseInfo?.title || 'Monitoring Kursus'}</h1>
                   <span className={`inline-flex items-center gap-1 bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium shrink-0 ${isToday && liveCount > 0 ? 'bg-[#fce8e6] text-[#c5221f]' : 'bg-[#f1f3f4] text-[#5f6368]'}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${isToday && liveCount > 0 ? 'bg-[#d93025] animate-pulse' : 'bg-[#bdc1c6]'}`} />
+                    <span className={`h-1.5 w-1.5 -full ${isToday && liveCount > 0 ? 'bg-[#d93025] animate-pulse' : 'bg-[#bdc1c6]'}`} />
                     {isToday ? 'LIVE' : 'RIWAYAT'}
                   </span>
                 </div>
@@ -427,12 +427,12 @@ export default function CourseQuizMonitor() {
                   }`}>
                   <span className="truncate max-w-[180px]">{p.title}</span>
                   {p.live_today > 0 && (
-                    <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full ${selectedPaketId === p.id ? 'bg-[#084c63] text-white' : 'bg-[#d93025]/15 text-[#d93025]'}`}>
-                      <span className={`h-1 w-1 rounded-full ${selectedPaketId === p.id ? 'bg-white' : 'bg-[#d93025] animate-pulse'}`} />{p.live_today}
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 -full ${selectedPaketId === p.id ? 'bg-[#084c63] text-white' : 'bg-[#d93025]/15 text-[#d93025]'}`}>
+                      <span className={`h-1 w-1 -full ${selectedPaketId === p.id ? 'bg-white' : 'bg-[#d93025] animate-pulse'}`} />{p.live_today}
                     </span>
                   )}
                   {p.submitted_today > 0 && (
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${selectedPaketId === p.id ? 'bg-[#084c63] text-white' : 'bg-[#f1f3f4] text-[#80868b]'}`}>{p.submitted_today}</span>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 -full ${selectedPaketId === p.id ? 'bg-[#084c63] text-white' : 'bg-[#f1f3f4] text-[#80868b]'}`}>{p.submitted_today}</span>
                   )}
                 </button>
               ))}
@@ -554,7 +554,7 @@ export default function CourseQuizMonitor() {
                       </div>
                       {isLive ? (
                         <span className="inline-flex items-center gap-1 bg-[#e8f0fe] px-2 py-0.5 text-[10px] font-medium text-[#1967d2] shrink-0">
-                          <span className="h-1 w-1 rounded-full bg-[#0E6187] animate-pulse" />LAKUKAN
+                          <span className="h-1 w-1 -full bg-[#0E6187] animate-pulse" />LAKUKAN
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1 bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368] shrink-0">
@@ -640,7 +640,7 @@ export default function CourseQuizMonitor() {
                             <p className="text-[13px] font-medium text-[#202124] leading-tight">{a.siswa.nama}</p>
                             {a.status === 'in_progress' ? (
                               <span className="inline-flex items-center gap-1 bg-[#e8f0fe] px-2 py-0.5 text-[10px] font-medium text-[#1967d2] shrink-0">
-                                <span className="h-1 w-1 rounded-full bg-[#0E6187] animate-pulse" />LAKUKAN
+                                <span className="h-1 w-1 -full bg-[#0E6187] animate-pulse" />LAKUKAN
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-medium text-[#5f6368] shrink-0">
@@ -766,10 +766,10 @@ export default function CourseQuizMonitor() {
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex gap-1.5 items-baseline min-w-0 flex-1">
                             <p className="text-[12px] font-medium text-[#202124] leading-snug shrink-0">{i + 1}.</p>
-                            <div className="text-[12px] font-medium text-[#202124] leading-snug min-w-0 flex-1 [&_*]:inline [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1 [&_img]:align-middle"
+                            <div className="text-[12px] font-medium text-[#202124] leading-snug min-w-0 flex-1 [&_*]:inline [&_img]:max-h-40 [&_img]: [&_img]:my-1 [&_img]:align-middle"
                               dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
                           </div>
-                          <span className={`text-[10px] font-medium shrink-0 px-2 py-0.5 rounded-full ${q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'bg-[#fef7e0] text-[#e37400]' : q.is_correct === true ? 'bg-[#e6f4ea] text-[#137333]' : q.is_correct === false ? 'bg-[#fce8e6] text-[#c5221f]' : 'bg-[#f1f3f4] text-[#80868b]'}`}>
+                          <span className={`text-[10px] font-medium shrink-0 px-2 py-0.5 -full ${q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'bg-[#fef7e0] text-[#e37400]' : q.is_correct === true ? 'bg-[#e6f4ea] text-[#137333]' : q.is_correct === false ? 'bg-[#fce8e6] text-[#c5221f]' : 'bg-[#f1f3f4] text-[#80868b]'}`}>
                             {q.question_type === 'essay' && q.is_correct === null && q.answer_text?.trim() ? 'BELUM DINILAI' : q.is_correct === true ? 'BENAR' : q.is_correct === false ? 'SALAH' : 'TIDAK DIJAWAB'}
                           </span>
                         </div>
@@ -796,7 +796,7 @@ export default function CourseQuizMonitor() {
                                 {q.options.map((opt, oi) => {
                                   const isSelected = q.selected_index === oi
                                   return (
-                                    <span key={oi} className={`w-8 h-8 flex items-center justify-center rounded-full text-[11px] font-medium border-2 ${isSelected ? 'border-#8430ce bg-#8430ce text-[#202124]' : 'border-[#e8eaed] bg-[#f1f3f4] text-[#80868b]'}`}>
+                                    <span key={oi} className={`w-8 h-8 flex items-center justify-center -full text-[11px] font-medium border-2 ${isSelected ? 'border-#8430ce bg-#8430ce text-[#202124]' : 'border-[#e8eaed] bg-[#f1f3f4] text-[#80868b]'}`}>
                                       {optText(opt)}
                                     </span>
                                   )
@@ -832,7 +832,7 @@ export default function CourseQuizMonitor() {
                                     {savingGrade === q.id ? 'Menyimpan...' : 'Simpan Nilai'}
                                   </button>
                                   {q.earned_points !== null && q.earned_points !== undefined && (
-                                    <span className={`self-end text-[11px] font-medium px-2 py-1 rounded-full ${q.is_correct === true ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#fef7e0] text-[#e37400]'}`}>
+                                    <span className={`self-end text-[11px] font-medium px-2 py-1 -full ${q.is_correct === true ? 'bg-[#e6f4ea] text-[#137333]' : 'bg-[#fef7e0] text-[#e37400]'}`}>
                                       {q.earned_points}/{q.points} poin
                                     </span>
                                   )}
@@ -848,7 +848,7 @@ export default function CourseQuizMonitor() {
                             return (
                               <div key={oi}
                                 className={`flex items-center gap-2 text-[11px] px-3 py-1.5 font-medium ${isCorrect ? 'bg-[#e6f4ea] text-[#0d652d]' : isSelected ? 'bg-[#fce8e6] text-[#c5221f]' : 'bg-[#f1f3f4] text-[#3c4043]'}`}>
-                                <span className={`w-4 h-4 flex items-center justify-center text-[10px] font-medium shrink-0 ${isMultiQ ? ' ' : 'rounded-full'} ${isCorrect ? 'bg-#188038 text-[#202124]' : isSelected ? 'bg-[#d93025] text-[#202124]' : 'bg-[#e8eaed] text-[#80868b]'}`}>
+                                <span className={`w-4 h-4 flex items-center justify-center text-[10px] font-medium shrink-0 ${isMultiQ ? ' ' : '-full'} ${isCorrect ? 'bg-#188038 text-[#202124]' : isSelected ? 'bg-[#d93025] text-[#202124]' : 'bg-[#e8eaed] text-[#80868b]'}`}>
                                   {String.fromCharCode(65 + oi)}
                                 </span>
                                 {optAbsUrl(opt) && <img src={optAbsUrl(opt)} className="h-5 w-5 object-cover shrink-0" alt="" />}

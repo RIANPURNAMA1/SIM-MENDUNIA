@@ -89,6 +89,7 @@ export default function PenilaianPage() {
   const [kelas, setKelas] = useState<{
     id: number; nama_kelas: string; level: string; batch_nama: string;
     tanggal_mulai: string; tanggal_selesai: string;
+    batch_id?: number; user_id?: number;
   } | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);

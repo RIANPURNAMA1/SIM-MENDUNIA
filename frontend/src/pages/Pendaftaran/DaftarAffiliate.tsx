@@ -528,7 +528,7 @@ const [showPassword, setShowPassword] = useState(false)
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Provinsi</label>
                       <select
                         value={provinsi}
-                        onChange={(e) => { setProvinsi(e.target.value); fetchKabupaten(e.target.value); }}
+                        onChange={(e) => { setProvinsi(e.target.value); }}
                         disabled={wilayahLoading.provinsi}
                         className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors focus:border-[#0E6187] appearance-none cursor-pointer disabled:opacity-50"
                       >
@@ -541,7 +541,7 @@ const [showPassword, setShowPassword] = useState(false)
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Kabupaten / Kota</label>
                       <select
                         value={kabupaten}
-                        onChange={(e) => { setKabupaten(e.target.value); fetchKecamatan(e.target.value); }}
+                        onChange={(e) => { setKabupaten(e.target.value); }}
                         disabled={!provinsi || wilayahLoading.kabupaten}
                         className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors focus:border-[#0E6187] appearance-none cursor-pointer disabled:opacity-50"
                       >
@@ -554,7 +554,7 @@ const [showPassword, setShowPassword] = useState(false)
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Kecamatan</label>
                       <select
                         value={kecamatan}
-                        onChange={(e) => { setKecamatan(e.target.value); fetchDesa(e.target.value); }}
+                        onChange={(e) => { setKecamatan(e.target.value); }}
                         disabled={!kabupaten || wilayahLoading.kecamatan}
                         className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors focus:border-[#0E6187] appearance-none cursor-pointer disabled:opacity-50"
                       >

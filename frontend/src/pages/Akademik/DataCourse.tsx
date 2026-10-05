@@ -347,7 +347,7 @@ a. benar
 *b. salah   [1 poin]`
 
 interface Batch { id: number; nama_batch: string; warna?: string | null; cabang_id?: number | null }
-interface CourseOption { id: number; title: string }
+interface _CourseOption { id: number; title: string }
 interface Category { id: number; name: string; paket_count?: number }
 
 const mediaUrl = (u?: string | null): string => {
@@ -622,7 +622,7 @@ const SenseiBadge = ({ nama, namaKelas }: { nama?: string | null; namaKelas?: st
   return (
     <span
       title={namaKelas ? `Pengajar: ${nama} · Kelas ${namaKelas}` : `Pengajar: ${nama}`}
-      className="inline-flex max-w-[150px] shrink-0 items-center gap-1 bgbg-[#f1f3f4] px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-[#1a73e8]"
+      className="inline-flex max-w-[150px] shrink-0 items-center gap-1 bg-[#f1f3f4] px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-[#1a73e8]"
     >
       <UserRound size={10} className="shrink-0" />
       <span className="truncate">{nama}</span>
@@ -674,7 +674,7 @@ export default function DataCourse() {
   const [batchLevels, setBatchLevels] = useState<Record<number, string[]>>({})
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [filterLevel, setFilterLevel] = useState('')
+  const [filterLevel] = useState('')
   const [filterBatch, setFilterBatch] = useState('')
   // Filter cabang + batch (level tidak dipakai sebagai filter di list ini).
   const [filterCabang, setFilterCabang] = useState('')
@@ -1892,7 +1892,7 @@ export default function DataCourse() {
     !bankMateriSearch || m.title.toLowerCase().includes(bankMateriSearch.toLowerCase())
   )
 
-  const uploadMateriMedia = (type: 'image' | 'file') => {
+  const _uploadMateriMedia = (type: 'image' | 'file') => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = type === 'image' ? 'image/*' : '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt'
@@ -2681,7 +2681,7 @@ const visibleBatches = filterCabang
                     <div className="flex items-center gap-2">
                       <p className="text-[#202124] font-semibold truncate max-w-xs">{p.title}</p>
                       {p.category && (
-                        <span className="inline-block text-[10px] font-semibold px-2 py-0.5 bgbg-[#f1f3f4] text-[#1a73e8] shrink-0">{p.category}</span>
+                        <span className="inline-block text-[10px] font-semibold px-2 py-0.5 bg-[#f1f3f4] text-[#1a73e8] shrink-0">{p.category}</span>
                       )}
                       {p.penilaian_ulangan && (
                         <span
@@ -2712,7 +2712,7 @@ const visibleBatches = filterCabang
                       <button onClick={() => togglePaket(p)}
                         className={`relative w-10 h-[22px] border border-[#dadce0] transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}
                         title={p.status === 'aktif' ? 'Tutup paket' : 'Buka paket'}>
-                        <span className={`absolute top-[2px] w-[16px] h-[16px] bg-white shadow transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
+                        <span className={`absolute top-[2px] w-[16px] h-[16px] bg-white  transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
                       </button>
                     )}
                     <span className={`text-[11px] font-semibold ${p.status === 'aktif' ? 'text-[#137333]' : 'text-[#5f6368]'}`}>
@@ -2723,7 +2723,7 @@ const visibleBatches = filterCabang
                 <td className="border-b border-[#e8eaed] px-4 py-3">
                   <div className="flex items-center justify-center gap-1">
                     <button onClick={() => openMateri(p, source)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] bgbg-[#f1f3f4] px-2 py-1.5 hover:bgbg-[#f1f3f4] transition-colors">
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] bg-[#f1f3f4] px-2 py-1.5 hover:bg-[#f1f3f4] transition-colors">
                       <BookOpen size={13} /> Materi
                     </button>
                     <button onClick={() => openQuizQuestions(p, source)}
@@ -2731,7 +2731,7 @@ const visibleBatches = filterCabang
                       <ListChecks size={13} /> Soal
                     </button>
                     <button onClick={() => openQuizResults(p, source)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] bgbg-[#f1f3f4] px-2 py-1.5 hover:bgbg-[#f1f3f4] transition-colors">
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] bg-[#f1f3f4] px-2 py-1.5 hover:bg-[#f1f3f4] transition-colors">
                       <Eye size={13} /> Hasil
                     </button>
                     {source === 'course' && (
@@ -2920,7 +2920,7 @@ const visibleBatches = filterCabang
       <td className="border-b border-[#e8eaed] px-4 py-3 text-xs font-bold text-[#80868b]">{idx + 1}</td>
       <td className="border-b border-[#e8eaed] px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 border-2 border-[#1a73e8] bgbg-[#f1f3f4] flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 border-2 border-[#1a73e8] bg-[#f1f3f4] flex items-center justify-center shrink-0">
             <span className="text-sm font-black text-[#1a73e8]">{par.nama.trim().charAt(0).toUpperCase() || '?'}</span>
           </div>
           <p className="font-semibold text-[#202124] truncate">{par.nama}</p>
@@ -3184,7 +3184,7 @@ const visibleBatches = filterCabang
               </div>
             ) : filteredCourses.length === 0 ? (
               <div className="bg-white border border-[#dadce0] p-14 text-center">
-                <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                <div className="w-14 h-14 mx-auto bg-[#f1f3f4] flex items-center justify-center mb-3">
                   <BookOpen size={28} className="text-[#1a73e8]" />
                 </div>
                 <p className="text-[#202124] font-semibold">Belum ada kursus</p>
@@ -3369,7 +3369,7 @@ const visibleBatches = filterCabang
                   </div>
                 ) : courseLessons.length === 0 ? (
                   <div className="p-14 text-center">
-                    <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                    <div className="w-14 h-14 mx-auto bg-[#f1f3f4] flex items-center justify-center mb-3">
                       <BookOpen size={28} className="text-[#1a73e8]" />
                     </div>
                     <p className="text-[#202124] font-semibold">Belum ada pertemuan</p>
@@ -3402,7 +3402,7 @@ const visibleBatches = filterCabang
                             </button>
                           </div>
                         )}
-                        <div className={`w-9 h-9 flex items-center justify-center shrink-0 ${lesson.status === 'aktif' ? 'bgbg-[#f1f3f4] text-[#1a73e8]' : 'bg-[#f1f3f4] text-[#9aa0a6]'}`}>
+                        <div className={`w-9 h-9 flex items-center justify-center shrink-0 ${lesson.status === 'aktif' ? 'bg-[#f1f3f4] text-[#1a73e8]' : 'bg-[#f1f3f4] text-[#9aa0a6]'}`}>
                           {lesson.video_url ? <Video size={16} /> : lesson.slides?.length ? <ImageIcon size={16} /> : <FileText size={16} />}
                         </div>
                         <div className="flex-1 min-w-0">
@@ -3421,7 +3421,7 @@ const visibleBatches = filterCabang
                           <div className="flex items-center gap-1.5">
                             {liveCount > 0 && (
                               <span className="inline-flex items-center gap-1 bg-[#fce8e6] text-[#c5221f] px-2 py-1 text-[10px] font-bold whitespace-nowrap">
-                                <span className="h-1.5 w-1.5 rounded-full bg-[#d93025] animate-pulse" />
+                                <span className="h-1.5 w-1.5  bg-[#d93025] animate-pulse" />
                                 Sedang Quiz
                                 <span className="bg-white/70 px-1 rounded">{liveCount}</span>
                               </span>
@@ -3475,7 +3475,7 @@ const visibleBatches = filterCabang
                   </div>
                 ) : filteredQuizPakets.length === 0 ? (
                   <div className="bg-white border border-[#dadce0] p-14 text-center">
-                    <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                    <div className="w-14 h-14 mx-auto bg-[#f1f3f4] flex items-center justify-center mb-3">
                       <ListChecks size={28} className="text-[#1a73e8]" />
                     </div>
                     <p className="text-[#202124] font-semibold">Belum ada paket soal</p>
@@ -3512,7 +3512,7 @@ const visibleBatches = filterCabang
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button onClick={openRekap}
-                    className="inline-flex items-center gap-2 border border-[#1a73e8] bg-[#f1f3f4] px-4 py-2.5 text-sm font-semibold text-[#1a73e8] transition-colors hover:bgbg-[#f1f3f4]">
+                    className="inline-flex items-center gap-2 border border-[#1a73e8] bg-[#f1f3f4] px-4 py-2.5 text-sm font-semibold text-[#1a73e8] transition-colors hover:bg-[#f1f3f4]">
                     <BarChart3 size={16} /> Rekap Nilai
                   </button>
                   {bankCategory !== '' ? (
@@ -3542,8 +3542,8 @@ const visibleBatches = filterCabang
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                   <button onClick={() => selectBankCategory('')}
-                    className={`flex items-center gap-2.5 border px-3.5 py-3 text-left transition-all ${ bankCategory === '' ? 'bg-[#0E6187] border-[#1a73e8] text-white shadow-[#1a73e8]/25' : 'bg-white border-[#dadce0] hover:border-[#1a73e8] hover:' }`}>
-                    <span className={`w-9 h-9 shrink-0 flex items-center justify-center ${bankCategory === '' ? 'bg-white/15 text-white' : 'bgbg-[#f1f3f4] text-[#1a73e8]'}`}>
+                    className={`flex items-center gap-2.5 border px-3.5 py-3 text-left transition-all ${ bankCategory === '' ? 'bg-[#0E6187] border-[#1a73e8] text-white -[#1a73e8]/25' : 'bg-white border-[#dadce0] hover:border-[#1a73e8] hover:' }`}>
+                    <span className={`w-9 h-9 shrink-0 flex items-center justify-center ${bankCategory === '' ? 'bg-white/15 text-white' : 'bg-[#f1f3f4] text-[#1a73e8]'}`}>
                       <LayoutGrid size={15} />
                     </span>
                     <span className="flex-1 min-w-0">
@@ -3556,8 +3556,8 @@ const visibleBatches = filterCabang
                     const active = bankCategory === c.name
                     return (
                       <button key={c.id} onClick={() => selectBankCategory(c.name)}
-                        className={`flex items-center gap-2.5 border px-3.5 py-3 text-left transition-all ${ active ? 'bg-[#0E6187] border-[#1a73e8] text-white shadow-[#1a73e8]/25' : 'bg-white border-[#dadce0] hover:border-[#1a73e8] hover:' }`}>
-                        <span className={`w-9 h-9 shrink-0 flex items-center justify-center ${active ? 'bg-white/15 text-white' : 'bgbg-[#f1f3f4] text-[#1a73e8]'}`}>
+                        className={`flex items-center gap-2.5 border px-3.5 py-3 text-left transition-all ${ active ? 'bg-[#0E6187] border-[#1a73e8] text-white -[#1a73e8]/25' : 'bg-white border-[#dadce0] hover:border-[#1a73e8] hover:' }`}>
+                        <span className={`w-9 h-9 shrink-0 flex items-center justify-center ${active ? 'bg-white/15 text-white' : 'bg-[#f1f3f4] text-[#1a73e8]'}`}>
                           <LayoutGrid size={15} />
                         </span>
                         <span className="flex-1 min-w-0">
@@ -3584,7 +3584,7 @@ const visibleBatches = filterCabang
               </div>
             ) : bankPakets.length === 0 ? (
               <div className="bg-white border border-[#dadce0] px-8 py-14 text-center">
-                <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                <div className="w-14 h-14 mx-auto bg-[#f1f3f4] flex items-center justify-center mb-3">
                   <ListChecks size={28} className="text-[#1a73e8]" />
                 </div>
                 <p className="text-[#202124] font-semibold">
@@ -3621,7 +3621,7 @@ const visibleBatches = filterCabang
 
             <div className="bg-white border border-[#dadce0] overflow-hidden">
               <div className="p-5 flex items-center gap-3">
-                <div className="w-11 h-11 bgbg-[#f1f3f4] text-[#1a73e8] border border-[#1a73e8] flex items-center justify-center shrink-0">
+                <div className="w-11 h-11 bg-[#f1f3f4] text-[#1a73e8] border border-[#1a73e8] flex items-center justify-center shrink-0">
                   <BarChart3 size={22} />
                 </div>
                 <div className="min-w-0">
@@ -3734,7 +3734,7 @@ const visibleBatches = filterCabang
                 <div className="bg-white border border-[#dadce0] overflow-hidden">
                   {rekap.kandidat.length === 0 ? (
                     <div className="px-8 py-14 text-center">
-                      <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                      <div className="w-14 h-14 mx-auto bg-[#f1f3f4] flex items-center justify-center mb-3">
                         <BarChart3 size={28} className="text-[#1a73e8]" />
                       </div>
                       <p className="text-[#202124] font-semibold">Belum ada nilai kandidat</p>
@@ -3788,7 +3788,7 @@ const visibleBatches = filterCabang
                                   </td>
                                   <td className="border-b border-[#e8eaed] px-3 py-3 text-center">
                                     {k.level ? (
-                                      <span className="bgbg-[#f1f3f4] px-2 py-0.5 text-[11px] font-semibold text-[#1a73e8]">L{k.level}</span>
+                                      <span className="bg-[#f1f3f4] px-2 py-0.5 text-[11px] font-semibold text-[#1a73e8]">L{k.level}</span>
                                     ) : <span className="text-[#9aa0a6]">—</span>}
                                   </td>
                                   {rekap.paket.map(pk => {
@@ -3856,7 +3856,7 @@ const visibleBatches = filterCabang
               </div>
             ) : filteredBankMateris.length === 0 ? (
               <div className="bg-white border border-[#dadce0] p-14 text-center">
-                <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                <div className="w-14 h-14 mx-auto bg-[#f1f3f4] flex items-center justify-center mb-3">
                   <BookOpen size={28} className="text-[#1a73e8]" />
                 </div>
                 <p className="text-[#202124] font-semibold">Belum ada materi di bank</p>
@@ -3870,7 +3870,7 @@ const visibleBatches = filterCabang
                 <div className="divide-y divide-[#e8eaed]">
                   {filteredBankMateris.map(m => (
                     <div key={m.id} className="flex items-center gap-3 px-5 py-4">
-                      <div className="w-9 h-9 flex items-center justify-center shrink-0 bgbg-[#f1f3f4] text-[#1a73e8]">
+                      <div className="w-9 h-9 flex items-center justify-center shrink-0 bg-[#f1f3f4] text-[#1a73e8]">
                         <FileText size={16} />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -3946,7 +3946,7 @@ const visibleBatches = filterCabang
               </div>
             ) : materiLessons.length === 0 ? (
               <div className="bg-white border border-[#dadce0] p-14 text-center">
-                <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                <div className="w-14 h-14 mx-auto bg-[#f1f3f4] flex items-center justify-center mb-3">
                   <BookOpen size={28} className="text-[#1a73e8]" />
                 </div>
                 <p className="text-[#202124] font-semibold">Belum ada materi</p>
@@ -4319,7 +4319,7 @@ const visibleBatches = filterCabang
             {!rLoading && participants.length > 0 && rFiltered.length > 0 && (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <div className="bg-white border border-[#dadce0] px-4 py-3 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center bgbg-[#f1f3f4] text-[#1a73e8] shrink-0">
+                  <div className="flex h-9 w-9 items-center justify-center bg-[#f1f3f4] text-[#1a73e8] shrink-0">
                     <Users size={16} />
                   </div>
                   <div className="min-w-0">
@@ -4337,7 +4337,7 @@ const visibleBatches = filterCabang
                   </div>
                 </div>
                 <div className="bg-white border border-[#dadce0] px-4 py-3 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center #e37400-\[#e37400\] text-[#b06000] shrink-0">
+                  <div className="flex h-9 w-9 items-center justify-center bg-[#feefc3] text-[#b06000] text-[#b06000] shrink-0">
                     <Building2 size={16} />
                   </div>
                   <div className="min-w-0">
@@ -4346,7 +4346,7 @@ const visibleBatches = filterCabang
                   </div>
                 </div>
                 <div className="bg-white border border-[#dadce0] px-4 py-3 flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center #8430ce-\[#8430ce\] text-[#7627bb] shrink-0">
+                  <div className="flex h-9 w-9 items-center justify-center bg-[#f3e8fd] text-[#7627bb] text-[#7627bb] shrink-0">
                     <Layers size={16} />
                   </div>
                   <div className="min-w-0">
@@ -4361,7 +4361,7 @@ const visibleBatches = filterCabang
               <div className="bg-white border border-[#dadce0] p-5">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="flex items-center gap-2.5">
-                    <div className="flex h-8 w-8 items-center justify-center bgbg-[#f1f3f4] text-[#1a73e8] shrink-0">
+                    <div className="flex h-8 w-8 items-center justify-center bg-[#f1f3f4] text-[#1a73e8] shrink-0">
                       <BarChart3 size={15} />
                     </div>
                     <div>
@@ -4422,16 +4422,16 @@ const visibleBatches = filterCabang
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm border-collapse">
                       <thead>
-                        <tr className="bg-[#0E6187] text-white">
-                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 w-10 text-left">#</th>
-                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Nama Kandidat</th>
-                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Cabang</th>
-                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Batch</th>
-                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Level</th>
-                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Riwayat Percobaan</th>
-                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-right">Nilai Terbaik</th>
-                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-left">Persentase per Bagian</th>
-                          <th className="text-xs font-medium text-[#5f6368] px-4 py-3 text-right">Aksi</th>
+                        <tr className="bg-white border-b border-[#dadce0]">
+                          <th className="text-xs font-bold text-[#14182B] px-4 py-3 w-10 text-left">#</th>
+                          <th className="text-xs font-bold text-[#14182B] px-4 py-3 text-left">Nama Kandidat</th>
+                          <th className="text-xs font-bold text-[#14182B] px-4 py-3 text-left">Cabang</th>
+                          <th className="text-xs font-bold text-[#14182B] px-4 py-3 text-left">Batch</th>
+                          <th className="text-xs font-bold text-[#14182B] px-4 py-3 text-left">Level</th>
+                          <th className="text-xs font-bold text-[#14182B] px-4 py-3 text-left">Riwayat Percobaan</th>
+                          <th className="text-xs font-bold text-[#14182B] px-4 py-3 text-right">Nilai Terbaik</th>
+                          <th className="text-xs font-bold text-[#14182B] px-4 py-3 text-left">Persentase per Bagian</th>
+                          <th className="text-xs font-bold text-[#14182B] px-4 py-3 text-right">Aksi</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -4443,7 +4443,7 @@ const visibleBatches = filterCabang
                               <tr className="bg-[#e8f0fe]">
                                 <td colSpan={9} className="px-6 py-12 text-center">
                                   <button onClick={() => setRCollapsed(c => ({ ...c, [group.name]: !c[group.name] }))}
-                                    className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bgbg-[#f1f3f4] transition-colors">
+                                    className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#f1f3f4] transition-colors">
                                     <span className="flex items-center gap-2.5 min-w-0">
                                       <span className={`flex h-8 w-8 items-center justify-center border border-[#dadce0] bg-[#f1f3f4] text-[#5f6368] shrink-0 transition-transform ${isCollapsed ? '' : 'rotate-0'}`}>
                                         <Building2 size={15} />
@@ -4488,7 +4488,7 @@ const visibleBatches = filterCabang
       {/* ==================== COURSE CATEGORY MODAL ==================== */}
       {showCourseCatModal && (
         <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[10vh] pb-8 px-4 overflow-y-auto">
-          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-md overflow-hidden">
+          <div className="border border-[#dadce0] bg-white -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-md overflow-hidden">
             <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
               <h3 className="font-semibold text-[#202124]">{editingCourseCat ? 'Edit Kategori' : 'Tambah Kategori'}</h3>
               <button onClick={() => setShowCourseCatModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
@@ -4539,7 +4539,7 @@ const visibleBatches = filterCabang
       {/* ==================== COURSE MODAL ==================== */}
       {showCourseModal && (
         <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto">
-          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden">
+          <div className="border border-[#dadce0] bg-white -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
               <h3 className="font-semibold text-[#202124]">{editingCourse ? 'Edit Kursus' : 'Tambah Kursus'}</h3>
               <button onClick={() => setShowCourseModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
@@ -4558,7 +4558,7 @@ const visibleBatches = filterCabang
                   {uploadingImg && (
                     <div className="absolute inset-0 z-10 bg-white/70 flex items-center justify-center">
                       <div className="flex items-center gap-2 text-sm text-[#5f6368]">
-                        <div className="w-4 h-4 rounded-full border-2 border-[#dadce0] border-t-[#1a73e8] animate-spin" /> Mengupload...
+                        <div className="w-4 h-4  border-2 border-[#dadce0] border-t-[#1a73e8] animate-spin" /> Mengupload...
                       </div>
                     </div>
                   )}
@@ -4600,7 +4600,7 @@ const visibleBatches = filterCabang
                       <svg className={`ml-auto h-4 w-4 shrink-0 text-[#80868b] transition-transform ${showBatchDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                     </button>
                     {showBatchDropdown && (
-                      <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[200px] border border-[#dadce0] bg-white py-1 shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] max-h-60 overflow-y-auto">
+                      <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[200px] border border-[#dadce0] bg-white py-1 -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] max-h-60 overflow-y-auto">
                         <button type="button" onClick={() => { setCourseForm(prev => ({ ...prev, batch_id: '', level: '' })); setShowBatchDropdown(false) }}
                           className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${!courseForm.batch_id ? 'bg-[#e8f0fe] text-[#1967d2] font-medium' : 'text-[#3c4043] hover:bg-[#f8f9fa]'}`}>
                           <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: '#80868b' }} />
@@ -4705,7 +4705,7 @@ const visibleBatches = filterCabang
       {/* ==================== QUIZ PAKET MODAL ==================== */}
       {showPaketModal && (
         <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[6vh] pb-6 px-4 overflow-y-auto">
-          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]">
+          <div className="border border-[#dadce0] bg-white -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]">
             <div className="bg-[#0E6187] px-5 py-4 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 bg-white/15 flex items-center justify-center shrink-0">
@@ -4749,7 +4749,7 @@ const visibleBatches = filterCabang
                   <div className="space-y-2">
                     <input ref={coverInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverSelect} />
                     <button type="button" onClick={() => coverInputRef.current?.click()} disabled={uploadingCover}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1a73e8] hover:bgbg-[#f1f3f4] border border-[#1a73e8] bgbg-[#f8f9fa] px-2.5 py-1.5 transition-colors disabled:opacity-50">
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1a73e8] hover:bg-[#f1f3f4] border border-[#1a73e8] bgbg-[#f8f9fa] px-2.5 py-1.5 transition-colors disabled:opacity-50">
                       {uploadingCover ? <><Loader2 size={14} className="animate-spin" /> Mengunggah...</> : <><ImageIcon size={14} /> {coverPreview ? 'Ganti Cover' : 'Pilih Gambar'}</>}
                     </button>
                     {coverPreview && (
@@ -4788,7 +4788,7 @@ const visibleBatches = filterCabang
                         {quizCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                       </select>
                       <button type="button" onClick={() => setShowCategoryModal(true)}
-                        className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[#1a73e8] hover:bgbg-[#f1f3f4] border border-[#1a73e8] bgbg-[#f8f9fa] px-2.5 py-2.5 transition-colors">
+                        className="shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-[#1a73e8] hover:bg-[#f1f3f4] border border-[#1a73e8] bgbg-[#f8f9fa] px-2.5 py-2.5 transition-colors">
                         <Settings2 size={13} /> Kelola
                       </button>
                     </div>
@@ -4819,7 +4819,7 @@ const visibleBatches = filterCabang
                         onClick={() => setPaketForm({ ...paketForm, max_attempts: Number(paketForm.max_attempts) === 0 ? '3' : '0' })}
                         title="Tanpa batas (unlimited)"
                         className={`relative w-10 h-[22px] transition-colors ${Number(paketForm.max_attempts) === 0 ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}>
-                        <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${Number(paketForm.max_attempts) === 0 ? 'left-[20px]' : 'left-[2px]'}`} />
+                        <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white  transition-all ${Number(paketForm.max_attempts) === 0 ? 'left-[20px]' : 'left-[2px]'}`} />
                       </button>
                     </div>
                     {Number(paketForm.max_attempts) === 0 ? (
@@ -4854,7 +4854,7 @@ const visibleBatches = filterCabang
                   </div>
                   <button type="button" onClick={() => setPaketForm({ ...paketForm, shuffle_questions: !paketForm.shuffle_questions })}
                     className={`relative w-10 h-[22px] shrink-0 transition-colors ${paketForm.shuffle_questions ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}>
-                    <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${paketForm.shuffle_questions ? 'left-[20px]' : 'left-[2px]'}`} />
+                    <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white  transition-all ${paketForm.shuffle_questions ? 'left-[20px]' : 'left-[2px]'}`} />
                   </button>
                 </div>
               </div>
@@ -4911,7 +4911,7 @@ const visibleBatches = filterCabang
                     <button type="button" onClick={() => setPaketForm({ ...paketForm, penilaian_ulangan: !paketForm.penilaian_ulangan })}
                       title={paketForm.penilaian_ulangan ? 'Matikan masuk penilaian ulangan' : 'Aktifkan masuk penilaian ulangan'}
                       className={`relative w-10 h-[22px] shrink-0 transition-colors ${paketForm.penilaian_ulangan ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}>
-                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${paketForm.penilaian_ulangan ? 'left-[20px]' : 'left-[2px]'}`} />
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white  transition-all ${paketForm.penilaian_ulangan ? 'left-[20px]' : 'left-[2px]'}`} />
                     </button>
                   </div>
                   <p className={`mt-2 text-[11px] leading-relaxed border px-3 py-2 ${paketForm.penilaian_ulangan ? 'border-[#a8dab5] bg-[#e6f4ea] text-[#137333]' : 'border-[#dadce0] bg-[#f8f9fa] text-[#5f6368]'}`}>
@@ -4935,7 +4935,7 @@ const visibleBatches = filterCabang
                     <button type="button" onClick={() => setPaketForm({ ...paketForm, sertifikasi_aktif: !paketForm.sertifikasi_aktif })}
                       title={paketForm.sertifikasi_aktif ? 'Matikan sertifikasi' : 'Aktifkan sertifikasi'}
                       className={`relative w-10 h-[22px] shrink-0 transition-colors ${paketForm.sertifikasi_aktif ? 'bg-[#e37400]' : 'bg-[#e8eaed]'}`}>
-                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${paketForm.sertifikasi_aktif ? 'left-[20px]' : 'left-[2px]'}`} />
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white  transition-all ${paketForm.sertifikasi_aktif ? 'left-[20px]' : 'left-[2px]'}`} />
                     </button>
                   </div>
 
@@ -5004,7 +5004,7 @@ const visibleBatches = filterCabang
                     </div>
                     <button type="button" onClick={() => setPaketForm({ ...paketForm, camera_enabled: !paketForm.camera_enabled })}
                       className={`relative w-10 h-[22px] shrink-0 transition-colors ${paketForm.camera_enabled ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}>
-                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${paketForm.camera_enabled ? 'left-[20px]' : 'left-[2px]'}`} />
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white  transition-all ${paketForm.camera_enabled ? 'left-[20px]' : 'left-[2px]'}`} />
                     </button>
                   </div>
                   <div className="flex items-center justify-between gap-3 border border-[#dadce0] bg-[#f8f9fa] px-3.5 py-3">
@@ -5014,7 +5014,7 @@ const visibleBatches = filterCabang
                     </div>
                     <button type="button" onClick={() => setPaketForm({ ...paketForm, block_exit: !paketForm.block_exit })}
                       className={`relative w-10 h-[22px] shrink-0 transition-colors ${paketForm.block_exit ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}>
-                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${paketForm.block_exit ? 'left-[20px]' : 'left-[2px]'}`} />
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white  transition-all ${paketForm.block_exit ? 'left-[20px]' : 'left-[2px]'}`} />
                     </button>
                   </div>
                   <div className="flex items-center justify-between gap-3 border border-[#dadce0] bg-[#f8f9fa] px-3.5 py-3">
@@ -5024,7 +5024,7 @@ const visibleBatches = filterCabang
                     </div>
                     <button type="button" onClick={() => setPaketForm({ ...paketForm, status: paketForm.status === 'aktif' ? 'nonaktif' : 'aktif' })}
                       className={`relative w-10 h-[22px] shrink-0 transition-colors ${paketForm.status === 'aktif' ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}>
-                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white shadow transition-all ${paketForm.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
+                      <span className={`absolute top-[2px] w-[18px] h-[18px] bg-white  transition-all ${paketForm.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
                     </button>
                   </div>
                 </div>
@@ -5036,7 +5036,7 @@ const visibleBatches = filterCabang
                   <span className="w-1.5 h-1.5 bg-current" />
                   {paketForm.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                 </span>
-                <span className="shrink-0 inline-flex items-center gap-1.5 bgbg-[#f1f3f4] text-[#1a73e8] px-2 py-1 font-bold">
+                <span className="shrink-0 inline-flex items-center gap-1.5 bg-[#f1f3f4] text-[#1a73e8] px-2 py-1 font-bold">
                   <Clock size={12} /> {paketForm.time_limit_minutes || 0} menit
                 </span>
                 <span className="shrink-0 inline-flex items-center gap-1.5 bg-[#e8eaed] text-[#5f6368] px-2 py-1 font-bold">
@@ -5061,7 +5061,7 @@ const visibleBatches = filterCabang
       {/* ==================== BANK PICKER MODAL ==================== */}
       {showBankPickerModal && activeCourse && (
         <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[10vh] pb-8 px-4 overflow-y-auto">
-          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden">
+          <div className="border border-[#dadce0] bg-white -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
               <h3 className="font-semibold text-[#202124]">Paket Soal dari Bank</h3>
               <button onClick={() => setShowBankPickerModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
@@ -5078,7 +5078,7 @@ const visibleBatches = filterCabang
                 </div>
               ) : bankPickerPakets.length === 0 ? (
                 <div className="py-14 text-center">
-                  <div className="w-14 h-14 mx-auto bgbg-[#f1f3f4] flex items-center justify-center mb-3">
+                  <div className="w-14 h-14 mx-auto bg-[#f1f3f4] flex items-center justify-center mb-3">
                     <ListChecks size={28} className="text-[#1a73e8]" />
                   </div>
                   <p className="text-[#202124] font-semibold">Bank kosong</p>
@@ -5098,7 +5098,7 @@ const visibleBatches = filterCabang
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-semibold text-[#202124] truncate">{p.title}</p>
                           {p.category && (
-                            <span className="inline-block text-[10px] font-semibold px-2 py-0.5 bgbg-[#f1f3f4] text-[#1a73e8] shrink-0">{p.category}</span>
+                            <span className="inline-block text-[10px] font-semibold px-2 py-0.5 bg-[#f1f3f4] text-[#1a73e8] shrink-0">{p.category}</span>
                           )}
                         </div>
                         <p className="text-xs text-[#80868b] mt-0.5">
@@ -5130,7 +5130,7 @@ const visibleBatches = filterCabang
       {/* ==================== LESSON (MATERI) MODAL ==================== */}
       {showLessonModal && (
         <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[6vh] pb-8 px-4 overflow-y-auto">
-          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden">
+          <div className="border border-[#dadce0] bg-white -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-[#202124]">{editingLesson ? 'Edit Materi' : (lessonSource === 'course' ? 'Tambah Pertemuan' : 'Tambah Materi')}</h3>
@@ -5229,7 +5229,7 @@ const visibleBatches = filterCabang
       {/* ==================== BANK MATERI MODAL ==================== */}
       {showMateriModal && (
         <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[6vh] pb-8 px-4 overflow-y-auto">
-          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden">
+          <div className="border border-[#dadce0] bg-white -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden">
             <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-[#202124]">{editingMateri ? 'Edit Materi Bank' : 'Buat Materi'}</h3>
@@ -5339,7 +5339,7 @@ const visibleBatches = filterCabang
               : 'Soal terbuka, peserta mengetik jawaban sendiri'
         return (
         <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-stretch justify-center p-2 sm:p-4">
-          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-6xl overflow-hidden flex flex-col h-full max-h-[96vh]">
+          <div className="border border-[#dadce0] bg-white -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-6xl overflow-hidden flex flex-col h-full max-h-[96vh]">
             {/* HEADER */}
             <div className="bg-[#0E6187] px-5 py-4 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
@@ -5407,7 +5407,7 @@ const visibleBatches = filterCabang
                       {importingMedia === 'audio' ? 'Mengunggah...' : 'Upload Audio'}
                     </button>
                     <button type="button" onClick={() => onImportTextChange(importSample)}
-                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1a73e8] hover:bgbg-[#f1f3f4] border border-[#1a73e8] bgbg-[#f8f9fa] px-2.5 py-1.5 transition-colors">
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1a73e8] hover:bg-[#f1f3f4] border border-[#1a73e8] bgbg-[#f8f9fa] px-2.5 py-1.5 transition-colors">
                       <FileText size={13} />
                       Isi Contoh
                     </button>
@@ -5425,7 +5425,7 @@ const visibleBatches = filterCabang
                     </p>
                     {importMedia.length > 0 && (
                       <button type="button" onClick={insertAllImportTags}
-                        className="inline-flex items-center gap-1 border border-[#1a73e8] bgbg-[#f8f9fa] px-2 py-1 text-[11px] font-semibold text-[#1a73e8] transition-colors hover:bgbg-[#f1f3f4]">
+                        className="inline-flex items-center gap-1 border border-[#1a73e8] bgbg-[#f8f9fa] px-2 py-1 text-[11px] font-semibold text-[#1a73e8] transition-colors hover:bg-[#f1f3f4]">
                         <Plus size={12} /> Sisipkan semua ke teks soal
                       </button>
                     )}
@@ -5457,7 +5457,7 @@ const visibleBatches = filterCabang
                           {m.type === 'audio' && <audio src={mediaUrl(m.url)} controls className="h-7 w-24 shrink-0" />}
                           <div className="flex shrink-0 items-center gap-1">
                             <button type="button" onClick={() => insertImportTag(m)} title="Sisipkan tag ke teks soal"
-                              className="inline-flex items-center gap-1 bgbg-[#f1f3f4] px-2 py-1 text-[11px] font-bold text-[#1a73e8] transition-colors hover:bgbg-[#f1f3f4]">
+                              className="inline-flex items-center gap-1 bg-[#f1f3f4] px-2 py-1 text-[11px] font-bold text-[#1a73e8] transition-colors hover:bg-[#f1f3f4]">
                               <Plus size={12} /> Sisip
                             </button>
                             <button type="button" onClick={() => copyImportMedia(m)} title="Salin link"
@@ -5536,7 +5536,7 @@ const visibleBatches = filterCabang
                         <p className="text-xs text-[#5f6368] mt-0.5">Periksa dulu sebelum disimpan &middot; jenis: {typeLabel}</p>
                       </div>
                     </div>
-                    <span className="shrink-0 inline-flex items-center gap-1.5 bgbg-[#f1f3f4] text-[#1a73e8] px-2.5 py-1.5 text-xs font-bold">
+                    <span className="shrink-0 inline-flex items-center gap-1.5 bg-[#f1f3f4] text-[#1a73e8] px-2.5 py-1.5 text-xs font-bold">
                       <ListChecks size={13} /> {importParse.length} soal
                     </span>
                   </div>
@@ -5628,7 +5628,7 @@ const visibleBatches = filterCabang
       {/* ==================== QUESTION MODAL ==================== */}
       {showQuestionModal && (
         <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[6vh] pb-6 px-4 overflow-y-auto">
-          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]">
+          <div className="border border-[#dadce0] bg-white -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-3xl overflow-hidden flex flex-col max-h-[88vh]">
             <div className="bg-[#0E6187] px-5 py-4 flex items-center justify-between gap-3 shrink-0">
               <div className="flex items-center gap-3 min-w-0">
                 <div className="w-10 h-10 bg-white/15 flex items-center justify-center shrink-0">
@@ -5671,7 +5671,7 @@ const visibleBatches = filterCabang
                     Bagian / Materi Soal <span className="text-[#80868b] font-normal">(opsional)</span>
                   </label>
                   <button onClick={openSectionManager} type="button"
-                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] hover:bgbg-[#f1f3f4] px-2 py-1 transition-colors">
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] hover:bg-[#f1f3f4] px-2 py-1 transition-colors">
                     <Settings2 size={12} /> Kelola bagian
                   </button>
                 </div>
@@ -5897,7 +5897,7 @@ const visibleBatches = filterCabang
                       </div>
                       {qOptions.length < 6 && (
                         <button onClick={() => setQOptions([...qOptions, { text: '', image_path: null, image_url: null }])}
-                          className="mt-2 w-full py-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-[#1a73e8] bgbg-[#f8f9fa] hover:bgbg-[#f1f3f4] border border-dashed border-[#1a73e8] transition-colors">
+                          className="mt-2 w-full py-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-[#1a73e8] bgbg-[#f8f9fa] hover:bg-[#f1f3f4] border border-dashed border-[#1a73e8] transition-colors">
                           <Plus size={13} /> Tambah opsi
                         </button>
                       )}
@@ -5923,7 +5923,7 @@ const visibleBatches = filterCabang
                 <div className="flex items-center gap-3">
                   <input type="number" min={1} value={qForm.points} onChange={e => setQForm({ ...qForm, points: e.target.value })}
                     className="w-32 px-3.5 py-2.5 border border-[#dadce0] text-sm focus:outline-none  focus:border-[#1a73e8] bg-white" />
-                  <span className="inline-flex items-center gap-1.5 bgbg-[#f1f3f4] text-[#1a73e8] px-2.5 py-1.5 text-xs font-bold">
+                  <span className="inline-flex items-center gap-1.5 bg-[#f1f3f4] text-[#1a73e8] px-2.5 py-1.5 text-xs font-bold">
                     <Award size={13} /> {qForm.points || 0} poin
                   </span>
                 </div>
@@ -5957,7 +5957,7 @@ const visibleBatches = filterCabang
       {/* ==================== SECTION LIST MODAL ==================== */}
       {showSectionListModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center #202124-\[#202124\] p-4" onClick={() => setShowSectionListModal(false)}>
-          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="border border-[#dadce0] bg-white -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-[#202124]">Kelola Bagian / Materi Soal</h3>
@@ -5986,7 +5986,7 @@ const visibleBatches = filterCabang
                         <p className="text-[11px] text-[#80868b]">{s.questions_count ?? 0} soal</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <button onClick={() => openEditSection(s)} className="p-1.5 text-[#80868b] hover:text-[#1a73e8] hover:bgbg-[#f1f3f4] transition-colors" title="Edit">
+                        <button onClick={() => openEditSection(s)} className="p-1.5 text-[#80868b] hover:text-[#1a73e8] hover:bg-[#f1f3f4] transition-colors" title="Edit">
                           <Pencil size={15} />
                         </button>
                         <button onClick={() => deleteSection(s)} className="p-1.5 text-[#d93025] hover:text-[#d93025] hover:bg-[#fce8e6] transition-colors" title="Hapus">
@@ -6005,7 +6005,7 @@ const visibleBatches = filterCabang
       {/* ==================== SECTION ADD/EDIT MODAL ==================== */}
       {showSectionModal && (
         <div className="fixed inset-0 z-[75] flex items-center justify-center #202124-\[#202124\] p-4" onClick={() => setShowSectionModal(false)}>
-          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="border border-[#dadce0] bg-white -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-sm overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
               <h3 className="font-semibold text-[#202124]">{editingQSection ? 'Edit Bagian' : 'Tambah Bagian'}</h3>
               <button onClick={() => setShowSectionModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
@@ -6035,7 +6035,7 @@ const visibleBatches = filterCabang
       {/* ==================== CATEGORY MODAL ==================== */}
       {showCategoryModal && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center #202124-\[#202124\] p-4" onClick={() => setShowCategoryModal(false)}>
-          <div className="border border-[#dadce0] bg-white w-full max-w-md shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="border border-[#dadce0] bg-white w-full max-w-md -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-6 py-4 border-b border-[#dadce0] sticky top-0 bg-white">
               <div>
                 <h2 className="text-lg font-semibold text-[#202124]">Kelola Kategori Paket</h2>
@@ -6074,7 +6074,7 @@ const visibleBatches = filterCabang
       {/* ==================== ATTEMPT DETAIL MODAL ==================== */}
       {showDetailModal && (
         <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[8vh] pb-8 px-4 overflow-y-auto" onClick={() => setShowDetailModal(false)}>
-          <div className="border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div className="border border-[#dadce0] bg-white -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
               <div>
                 <h3 className="font-semibold text-[#202124]">Detail Pengerjaan</h3>
@@ -6238,10 +6238,10 @@ const visibleBatches = filterCabang
       {/* ==================== WELCOME VIDEO SETTINGS MODAL ==================== */}
       {showWelcomeSettings && (
         <div className="fixed inset-0 z-[70] #202124-\[#202124\] flex items-center justify-center p-4" onClick={() => setShowWelcomeSettings(false)}>
-          <div className="border border-[#dadce0] bg-white max-w-lg w-full max-h-[88vh] overflow-y-auto shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
+          <div className="border border-[#dadce0] bg-white max-w-lg w-full max-h-[88vh] overflow-y-auto -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8eaed] sticky top-0 bg-white z-10">
               <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 bgbg-[#f1f3f4] flex items-center justify-center">
+                <div className="w-9 h-9 bg-[#f1f3f4] flex items-center justify-center">
                   <Settings size={18} className="text-[#1a73e8]" />
                 </div>
                 <div>
@@ -6258,7 +6258,7 @@ const visibleBatches = filterCabang
             <div className="p-5 space-y-4">
               {welcomeLoading ? (
                 <div className="flex items-center justify-center py-10">
-                  <div className="w-6 h-6 rounded-full border-2 border-[#1a73e8] border-t-transparent animate-spin" />
+                  <div className="w-6 h-6  border-2 border-[#1a73e8] border-t-transparent animate-spin" />
                 </div>
               ) : (
                 <>
