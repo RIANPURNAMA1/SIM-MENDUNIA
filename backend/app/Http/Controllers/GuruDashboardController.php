@@ -104,13 +104,11 @@ class GuruDashboardController extends Controller
             });
 
         $cabangIds = $user->cabang_ids ?? [];
-        $ownBatchIds = KelasSensei::where('user_id', $user->id)->pluck('batch_id')->filter()->unique()->values();
 
-        // Hanya batch milik guru ini sendiri yang boleh dipilih. Kalau guru belum
-        // punya kelas sama sekali, seluruh batch cabang ditampilkan supaya ia
-        // tetap bisa membuat kelas pertama.
+        // Tampilkan seluruh batch pada cabang guru ini, bukan hanya batch yang
+        // sudah pernah dibuatkan kelas, supaya sensei bisa membuat kelas baru di
+        // batch lain pada cabangnya.
         $batchQuery = Batch::when(count($cabangIds) > 0, fn ($q) => $q->whereIn('cabang_id', $cabangIds))
-            ->when($ownBatchIds->isNotEmpty(), fn ($q) => $q->whereIn('id', $ownBatchIds))
             ->orderBy('nama_batch');
         $batches = $batchQuery->get();
 
