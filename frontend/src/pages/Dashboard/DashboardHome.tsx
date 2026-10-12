@@ -1,6 +1,7 @@
 import { Briefcase, BookOpen, UserCheck, FileText, Wallet } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import DashboardAbsensi from '../Absensi/DashboardAbsensi'
 
 const dashboards = [
   {
@@ -9,6 +10,7 @@ const dashboards = [
     description: 'Kelola data akademik siswa, guru, dan kelas',
     icon: BookOpen,
     path: '/dashboard-akademik',
+    roles: ['HR', 'MANAGER', 'ADMIN', 'KARYAWAN'],
   },
   {
     id: 'absensi',
@@ -16,6 +18,7 @@ const dashboards = [
     description: 'Monitoring kehadiran, shift, dan lokasi absensi real-time',
     icon: UserCheck,
     path: '/dashboard-absensi',
+    roles: ['HR', 'MANAGER', 'ADMIN', 'KARYAWAN'],
   },
   {
     id: 'kandidat',
@@ -23,6 +26,7 @@ const dashboards = [
     description: 'Kelola data kandidat, pendaftaran, pembayaran, dan affiliate',
     icon: FileText,
     path: '/dashboard-kandidat',
+    roles: ['HR', 'MANAGER', 'ADMIN'],
   },
   {
     id: 'pusat',
@@ -30,6 +34,7 @@ const dashboards = [
     description: 'Manajemen lowongan pekerjaan, penempatan kandidat, dan rekrutmen',
     icon: Briefcase,
     path: '/data-matching-job',
+    roles: ['HR', 'MANAGER', 'ADMIN'],
   },
   {
     id: 'keuangan',
@@ -45,9 +50,17 @@ export default function DashboardHome() {
   const { user } = useAuth()
 
   const filteredDashboards = dashboards.filter(d => {
+    if (!user?.role) return true
+    if (user.role === 'HR') {
+      return d.id === 'absensi'
+    }
     if (d.roles && user?.role && !d.roles.includes(user.role)) return false
     return true
   })
+
+  if (user?.role === 'HR') {
+    return <DashboardAbsensi />
+  }
 
   return (
     <div className="px-3 sm:px-6 py-3 sm:py-4">

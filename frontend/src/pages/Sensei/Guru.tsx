@@ -85,13 +85,15 @@ export default function GuruPage() {
             <p className="text-sm text-[#5f6368]">Kelola data sensei dari pengguna yang terdaftar</p>
           </div>
         </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="inline-flex items-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043]"
-        >
-          <Plus size={16} />
-          Tambah Sensei
-        </button>
+        {!isAdminCabang && (
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-2 bg-[#202124] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#3c4043]"
+          >
+            <Plus size={16} />
+            Tambah Sensei
+          </button>
+        )}
       </div>
 
       {/* Table */}
@@ -104,21 +106,23 @@ export default function GuruPage() {
 
               <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">No. HP</th>
               <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Status</th>
-              <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Aksi</th>
+              {!isAdminCabang && (
+                <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Aksi</th>
+              )}
             </tr>
           </thead>
           <tbody>
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <tr key={i}>
-                  <td colSpan={6} className="px-6 py-12 text-center">
+                  <td colSpan={isAdminCabang ? 4 : 5} className="px-6 py-12 text-center">
                     <div className="h-3 w-full #e8eaed-\[#e8eaed\]" />
                   </td>
                 </tr>
               ))
             ) : gurus.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-12 text-center">
+                <td colSpan={isAdminCabang ? 4 : 5} className="px-6 py-12 text-center">
                   <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
                     <Presentation size={24} />
                   </div>
@@ -149,15 +153,17 @@ export default function GuruPage() {
                       {g.status}
                     </span>
                   </td>
-                  <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center">
-                    <button
-                      onClick={() => handleDelete(g.id, g.nama)}
-                      className="p-1.5 text-[#80868b] transition hover:bg-[#fce8e6] hover:text-[#d93025]"
-                      title="Hapus"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </td>
+                  {!isAdminCabang && (
+                    <td className="border-b border-[#e8eaed] px-3 py-2.5 text-center">
+                      <button
+                        onClick={() => handleDelete(g.id, g.nama)}
+                        className="p-1.5 text-[#80868b] transition hover:bg-[#fce8e6] hover:text-[#d93025]"
+                        title="Hapus"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))
             )}
@@ -166,7 +172,7 @@ export default function GuruPage() {
       </div>
 
       {/* Modal Tambah Sensei */}
-      {showModal && (
+      {!isAdminCabang && showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center #202124-\[#202124\] px-3">
           <div className="border border-[#dadce0] w-full max-w-lg bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]">
             <div className="flex items-center justify-between border-b border-[#dadce0] px-4 py-3">

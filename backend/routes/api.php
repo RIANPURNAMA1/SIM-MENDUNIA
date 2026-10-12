@@ -49,6 +49,7 @@ use App\Http\Controllers\PertemuanController;
 use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\AdminCabangController;
+use App\Http\Controllers\AdminMutasiController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\LmsController;
 use App\Http\Controllers\QuizController;
@@ -738,11 +739,17 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/pendaftar/{id}/riwayat-pembayaran', [PendaftaranController::class, 'riwayatPembayaran']);
     Route::post('/pendaftar/{id}/bayar-manual', [PendaftaranController::class, 'bayarManual']);
     Route::post('/pendaftar/{id}/bayar-all', [PendaftaranController::class, 'bayarAll']);
+    Route::post('/pendaftar/{id}/update-status', [PendaftaranController::class, 'updateStatus']);
     Route::post('/pendaftar/{id}/update-kandidat', [PendaftaranController::class, 'updateKandidat']);
 
     // Biaya & Batch Biaya
     Route::get('/biaya-kategori', [BiayaController::class, 'kategoriIndexFlat']);
     Route::get('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaIndex']);
+});
+
+// ========== Admin Mutasi Routes ==========
+Route::prefix('admin-mutasi')->middleware(['auth:sanctum', 'role:ADMIN_MUTASI'])->group(function () {
+    Route::get('/dashboard', [AdminMutasiController::class, 'dashboard']);
 });
 
 // ========== Evaluasi Instruktur (MANAGER/HR/ADMIN/ACCOUNTING) ==========

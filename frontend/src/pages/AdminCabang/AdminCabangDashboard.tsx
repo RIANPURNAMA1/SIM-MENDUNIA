@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import {
   LayoutDashboard, Users, DollarSign, Clock, CheckCircle, AlertCircle,
   Layers, UserX, Wallet, TrendingUp, Activity,
@@ -46,9 +47,9 @@ interface DashboardData {
 }
 
 const statusColor: Record<string, string> = {
-  disetujui: 'bg-slate-100 text-slate-600',
-  pending: 'bg-slate-100 text-slate-600',
-  ditolak: 'bg-slate-100 text-slate-600',
+  disetujui: 'bg-[#e6f4ea] text-[#137333]',
+  pending: 'bg-[#fef7e0] text-[#b06000]',
+  ditolak: 'bg-[#fce8e6] text-[#a50e0e]',
 }
 
 export default function AdminCabangDashboard() {
@@ -176,87 +177,93 @@ export default function AdminCabangDashboard() {
   return (
     <div className="px-3 py-3 sm:px-6 sm:py-4">
       {/* Header */}
-      <div className="mb-6 flex items-center gap-3 animate-fade-up">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187] border border-[#0E6187]/20">
-          <LayoutDashboard size={20} className="text-white" />
-        </div>
-        <div>
-          <h1 className="text-lg font-semibold text-slate-800">Dashboard Admin Cabang</h1>
-          <p className="text-sm text-slate-500">Selamat datang, {data.user.name}</p>
+      <div className="mb-4 flex flex-col gap-4 border-b border-[#dadce0] pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center bg-[#e8f0fe] text-[#1a73e8]">
+            <LayoutDashboard size={20} />
+          </div>
+          <div>
+            <h1 className="text-xl font-medium text-[#202124]">Dashboard Admin Cabang</h1>
+            <p className="text-sm text-[#5f6368]">Selamat datang, {data.user.name}</p>
+          </div>
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { icon: <Users size={20} className="text-[#0E6187]" />, bg: 'bg-[#0E6187]/10', label: 'Total Pendaftar', value: data.stats.total_pendaftar, color: 'text-slate-800' },
-          { icon: <CheckCircle size={20} className="text-[#0E6187]" />, bg: 'bg-[#0E6187]/10', label: 'Disetujui', value: data.stats.pendaftar_disetujui, color: 'text-slate-800' },
-          { icon: <Clock size={20} className="text-[#0E6187]" />, bg: 'bg-[#0E6187]/10', label: 'Pending', value: data.stats.pendaftar_pending, color: 'text-slate-800' },
-          { icon: <UserX size={20} className="text-[#0E6187]" />, bg: 'bg-[#0E6187]/10', label: 'Ditolak', value: data.stats.pendaftar_ditolak, color: 'text-slate-800' },
-        ].map((s, i) => (
-          <div key={i} className={`animate-fade-up ${['', 'delay-100', 'delay-200', 'delay-300', 'delay-400'][i] || ''} rounded-lg border border-slate-200 bg-white p-4 shadow-sm`}>
-            <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${s.bg}`}>{s.icon}</div>
-              <div>
-                <p className="text-xs font-medium text-slate-500">{s.label}</p>
-                <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
+          { icon: Users, label: 'Total Pendaftar', value: data.stats.total_pendaftar },
+          { icon: CheckCircle, label: 'Disetujui', value: data.stats.pendaftar_disetujui },
+          { icon: Clock, label: 'Pending', value: data.stats.pendaftar_pending },
+          { icon: UserX, label: 'Ditolak', value: data.stats.pendaftar_ditolak },
+        ].map((s, i) => {
+          const Icon = s.icon
+          return (
+            <div key={i} className="flex min-w-0 items-center gap-3 border border-[#dadce0] bg-white p-3 sm:p-4">
+              <div className="flex h-9 w-9 flex-none items-center justify-center bg-[#f1f3f4] sm:h-10 sm:w-10">
+                <Icon size={16} className="text-[#1a73e8]" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-[10px] text-[#5f6368] sm:text-xs">{s.label}</p>
+                <p className="break-words text-base font-medium leading-tight text-[#202124] sm:text-xl lg:text-2xl">{s.value}</p>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Secondary Stats */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-        <div className="animate-fade-up delay-150 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187]/10"><Activity size={20} className="text-[#0E6187]" /></div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Siswa Aktif</p>
-              <p className="text-xl font-bold text-slate-800">{data.stats.total_siswa_aktif}</p>
+        {[
+          { icon: Activity, label: 'Siswa Aktif', value: data.stats.total_siswa_aktif },
+          { icon: Wallet, label: 'Pengeluaran Bulan Ini', value: `Rp ${fmt(data.stats.total_pengeluaran_bulan_ini)}` },
+          { icon: AlertCircle, label: 'Outstanding', value: `Rp ${fmt(data.stats.total_outstanding)}` },
+        ].map((s, i) => {
+          const Icon = s.icon
+          return (
+            <div key={i} className="flex min-w-0 items-center gap-3 border border-[#dadce0] bg-white p-3 sm:p-4">
+              <div className="flex h-9 w-9 flex-none items-center justify-center bg-[#f1f3f4] sm:h-10 sm:w-10">
+                <Icon size={16} className="text-[#1a73e8]" />
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-[10px] text-[#5f6368] sm:text-xs">{s.label}</p>
+                <p className="break-words text-base font-medium leading-tight text-[#202124] sm:text-xl lg:text-2xl">{s.value}</p>
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="animate-fade-up delay-250 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187]/10"><Wallet size={20} className="text-[#0E6187]" /></div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Pengeluaran Bulan Ini</p>
-              <p className="text-xl font-bold text-slate-800">Rp {fmt(data.stats.total_pengeluaran_bulan_ini)}</p>
-            </div>
-          </div>
-        </div>
-        <div className="animate-fade-up delay-350 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#0E6187]/10"><AlertCircle size={20} className="text-[#0E6187]" /></div>
-            <div>
-              <p className="text-xs font-medium text-slate-500">Outstanding</p>
-              <p className="text-xl font-bold text-slate-800">Rp {fmt(data.stats.total_outstanding)}</p>
-            </div>
-          </div>
-        </div>
+          )
+        })}
       </div>
 
       {/* === CHARTS ROW 1 === */}
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Bar: Pendaftar per bulan */}
-        <div className="animate-fade-up delay-200 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp size={18} className="text-[#0E6187]" />
-            <h3 className="text-sm font-semibold text-slate-800">Pendaftar per Bulan</h3>
+        <div className="border border-[#dadce0] bg-white p-4">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-9 w-9 items-center justify-center bg-[#f8f9fa]">
+              <TrendingUp size={18} className="text-[#1a73e8]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-medium text-[#202124]">Pendaftar per Bulan</h2>
+              <p className="text-xs text-[#80868b]">Jumlah pendaftar per bulan</p>
+            </div>
           </div>
-          <div className="h-56">
+          <div className="h-72 sm:h-80">
             <Bar data={barPendaftar} options={barOptions} />
           </div>
         </div>
 
         {/* Line: Pembayaran per bulan */}
-        <div className="animate-fade-up delay-300 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <DollarSign size={18} className="text-[#0E6187]" />
-            <h3 className="text-sm font-semibold text-slate-800">Pembayaran per Bulan</h3>
+        <div className="border border-[#dadce0] bg-white p-4">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-9 w-9 items-center justify-center bg-[#f8f9fa]">
+              <DollarSign size={18} className="text-[#137333]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-medium text-[#202124]">Pembayaran per Bulan</h2>
+              <p className="text-xs text-[#80868b]">Nilai pembayaran masuk per bulan</p>
+            </div>
           </div>
-          <div className="h-56">
+          <div className="h-72 sm:h-80">
             <Line data={linePembayaran} options={lineOptions} />
           </div>
         </div>
@@ -265,25 +272,35 @@ export default function AdminCabangDashboard() {
       {/* === CHARTS ROW 2 === */}
       <div className="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Bar: Pengeluaran per bulan */}
-        <div className="animate-fade-up delay-250 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Wallet size={18} className="text-[#0E6187]" />
-            <h3 className="text-sm font-semibold text-slate-800">Pengeluaran per Bulan</h3>
+        <div className="border border-[#dadce0] bg-white p-4">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-9 w-9 items-center justify-center bg-[#f8f9fa]">
+              <Wallet size={18} className="text-[#8430ce]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-medium text-[#202124]">Pengeluaran per Bulan</h2>
+              <p className="text-xs text-[#80868b]">Pengeluaran operasional per bulan</p>
+            </div>
           </div>
-          <div className="h-56">
+          <div className="h-72 sm:h-80">
             <Bar data={barPengeluaran} options={barOptions} />
           </div>
         </div>
 
         {/* Doughnut: Pengeluaran per kategori */}
-        <div className="animate-fade-up delay-350 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Layers size={18} className="text-[#0E6187]" />
-            <h3 className="text-sm font-semibold text-slate-800">Pengeluaran per Kategori</h3>
+        <div className="border border-[#dadce0] bg-white p-4">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex h-9 w-9 items-center justify-center bg-[#f8f9fa]">
+              <Layers size={18} className="text-[#b06000]" />
+            </div>
+            <div>
+              <h2 className="text-sm font-medium text-[#202124]">Pengeluaran per Kategori</h2>
+              <p className="text-xs text-[#80868b]">Distribusi pengeluaran per kategori</p>
+            </div>
           </div>
-          <div className="h-56">
+          <div className="h-72 sm:h-80">
             {data.charts.pengeluaran_per_kategori.length === 0
-              ? <div className="flex items-center justify-center h-full text-xs text-slate-400">Belum ada data</div>
+              ? <div className="flex h-full items-center justify-center text-sm text-[#80868b]">Belum ada data</div>
               : <Doughnut data={doughnutKategori} options={doughnutOptions} />
             }
           </div>
@@ -292,52 +309,57 @@ export default function AdminCabangDashboard() {
 
       {/* === REKAP KEUANGAN + BATCH === */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="animate-fade-up delay-300 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <DollarSign size={18} className="text-slate-600" />
-            <h3 className="text-sm font-semibold text-slate-800">Rekap Keuangan</h3>
+        <div className="border border-[#dadce0] bg-white p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium text-[#202124]">Rekap Keuangan</h2>
+            <span className="text-xs font-medium text-[#1a73e8]">{persentaseTagihan}%</span>
           </div>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-slate-500">Total Tagihan</span>
-              <span className="text-sm font-bold text-slate-800">Rp {fmt(data.stats.total_tagihan)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-slate-500">Terkumpul</span>
-              <span className="text-sm font-bold text-slate-700">Rp {fmt(data.stats.total_terkumpul)}</span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-xs text-slate-500">Outstanding</span>
-              <span className="text-sm font-bold text-slate-600">Rp {fmt(data.stats.total_outstanding)}</span>
-            </div>
-            <div className="pt-2 border-t border-slate-100">
-              <div className="flex justify-between items-center mb-1">
-                <span className="text-xs text-slate-500">Persentase Terkumpul</span>
-                <span className="text-xs font-bold text-[#0E6187]">{persentaseTagihan}%</span>
+          <div className="space-y-2">
+            <div className="bg-[#f8f9fa] p-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-[#5f6368]">Total Tagihan</span>
+                <span className="text-sm font-medium text-[#202124]">Rp {fmt(data.stats.total_tagihan)}</span>
               </div>
-              <div className="w-full bg-slate-100 rounded-full h-2">
-                <div className="bg-[#0E6187] h-2 rounded-full transition-all duration-500" style={{ width: `${Math.min(persentaseTagihan, 100)}%` }} />
+            </div>
+            <div className="bg-[#f8f9fa] p-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-[#5f6368]">Terkumpul</span>
+                <span className="text-sm font-medium text-[#137333]">Rp {fmt(data.stats.total_terkumpul)}</span>
+              </div>
+            </div>
+            <div className="bg-[#f8f9fa] p-3">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-[#5f6368]">Outstanding</span>
+                <span className="text-sm font-medium text-[#b06000]">Rp {fmt(data.stats.total_outstanding)}</span>
+              </div>
+            </div>
+            <div className="pt-2">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-xs font-medium text-[#5f6368]">Persentase Terkumpul</span>
+                <span className="text-xs font-medium text-[#1a73e8]">{persentaseTagihan}%</span>
+              </div>
+              <div className="w-full bg-[#f1f3f4] h-2">
+                <div className="bg-[#1a73e8] h-2 transition-all duration-500" style={{ width: `${Math.min(persentaseTagihan, 100)}%` }} />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="animate-fade-up delay-400 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <Layers size={18} className="text-slate-600" />
-            <h3 className="text-sm font-semibold text-slate-800">Batch Aktif</h3>
+        <div className="border border-[#dadce0] bg-white p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium text-[#202124]">Batch Aktif</h2>
+            <Link to="/admin-cabang/batches" className="text-xs font-medium text-[#1a73e8] hover:underline">
+              Lihat Semua →
+            </Link>
           </div>
           {data.batches.length === 0
-            ? <p className="text-xs text-slate-400">Tidak ada batch</p>
+            ? <p className="py-6 text-center text-sm text-[#80868b]">Tidak ada batch</p>
             : (
               <div className="space-y-2">
                 {data.batches.slice(0, 5).map(b => (
-                  <div key={b.id} className="flex justify-between items-center p-2 rounded-lg bg-slate-50">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-[#0E6187]" />
-                      <span className="text-xs font-medium text-slate-700">{b.nama_batch}</span>
-                    </div>
-                    <span className="text-xs font-semibold text-slate-600">{b.siswas_count} siswa</span>
+                  <div key={b.id} className="flex justify-between items-center bg-[#f8f9fa] p-3">
+                    <span className="text-sm font-medium text-[#202124]">{b.nama_batch}</span>
+                    <span className="text-xs font-medium text-[#5f6368]">{b.siswas_count} siswa</span>
                   </div>
                 ))}
               </div>
@@ -348,52 +370,56 @@ export default function AdminCabangDashboard() {
 
       {/* === RECENT ACTIVITY === */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="animate-fade-up delay-350 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp size={18} className="text-slate-600" />
-            <h3 className="text-sm font-semibold text-slate-800">Pendaftar Terbaru</h3>
+        <div className="border border-[#dadce0] bg-white p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium text-[#202124]">Pendaftar Terbaru</h2>
+            <Link to="/admin-cabang/pendaftar" className="text-xs font-medium text-[#1a73e8] hover:underline">
+              Lihat Semua →
+            </Link>
           </div>
-          {data.recent_pendaftar.length === 0
-            ? <p className="text-xs text-slate-400 py-4 text-center">Belum ada pendaftar</p>
-            : (
-              <div className="space-y-2">
-                {data.recent_pendaftar.map(p => (
-                  <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+          <div className="space-y-3">
+            {data.recent_pendaftar.length === 0
+              ? <p className="py-6 text-center text-sm text-[#80868b]">Belum ada pendaftar</p>
+              : (
+                data.recent_pendaftar.map(p => (
+                  <div key={p.id} className="flex items-center justify-between bg-[#f8f9fa] p-3">
                     <div className="min-w-0">
-                      <p className="text-xs font-medium text-slate-700 truncate">{p.nama}</p>
-                      <p className="text-[10px] text-slate-400">{p.batch} - {p.program}</p>
+                      <p className="text-sm font-medium text-[#202124] truncate">{p.nama || '-'}</p>
+                      <p className="text-xs text-[#5f6368]">{p.batch} - {p.program}</p>
                     </div>
-                    <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-semibold whitespace-nowrap ${statusColor[p.status] || 'bg-slate-50 text-slate-600'}`}>
+                    <span className={`text-xs font-medium px-2.5 py-1 whitespace-nowrap ${statusColor[p.status] || 'bg-[#f1f3f4] text-[#5f6368]'}`}>
                       {p.status}
                     </span>
                   </div>
-                ))}
-              </div>
-            )
-          }
+                ))
+              )
+            }
+          </div>
         </div>
 
-        <div className="animate-fade-up delay-450 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
-            <DollarSign size={18} className="text-slate-600" />
-            <h3 className="text-sm font-semibold text-slate-800">Pembayaran Terbaru</h3>
+        <div className="border border-[#dadce0] bg-white p-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium text-[#202124]">Pembayaran Terbaru</h2>
+            <Link to="/admin-cabang/tagihan" className="text-xs font-medium text-[#1a73e8] hover:underline">
+              Lihat Semua →
+            </Link>
           </div>
-          {data.recent_pembayaran.length === 0
-            ? <p className="text-xs text-slate-400 py-4 text-center">Belum ada pembayaran</p>
-            : (
-              <div className="space-y-2">
-                {data.recent_pembayaran.map(p => (
-                  <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-50">
+          <div className="space-y-3">
+            {data.recent_pembayaran.length === 0
+              ? <p className="py-6 text-center text-sm text-[#80868b]">Belum ada pembayaran</p>
+              : (
+                data.recent_pembayaran.map(p => (
+                  <div key={p.id} className="flex items-center justify-between bg-[#f8f9fa] p-3">
                     <div className="min-w-0">
-                      <p className="text-xs font-medium text-slate-700 truncate">{p.pendaftar}</p>
-                      <p className="text-[10px] text-slate-400">{p.batch}</p>
+                      <p className="text-sm font-medium text-[#202124] truncate">{p.pendaftar || '-'}</p>
+                      <p className="text-xs text-[#5f6368]">{p.batch}</p>
                     </div>
-                    <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Rp {fmt(p.jumlah)}</span>
+                    <span className="text-sm font-medium text-[#137333] whitespace-nowrap">Rp {fmt(p.jumlah)}</span>
                   </div>
-                ))}
-              </div>
-            )
-          }
+                ))
+              )
+            }
+          </div>
         </div>
       </div>
     </div>

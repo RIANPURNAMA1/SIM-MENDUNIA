@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import { LandingStatusProvider, useLandingStatus } from './contexts/LandingStatusContext'
 import DashboardLayout from './layouts/DashboardLayout'
@@ -140,6 +140,7 @@ import CourseMonitorDashboard from './pages/Akademik/CourseMonitorDashboard'
 import GuruLayout from './layouts/GuruLayout'
 import AdminCabangLayout from './layouts/AdminCabangLayout'
 import AdminCabangDashboard from './pages/AdminCabang/AdminCabangDashboard'
+import AdminMutasiDashboard from './pages/AdminMutasi/AdminMutasiDashboard'
 import AdminCabangTagihan from './pages/AdminCabang/AdminCabangTagihan'
 import AdminCabangDataKandidat from './pages/AdminCabang/AdminCabangDataKandidat'
 import AdminCabangPendaftaran from './pages/AdminCabang/AdminCabangPendaftaran'
@@ -147,8 +148,38 @@ import AdminCabangPengeluaran from './pages/AdminCabang/AdminCabangPengeluaran'
 import AdminCabangKategoriPengeluaran from './pages/AdminCabang/AdminCabangKategoriPengeluaran'
 import PertemuanCabang from './pages/AdminCabang/PertemuanCabang'
 import AdminQuizPaketSoal from './pages/AdminCabang/AdminQuizPaketSoal'
+const HR_ALLOWED_PATHS = [
+  '/',
+  '/karyawan',
+  '/divisi',
+  '/cabang',
+  '/shift',
+  '/jadwal-shift',
+  '/daftar-user',
+  '/pengaturan-shift',
+  '/pengaturan',
+  '/pengaturan-perusahaan',
+  '/data-kehadiran',
+  '/data-kehadiran-khusus',
+  '/rekap-absensi',
+  '/rekap-jadwal-shift',
+  '/rekap-kehadiran-sensei',
+  '/data-kehadiran-sensei',
+  '/hari-libur',
+  '/izin-cuti',
+  '/approval-lembur',
+  '/monitoring-lokasi',
+]
+
+function isHrAllowedPath(pathname: string): boolean {
+  return HR_ALLOWED_PATHS.some(
+    (p) => pathname === p || (p !== '/' && pathname.startsWith(p + '/')),
+  )
+}
+
 function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: React.ReactNode; roleAllowed?: string; roleBlocked?: string[] }) {
   const { user, isAuthenticated, isLoading } = useAuth()
+  const location = useLocation()
 
   if (isLoading) {
     return (
@@ -168,6 +199,10 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
     return <Navigate to="/login" replace />
   }
 
+  if (user?.role === 'HR' && !isHrAllowedPath(location.pathname)) {
+    return <Navigate to="/" replace />
+  }
+
   if (roleAllowed && user?.role !== roleAllowed) {
     const map: Record<string, string> = {
       AFFILIATE: '/affiliate-dashboard',
@@ -176,6 +211,9 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
       GURU: '/guru-dashboard',
       ADMIN_CABANG: '/admin-cabang',
       ACCOUNTING: '/dashboard-keuangan',
+      
+      ADMIN_MUTASI: '/admin-mutasi',
+      
     }
     return <Navigate to={map[user?.role || ''] || '/login'} replace />
   }
@@ -188,6 +226,7 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
       GURU: '/guru-dashboard',
       ADMIN_CABANG: '/admin-cabang',
       ACCOUNTING: '/dashboard-keuangan',
+      
     }
     return <Navigate to={map[user.role] || '/login'} replace />
   }
@@ -473,6 +512,16 @@ function AppRoutes() {
           <ProtectedRoute roleAllowed="ADMIN_CABANG">
             <AdminCabangLayout>
               <AdminCabangDataKandidat />
+            </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-cabang/kandidat/job-matching/:id"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_CABANG">
+            <AdminCabangLayout>
+              <AdminJobMatchingKandidat variant="cabang" />
             </AdminCabangLayout>
           </ProtectedRoute>
         }
@@ -846,6 +895,26 @@ function AppRoutes() {
       />
 
       <Route
+        path="/admin-mutasi"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_MUTASI">
+            <DashboardLayout>
+              <AdminMutasiDashboard />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-mutasi/komisi"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_MUTASI">
+            <DashboardLayout>
+              <DataPencairanKomisi />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/dashboard-keuangan"
         element={
           <ProtectedRoute>
@@ -1080,7 +1149,7 @@ function AppRoutes() {
         path="/"
         element={
           isAuthenticated ? (
-            <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE', 'ADMIN_CABANG', 'ACCOUNTING']}>
+            <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE', 'ADMIN_CABANG', 'ACCOUNTING', 'ADMIN_MUTASI', 'ADMIN_PUSAT']}>
               <DashboardLayout>
                 <DashboardHome />
               </DashboardLayout>
@@ -1108,7 +1177,7 @@ function AppRoutes() {
       <Route
         path="/*"
         element={
-          <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE', 'ADMIN_CABANG', 'ACCOUNTING']}>
+          <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE', 'ADMIN_CABANG', 'ACCOUNTING', 'ADMIN_MUTASI']}>
             <DashboardLayout>
               <Routes>
                 <Route path="/dashboard-absensi" element={<DashboardAbsensi />} />

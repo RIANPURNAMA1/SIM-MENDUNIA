@@ -689,17 +689,23 @@ class KehadiranSenseiController extends Controller
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'batch_id' => 'nullable|exists:batches,id',
-            'nama_kelas' => 'required|string|max:255',
+            'nama_kelas' => 'nullable|string|max:255',
             'level' => 'nullable|string|max:255',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
             'catatan' => 'nullable|string',
         ]);
 
+        $namaKelas = trim((string) $request->nama_kelas);
+        if ($namaKelas === '') {
+            $batchNama = $request->batch_id ? optional(\App\Models\Batch::find($request->batch_id))->nama_batch : null;
+            $namaKelas = trim(($batchNama ?? 'Kelas') . ($request->level != '' && $request->level !== null ? ' - Level ' . $request->level : ''));
+        }
+
         $kelas = KelasSensei::create([
             'user_id' => $request->user_id,
             'batch_id' => $request->batch_id,
-            'nama_kelas' => $request->nama_kelas,
+            'nama_kelas' => $namaKelas,
             'level' => $request->level,
             'tanggal_mulai' => $request->tanggal_mulai,
             'tanggal_selesai' => $request->tanggal_selesai,
@@ -730,7 +736,7 @@ class KehadiranSenseiController extends Controller
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'batch_id' => 'nullable|exists:batches,id',
-            'nama_kelas' => 'required|string|max:255',
+            'nama_kelas' => 'nullable|string|max:255',
             'level' => 'nullable|string|max:255',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
@@ -740,10 +746,16 @@ class KehadiranSenseiController extends Controller
 
         $kelas = KelasSensei::findOrFail($id);
 
+        $namaKelas = trim((string) $request->nama_kelas);
+        if ($namaKelas === '') {
+            $batchNama = $request->batch_id ? optional(\App\Models\Batch::find($request->batch_id))->nama_batch : null;
+            $namaKelas = trim(($batchNama ?? 'Kelas') . ($request->level != '' && $request->level !== null ? ' - Level ' . $request->level : ''));
+        }
+
         $kelas->update([
             'user_id' => $request->user_id,
             'batch_id' => $request->batch_id,
-            'nama_kelas' => $request->nama_kelas,
+            'nama_kelas' => $namaKelas,
             'level' => $request->level,
             'tanggal_mulai' => $request->tanggal_mulai,
             'tanggal_selesai' => $request->tanggal_selesai,

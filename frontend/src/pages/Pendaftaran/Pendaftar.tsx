@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search, FileText, Eye, Trash2, RotateCcw, CreditCard, X, Loader, AlertTriangle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Users, MoreHorizontal, BadgeCheck, Ban, RefreshCw, Clock, CheckCircle2, Banknote, Upload, Receipt, LayoutDashboard, Landmark, UserRound } from 'lucide-react'
 import { pendaftarApi, pendaftarApi as apiModule } from '../../services/api'
 import api, { APP_URL } from '../../services/api'
+import { useAuth } from '../../contexts/AuthContext'
 import Swal from 'sweetalert2'
 
 function fmt(n: number) {
@@ -55,6 +56,8 @@ interface ConfirmModal {
 }
 
 export default function Pendaftar() {
+  const { user } = useAuth()
+  const isAccounting = user?.role === 'ACCOUNTING'
   const [data, setData] = useState<PendaftarItem[]>([])
   const [loading, setLoading] = useState(true)
   const [totalItems, setTotalItems] = useState(0)
@@ -603,11 +606,13 @@ export default function Pendaftar() {
                             </button>
                           )}
                           <div className="my-1 border-t border-[#e8eaed]" />
-                          <button onClick={() => { handleDelete(p.id); setOpenActionId(null) }}
-                            className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#c5221f] hover:bg-[#fce8e6] transition-colors">
-                            <Trash2 size={14} className="text-[#ee675c]" />
-                            <span>Hapus</span>
-                          </button>
+                          {!isAccounting && (
+                            <button onClick={() => { handleDelete(p.id); setOpenActionId(null) }}
+                              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#c5221f] hover:bg-[#fce8e6] transition-colors">
+                              <Trash2 size={14} className="text-[#ee675c]" />
+                              <span>Hapus</span>
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
@@ -1029,6 +1034,7 @@ export default function Pendaftar() {
               </div>
 
               {/* Ubah Status */}
+              {!isAccounting && (
               <div>
                 <h3 className="mb-3 text-xs font-semibold r text-[#80868b]">Ubah Status</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -1134,6 +1140,7 @@ export default function Pendaftar() {
                   </button>
                 </div>
               </div>
+              )}
             </div>
 
             <div className="sticky bottom-0 border-t border-[#e8eaed] bg-white px-6 py-3 text-right">

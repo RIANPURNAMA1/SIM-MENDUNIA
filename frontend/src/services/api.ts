@@ -450,6 +450,8 @@ export const adminCabangApi = {
   riwayatPembayaran: (id: number) => api.get(`/admin-cabang/pendaftar/${id}/riwayat-pembayaran`),
   bayarManual: (id: number, data: { jumlah: number; kategori_id: number }) =>
     api.post(`/admin-cabang/pendaftar/${id}/bayar-manual`, data),
+  updateStatus: (id: number, data: Record<string, string>) =>
+    api.post(`/admin-cabang/pendaftar/${id}/update-status`, data),
   biayaKategori: () => api.get('/admin-cabang/biaya-kategori'),
   batchBiaya: (batchId: number) => api.get(`/admin-cabang/batch-biaya/${batchId}`),
   updateKandidat: (id: number, data: Record<string, unknown>) =>
@@ -468,6 +470,10 @@ export const adminCabangApi = {
     api.get('/admin-cabang/evaluasi-instruktur', { params }),
   lms: (params?: Record<string, string | number | undefined>) =>
     api.get('/admin-cabang/lms', { params }),
+}
+
+export const adminMutasiApi = {
+  dashboard: () => api.get('/admin-mutasi/dashboard'),
 }
 
 export const profileApi = {

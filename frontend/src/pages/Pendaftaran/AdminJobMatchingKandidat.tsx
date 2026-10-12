@@ -4,11 +4,12 @@ import { ArrowLeft } from 'lucide-react'
 import api from '../../services/api'
 import MatchingJobForm from '../Siswa/MatchingJobForm'
 
-export default function AdminJobMatchingKandidat() {
+export default function AdminJobMatchingKandidat({ variant = 'all' }: { variant?: 'all' | 'cabang' }) {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const kandidatId = Number(id)
   const [nama, setNama] = useState('')
+  const basePath = variant === 'cabang' ? '/admin-cabang/kandidat' : '/data-kandidat'
 
   useEffect(() => {
     if (!id) return
@@ -25,7 +26,7 @@ export default function AdminJobMatchingKandidat() {
     <div className="min-h-screen bg-slate-100">
       <div className="sticky top-0 z-50 flex items-center gap-3 border-b border-slate-200 bg-white px-4 py-2.5 shadow-sm">
         <button
-          onClick={() => navigate('/data-kandidat')}
+          onClick={() => navigate(basePath)}
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50"
           aria-label="Kembali"
         >
@@ -36,7 +37,7 @@ export default function AdminJobMatchingKandidat() {
           <p className="text-sm font-bold text-slate-800">{nama || 'Memuat...'}</p>
         </div>
       </div>
-      <MatchingJobForm adminKandidatId={kandidatId} onClose={() => navigate('/data-kandidat', { replace: true })} />
+      <MatchingJobForm adminKandidatId={kandidatId} onClose={() => navigate(basePath, { replace: true })} />
     </div>
   )
 }

@@ -224,6 +224,7 @@ export interface Guru {
     foto_profil: string | null
     email: string
     role: string
+    cabang_ids?: (string | number)[]
   } | null
 }
 

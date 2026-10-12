@@ -221,10 +221,12 @@ export default function DaftarUserPage() {
       KANDIDAT: 'bg-[#fce8e6] text-[#a50e0e]',
       AFFILIATE: 'bg-[#fef7e0] text-[#b06000]',
       ADMIN_CABANG: 'bg-[#e8f0fe] text-[#1967d2]',
+      ADMIN_MUTASI: 'bg-[#e8def8] text-[#8430ce]',
+      ADMIN_PUSAT: 'bg-[#f1f8ff] text-[#0b7dda]',
     }
     return (
       <span className={`text-[10px] font-semibold px-2 py-0.5 ${colors[role] || 'bg-[#f1f3f4] text-[#5f6368]'}`}>
-        {role === 'ADMIN_CABANG' ? 'ADMIN CABANG' : role}
+        {role === 'ADMIN_CABANG' ? 'ADMIN CABANG' : role === 'ADMIN_MUTASI' ? 'ADMIN MUTASI' : role === 'ADMIN_PUSAT' ? 'ADMIN PUSAT' : role}
       </span>
     )
   }
@@ -284,6 +286,8 @@ export default function DaftarUserPage() {
             <option value="KANDIDAT">KANDIDAT</option>
             <option value="AFFILIATE">AFFILIATE</option>
             <option value="ADMIN_CABANG">ADMIN CABANG</option>
+            <option value="ADMIN_MUTASI">ADMIN MUTASI</option>
+            <option value="ADMIN_PUSAT">ADMIN PUSAT</option>
           </select>
           <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1) }}
             className="border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
@@ -496,6 +500,8 @@ export default function DaftarUserPage() {
                     <option value="KANDIDAT">KANDIDAT</option>
                     <option value="AFFILIATE">AFFILIATE</option>
                     <option value="ADMIN_CABANG">ADMIN CABANG</option>
+                    <option value="ADMIN_MUTASI">ADMIN MUTASI</option>
+                    <option value="ADMIN_PUSAT">ADMIN PUSAT</option>
                   </select>
                 </div>
                 <div>
@@ -652,6 +658,8 @@ export default function DaftarUserPage() {
                     <option value="KANDIDAT">KANDIDAT</option>
                     <option value="AFFILIATE">AFFILIATE</option>
                     <option value="ADMIN_CABANG">ADMIN CABANG</option>
+                    <option value="ADMIN_MUTASI">ADMIN MUTASI</option>
+                    <option value="ADMIN_PUSAT">ADMIN PUSAT</option>
                   </select>
                 </div>
                 <div>

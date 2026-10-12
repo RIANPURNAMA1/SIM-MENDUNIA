@@ -661,7 +661,13 @@ class AdminCabangController extends Controller
             'count' => $all->count(),
         ];
 
-        $pendingPids = \App\Models\Pembayaran::where('status', 'processing')
+        $pendingPids = \App\Models\Pembayaran::whereIn('status', ['pending', 'processing'])
+            ->whereIn('pendaftar_id', $all->pluck('id'))
+            ->pluck('pendaftar_id')
+            ->unique()
+            ->flip();
+
+        $pendingUploadPids = \App\Models\Pembayaran::where('status', 'pending')
             ->whereIn('pendaftar_id', $all->pluck('id'))
             ->pluck('pendaftar_id')
             ->unique()
@@ -686,6 +692,7 @@ class AdminCabangController extends Controller
                     'total_sisa' => 0,
                     'kategori_ids' => [],
                     'has_pending' => false,
+                    'pending_count' => 0,
                     'last_pembayaran' => null,
                 ];
             }
@@ -705,6 +712,10 @@ class AdminCabangController extends Controller
             }
 
             if (isset($pendingPids[$p['id']])) {
+                $groupMap[$bid]['has_pending'] = true;
+            }
+            if (isset($pendingUploadPids[$p['id']])) {
+                $groupMap[$bid]['pending_count']++;
                 $groupMap[$bid]['has_pending'] = true;
             }
 
@@ -806,7 +817,7 @@ class AdminCabangController extends Controller
     {
         $batchIds = $this->getBranchBatchIds();
 
-        $query = Pendaftar::with(['product', 'batch.cabang.kontraks', 'kontrakTandaTangans', 'user', 'siswa', 'pembayaranItems.kategori'])
+        $query = Pendaftar::with(['product', 'batch.cabang.kontraks', 'kontrakTandaTangans', 'user', 'siswa', 'pembayaranItems.kategori', 'matchingJobForm'])
             ->whereIn('batch_id', $batchIds)
             ->where('status_pendaftaran', 'disetujui');
 
@@ -924,6 +935,26 @@ class AdminCabangController extends Controller
                 'level_status_keluar' => ($siswa && $siswa->status_kandidat === 'Mengundurkan Diri')
                     || ($siswa && $siswa->level_status && collect($siswa->level_status)->contains('Keluar')),
                 'password_plain' => $user?->password_plain ?? null,
+                'learning_level' => (function () use ($p) {
+                    $batchId = $p->batch_id;
+                    if (!$batchId) return 1;
+                    $today = now()->toDateString();
+                    $level = 1;
+                    foreach (\App\Models\JadwalLevel::where('batch_id', $batchId)->get() as $j) {
+                        $mulai = $j->tanggal_mulai->format('Y-m-d');
+                        $selesai = $j->tanggal_selesai->format('Y-m-d');
+                        if ($today >= $mulai) $level = max($level, (int) $j->level);
+                        if ($today >= $mulai && $today <= $selesai) return (int) $j->level;
+                    }
+                    return $level;
+                })(),
+                'matching_job' => $p->matchingJobForm ? [
+                    'id' => $p->matchingJobForm->id,
+                    'status_formulir' => $p->matchingJobForm->status_formulir,
+                    'updated_at' => $p->matchingJobForm->updated_at?->format('d M Y H:i'),
+                    'penempatan_kandidat_id' => $p->matchingJobForm->penempatan_kandidat_id,
+                    'data' => $p->matchingJobForm->data ?: [],
+                ] : null,
                 'kontrak' => (function () use ($p) {
                     $k = $p->batch?->cabang?->kontraks?->sortByDesc('created_at')->first();
                     $ttd = $p->kontrakTandaTangans->first();

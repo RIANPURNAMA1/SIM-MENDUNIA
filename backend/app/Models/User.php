@@ -113,6 +113,16 @@ class User extends Authenticatable
         return $this->role === 'ADMIN_CABANG';
     }
 
+    public function isAccounting()
+    {
+        return $this->role === 'ACCOUNTING';
+    }
+
+    public function isAdminMutasi()
+    {
+        return $this->role === 'ADMIN_MUTASI';
+    }
+
     public function getBranchIdsAttribute()
     {
         return $this->cabang_ids ?? [];

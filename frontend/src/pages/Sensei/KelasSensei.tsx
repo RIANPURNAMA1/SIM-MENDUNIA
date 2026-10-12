@@ -115,8 +115,24 @@ export default function KelasSenseiPage() {
   const selectedJadwal = form.batch_id && form.level ? jadwalLevels[`${form.batch_id}-${form.level}`] : null;
   const selectedBatch = form.batch_id ? listBatch.find((b) => String(b.id) === form.batch_id) : null;
 
+  const availableLevels = useMemo(() => {
+    if (!form.batch_id) return []
+    return Object.keys(jadwalLevels)
+      .filter(key => key.startsWith(`${form.batch_id}-`))
+      .map(key => key.split('-')[1])
+      .sort()
+  }, [form.batch_id, jadwalLevels])
+
+  const filteredGurus = useMemo(() => {
+    const cabangId = selectedBatch?.cabang?.id
+    if (!cabangId) return gurus
+    return gurus.filter(g =>
+      Array.isArray(g.user?.cabang_ids) && g.user.cabang_ids.map(String).includes(String(cabangId))
+    )
+  }, [gurus, selectedBatch?.cabang?.id])
+
   const handleAdd = async () => {
-    if (!form.nama_kelas || !form.user_id) return;
+    if (!form.user_id) return;
     const jadwalKey = `${form.batch_id}-${form.level}`;
     const jadwal = form.batch_id && form.level ? jadwalLevels[jadwalKey] : null;
     const tanggalMulai = jadwal?.tanggal_mulai || form.tanggal_mulai;
@@ -125,7 +141,6 @@ export default function KelasSenseiPage() {
     setSubmitting(true);
     try {
       const payload = {
-        nama_kelas: form.nama_kelas,
         level: form.level,
         user_id: Number(form.user_id),
         batch_id: form.batch_id ? Number(form.batch_id) : null,
@@ -332,7 +347,7 @@ export default function KelasSenseiPage() {
                       <button onClick={() => openEditModal(item)} className="p-1.5 text-[#80868b] transition hover:bg-[#e8f0fe] hover:text-[#1a73e8]" title="Edit">
                         <Pencil size={14} />
                       </button>
-                      <button onClick={() => handleDelete(item.id, item.nama_kelas)} className="p-1.5 text-[#80868b] transition hover:bg-[#fce8e6] hover:text-[#d93025]" title="Hapus">
+                      <button onClick={() => handleDelete(item.id, item.batch_relasi?.nama_batch || item.nama_kelas)} className="p-1.5 text-[#80868b] transition hover:bg-[#fce8e6] hover:text-[#d93025]" title="Hapus">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -414,23 +429,6 @@ export default function KelasSenseiPage() {
             </div>
             <div className="px-4 py-4 space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Nama Kelas <span className="text-[#d93025]">*</span></label>
-                <input type="text" value={form.nama_kelas} onChange={(e) => setForm({ ...form, nama_kelas: e.target.value })} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]" placeholder="Contoh: Kelas A1" />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Level</label>
-                <input type="text" value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]" placeholder="Contoh: Beginner" />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Sensei <span className="text-[#d93025]">*</span></label>
-                <select value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
-                  <option value="">Pilih Sensei</option>
-                  {gurus.map((g) => (
-                    <option key={g.id} value={g.user_id}>{g.nama}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
                 <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Batch</label>
                 <div className="relative">
                   <button type="button" onClick={() => setShowBatchDropdown(!showBatchDropdown)}
@@ -449,12 +447,12 @@ export default function KelasSenseiPage() {
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setShowBatchDropdown(false)} />
                       <div className="absolute top-full left-0 z-50 mt-1 max-h-48 w-full overflow-y-auto border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15)]">
-                        <button type="button" onClick={() => { setForm({ ...form, batch_id: "" }); setShowBatchDropdown(false); }}
+                        <button type="button" onClick={() => { setForm({ ...form, batch_id: "", level: "", user_id: "" }); setShowBatchDropdown(false); }}
                           className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-[#f8f9fa] ${!form.batch_id ? 'bg-[#e8f0fe] font-semibold' : ''}`}>
                           Pilih Batch
                         </button>
                         {listBatch.map((b) => (
-                          <button type="button" key={b.id} onClick={() => { setForm({ ...form, batch_id: String(b.id) }); setShowBatchDropdown(false); }}
+                          <button type="button" key={b.id} onClick={() => { setForm({ ...form, batch_id: String(b.id), level: "", user_id: "" }); setShowBatchDropdown(false); }}
                             className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition hover:bg-[#f8f9fa] ${String(b.id) === form.batch_id ? 'bg-[#e8f0fe] font-semibold' : ''}`}>
                             <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#0E6187' }} />
                             <span className="truncate">{b.nama_batch}</span>
@@ -465,6 +463,30 @@ export default function KelasSenseiPage() {
                     </>
                   )}
                 </div>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Level <span className="text-[#d93025]">*</span></label>
+                <select value={form.level} onChange={(e) => setForm({ ...form, level: e.target.value })} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
+                  <option value="">Pilih Level</option>
+                  {availableLevels.map(l => (
+                    <option key={l} value={l}>Level {l}</option>
+                  ))}
+                </select>
+                {form.batch_id && availableLevels.length === 0 && (
+                  <p className="mt-1 text-[11px] text-[#b06000]">Jadwal level belum diatur untuk batch ini.</p>
+                )}
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-[#5f6368]">Sensei <span className="text-[#d93025]">*</span></label>
+                <select value={form.user_id} onChange={(e) => setForm({ ...form, user_id: e.target.value })} className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]">
+                  <option value="">Pilih Sensei</option>
+                  {filteredGurus.map((g) => (
+                    <option key={g.id} value={g.user_id}>{g.nama}</option>
+                  ))}
+                </select>
+                {selectedBatch?.cabang?.id && filteredGurus.length === 0 && (
+                  <p className="mt-1 text-[11px] text-[#b06000]">Tidak ada sensei pada cabang {selectedBatch.cabang.nama_cabang}.</p>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -495,7 +517,7 @@ export default function KelasSenseiPage() {
             </div>
             <div className="flex justify-end gap-2 border-t border-[#dadce0] px-4 py-3">
               <button onClick={closeModal} className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">Batal</button>
-              <button onClick={handleAdd} disabled={submitting || !form.nama_kelas || !form.user_id} className="bg-[#202124] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#3c4043] disabled:opacity-50">
+              <button onClick={handleAdd} disabled={submitting || !form.user_id} className="bg-[#202124] px-4 py-2 text-xs font-medium text-white transition hover:bg-[#3c4043] disabled:opacity-50">
                 {submitting ? "Menyimpan..." : editingId ? "Perbarui" : "Simpan"}
               </button>
             </div>

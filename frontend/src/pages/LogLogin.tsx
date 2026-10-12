@@ -36,6 +36,8 @@ const ROLE_STYLE: Record<string, string> = {
   KANDIDAT: 'bg-[#d93025]',
   AFFILIATE: 'bg-[#8430ce]',
   ADMIN_CABANG: 'bg-[#0b8043]',
+  ADMIN_MUTASI: 'bg-[#7c3aed]',
+  ADMIN_PUSAT: 'bg-[#0b7dda]',
 }
 
 export default function LogLogin() {

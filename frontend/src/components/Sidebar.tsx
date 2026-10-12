@@ -145,8 +145,6 @@ const navItems: NavItem[] = [
     children: [
       { label: "Program", icon: "Package", href: "/data-product" },
       { label: "Data Coupon", icon: "CreditCard", href: "/data-coupon" },
-      { label: "Batch", icon: "Layers", href: "/batches" },
-      { label: "Jadwal Level", icon: "Calendar", href: "/jadwal-level" },
       { label: "Pengaturan Pembayaran", icon: "CreditCard", href: "/pengaturan-pembayaran" },
       { label: "Monitoring Notifikasi", icon: "MessageSquare", href: "/notifikasi-wa" },
       { label: "Template Notifikasi", icon: "FileText", href: "/template-notifikasi" },
@@ -167,6 +165,8 @@ const navItems: NavItem[] = [
     children: [
       { label: "Data Sensei", icon: "Presentation", href: "/guru" },
       { label: "Kelas Sensei", icon: "BookOpen", href: "/kelas-sensei" },
+      { label: "Batch", icon: "Layers", href: "/batches" },
+      { label: "Jadwal Level", icon: "Calendar", href: "/jadwal-level" },
       { label: "Rekap Siswa", icon: "BarChart3", href: "/rekap-siswa" },
       { label: "Penilaian Siswa", icon: "Notebook", href: "/penilaian" },
       { label: "Evaluasi Instruktur", icon: "ClipboardCheck", href: "/evaluasi-instruktur" },
@@ -284,63 +284,57 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const isAccounting = user?.role === "ACCOUNTING";
 
+  const isAdminMutasi = user?.role === "ADMIN_MUTASI";
+
+  const isAdminPusat = user?.role === "ADMIN_PUSAT";
+
+  const isHR = user?.role === "HR";
+
   const filteredNavItems = isRestricted
     ? []
-    : isAccounting
-    ? (navItems
-        .filter(
+    : isAdminPusat
+    ? ([
+        { label: "Data Affiliate", icon: "Handshake", href: "/data-affiliate" },
+        { label: "Informasi Pendaftaran", icon: "ClipboardList", href: "/pendaftar" },
+      ] as NavItem[])
+    : isAdminMutasi
+    ? ([
+        { label: "Dashboard", icon: "LayoutDashboard", href: "/admin-mutasi" },
+        { label: "Data Pendaftaran", icon: "Users", href: "/pendaftar" },
+        { label: "Data Tagihan", icon: "FileText", href: "/tagihan" },
+        { label: "Data Keuangan", icon: "Wallet", href: "/pembayaran" },
+        { label: "Pencairan Komisi", icon: "Handshake", href: "/admin-mutasi/komisi" },
+      ] as NavItem[])
+        : isAdminPusat
+    ? ([
+        { label: "Data Affiliate", icon: "Handshake", href: "/data-affiliate" },
+        { label: "Informasi Pendaftaran", icon: "ClipboardList", href: "/pendaftar" },
+      ] as NavItem[])
+    : isHR
+    ? ([
+        { label: "Dashboard", icon: "LayoutDashboard", href: "/" },
+        ...navItems.filter(
           (item) =>
-            item.label === "Keuangan" ||
-            item.label === "Manage Kandidat" ||
-            item.label === "Program" ||
-            item.label === "Affiliate & Pasukan" ||
-            item.label === "Manajemen Absensi" ||
-            item.label === "Akademik",
-        )
-        .map((item) => {
-          if (item.label === "Manage Kandidat" && "children" in item) {
+            item.label === "HR & Operasional" ||
+            item.label === "Manajemen Absensi",
+        ),
+      ] as NavItem[])
+    : isAccounting
+    ? ([
+        navItems.find((item) => item.label === "Dashboard")!,
+        { label: "Pendaftaran", icon: "ClipboardList", href: "/pendaftar" },
+        ...navItems
+          .filter((item) => item.label === "Keuangan")
+          .map((item) => {
             const group = item as NavGroup;
             return {
               ...group,
               children: group.children.filter(
-                (child) =>
-                  child.label === "Data Kandidat" || child.label === "Pendaftaran" || child.label === "Pembayaran Tagihan",
+                (child) => child.label !== "Dashboard Keuangan",
               ),
             };
-          }
-          if (item.label === "Akademik" && "children" in item) {
-            const group = item as NavGroup;
-            return {
-              ...group,
-              children: group.children.filter(
-                (child) => child.label === "Evaluasi Instruktur",
-              ),
-            };
-          }
-          if (item.label === "Program" && "children" in item) {
-            const group = item as NavGroup;
-            return {
-              ...group,
-              children: group.children.filter(
-                (child) => child.label !== "Affiliate Dashboard",
-              ),
-            };
-          }
-          if (item.label === "Affiliate & Pasukan" && "children" in item) {
-            return null;
-          }
-          if (item.label === "Website" && "children" in item && !landingEnabled) {
-            const group = item as NavGroup;
-            return {
-              ...group,
-              children: group.children.filter(
-                (child) => child.label !== "Lihat Website",
-              ),
-            };
-          }
-          return item;
-        })
-        .filter(Boolean) as NavItem[])
+          }),
+      ] as NavItem[])
     : (navItems
         .map((item) => {
           if (item.label === "Affiliate & Pasukan" && "children" in item) {

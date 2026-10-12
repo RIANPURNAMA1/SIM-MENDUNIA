@@ -2488,12 +2488,10 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 className="flex w-full items-center justify-center gap-2 bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] sm:w-auto">
                 <Edit3 size={14} /> Edit Data
               </button>
-              {!isCabang && (
-                <button onClick={() => navigate(`/data-kandidat/job-matching/${detailKandidat.id}`)}
-                  className="flex w-full items-center justify-center gap-2 border border-[#1a73e8] bg-white px-4 py-2 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#e8f2f7] sm:w-auto">
-                  <ClipboardPaste size={14} /> Lengkapi Data Job Matching
-                </button>
-              )}
+              <button onClick={() => navigate(isCabang ? `/admin-cabang/kandidat/job-matching/${detailKandidat.id}` : `/data-kandidat/job-matching/${detailKandidat.id}`)}
+                className="flex w-full items-center justify-center gap-2 border border-[#1a73e8] bg-white px-4 py-2 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#e8f2f7] sm:w-auto">
+                <ClipboardPaste size={14} /> Lengkapi Data Job Matching
+              </button>
               <Link to={isCabang ? `/admin-cabang/pendaftar/${detailKandidat.id}/invoice` : `/pendaftar/${detailKandidat.id}/invoice`}
                 className="flex w-full items-center justify-center gap-2 border border-[#dadce0] bg-white px-4 py-2 text-sm font-semibold text-[#3c4043] transition hover:bg-[#f8f9fa] sm:w-auto">
                 <Receipt size={14} /> Lihat Invoice
