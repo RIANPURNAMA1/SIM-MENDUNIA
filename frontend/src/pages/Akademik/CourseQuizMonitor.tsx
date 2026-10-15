@@ -82,6 +82,7 @@ interface MonitorData {
   date: string
   dates: MonitorDateEntry[]
   attempts: MonitorAttempt[]
+  roster?: { id: number; nama: string; batch?: string | null; level?: number | string | null; attendance?: string | null }[]
 }
 
 interface DetailQuestion {
@@ -315,6 +316,7 @@ export default function CourseQuizMonitor() {
   const warningsTotal = live.reduce((s, a) => s + a.warnings, 0)
   const answeredTotal = live.reduce((s, a) => s + a.answered_count, 0)
   const liveCount = live.length
+  const notYetCount = data?.roster?.length || 0
 
   const finishedDurations = finished
     .filter(a => a.started_at && a.submitted_at)
@@ -383,6 +385,7 @@ export default function CourseQuizMonitor() {
                   {paketTitle ? ` · ${paketTitle}` : ''}
                   {' · '}{fmtDay(selectedDate, isToday)}
                   {liveCount > 0 ? ` · ${liveCount} kandidat sedang mengerjakan` : ' · tidak ada kandidat aktif'}
+                  {notYetCount > 0 && ` · ${notYetCount} belum mengerjakan`}
                   {lastSync && ` · diperbarui ${ago(new Date(lastSync).toISOString())}`}
                 </p>
                 {data?.scope?.batch_id ? (
@@ -519,7 +522,7 @@ export default function CourseQuizMonitor() {
             <p className="text-sm font-medium text-[#202124]">Kursus ini belum memiliki paket soal</p>
             <p className="text-xs text-[#5f6368] mt-1">Buat paket soal pada halaman kursus untuk mulai memonitor kandidat.</p>
           </div>
-        ) : attempts.length === 0 ? (
+        ) : attempts.length === 0 && notYetCount === 0 ? (
           <div className="border border-dashed border-[#dadce0] bg-white p-12 text-center">
             <CheckCircle2 size={28} className="text-[#80868b] mx-auto mb-3" />
             <p className="text-sm font-medium text-[#202124]">Belum ada kandidat mengerjakan pada {fmtDay(selectedDate, isToday).toLowerCase()}</p>
@@ -864,6 +867,37 @@ export default function CourseQuizMonitor() {
                   </div>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Daftar belum mengerjakan */}
+      {(data?.roster || []).length > 0 && (
+        <div className="mx-auto max-w-7xl px-4 py-4">
+          <div className="border border-[#dadce0] bg-white overflow-hidden">
+            <div className="px-4 py-2.5 bg-[#f8f9fa] border-b border-[#e8eaed]">
+              <h2 className="text-sm font-medium text-[#202124]">Belum Mengerjakan</h2>
+              <p className="text-[11px] text-[#80868b]">{data!.roster!.length} kandidat</p>
+            </div>
+            <div className="p-3">
+              <div className="flex flex-wrap gap-2">
+                {data!.roster!.map((s) => (
+                  <div key={s.id} className="flex items-center gap-2 border border-[#dadce0] bg-[#f8f9fa] px-2.5 py-1.5 rounded-md">
+                    <span className="text-xs font-medium text-[#202124]">{s.nama}</span>
+                    {(s.batch || s.level) && (
+                      <span className="text-[10px] text-[#80868b]">
+                        {[s.batch && `Batch ${s.batch}`, s.level !== null && `Level ${s.level}`].filter(Boolean).join(' · ')}
+                      </span>
+                    )}
+                    {s.attendance && (
+                      <span className="text-[10px] font-semibold bg-white border border-[#dadce0] px-1.5 py-0.5 rounded">
+                        {s.attendance}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>

@@ -47,6 +47,8 @@ interface PlayAttempt {
   score: number | null
   passing_score: number
   max_warnings: number
+  time_limit_seconds?: number
+  remaining_seconds?: number
 }
 
 const fmtClock = (sec: number) => {
@@ -297,9 +299,14 @@ export default function QuizPlay() {
       cameraAttachedRef.current = false
       graceUntilRef.current = Date.now() + CAM_GRACE_MS
 
-      const endTime = Date.parse(a.started_at) + a.time_limit_seconds * 1000
-      endTimeRef.current = endTime
-      setRemaining(Math.max(0, Math.floor((endTime - Date.now()) / 1000)))
+      // Sisa waktu otoritatif berasal dari server (remaining_seconds). Countdown
+      // dihitung relatif terhadap jam perangkat sendiri agar jam device yang
+      // meleset tidak menyebabkan quiz dikumpulkan lebih cepat dari waktunya.
+      const serverRemaining = typeof a.remaining_seconds === 'number'
+        ? Math.max(0, a.remaining_seconds)
+        : Math.max(0, Math.floor((Date.parse(a.started_at) + a.time_limit_seconds! * 1000 - Date.now()) / 1000))
+      endTimeRef.current = Date.now() + serverRemaining * 1000
+      setRemaining(serverRemaining)
     }).catch(() => {
       Swal.fire({ icon: 'error', title: 'Gagal memuat percobaan' })
       navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
@@ -410,15 +417,30 @@ export default function QuizPlay() {
             navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
           })
         } else {
-          const searchParams = new URLSearchParams(location.search)
-          const lesson = searchParams.get('lesson')
-          const courseId = searchParams.get('course') || searchParams.get('course_id') || ''
-          if (courseId && lesson) {
-            navigate(`/siswa-dashboard/lms/${courseId}/materi/${lesson}`, { replace: true })
-          } else if (lesson) {
-            navigate(`/siswa-dashboard/lms/materi/${lesson}`, { replace: true })
+          const goBack = () => {
+            const searchParams = new URLSearchParams(location.search)
+            const lesson = searchParams.get('lesson')
+            const courseId = searchParams.get('course') || searchParams.get('course_id') || ''
+            if (courseId && lesson) {
+              navigate(`/siswa-dashboard/lms/${courseId}/materi/${lesson}`, { replace: true })
+            } else if (lesson) {
+              navigate(`/siswa-dashboard/lms/materi/${lesson}`, { replace: true })
+            } else {
+              navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
+            }
+          }
+          if (reason === 'waktu habis') {
+            Swal.fire({
+              icon: 'info',
+              title: 'Waktu habis',
+              text: 'Waktu pengerjaan telah berakhir. Jawaban Anda dikumpulkan otomatis.',
+              confirmButtonColor: '#0E6187',
+              confirmButtonText: 'Lanjut',
+              allowOutsideClick: false,
+              allowEscapeKey: false,
+            }).then(goBack)
           } else {
-            navigate(`/siswa-dashboard/quiz/${paketId}${location.search}`, { replace: true })
+            goBack()
           }
         }
       }).catch(() => {
@@ -434,7 +456,8 @@ export default function QuizPlay() {
     countdownRef.current = setInterval(() => {
       const r = Math.max(0, Math.floor((endTimeRef.current - Date.now()) / 1000))
       setRemaining(r)
-      if (r <= 0) {
+      // Tanpa batas waktu yang valid, jangan pernah auto-submit.
+      if (r <= 0 && (Number(attempt.time_limit_seconds) || 0) > 0) {
         stopTimers()
         submitNow('waktu habis')
       }

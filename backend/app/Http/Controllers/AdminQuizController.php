@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AbsensiSiswa;
 use App\Models\Batch;
 use App\Models\Course;
 use App\Models\Guru;
 use App\Models\KelasSensei;
+use App\Models\Siswa;
 use App\Models\Lesson;
 use App\Models\LessonSlide;
 use App\Models\QuizAnswer;
@@ -1164,6 +1166,60 @@ $data = $request->validate([
             return $row;
         });
 
+        // Daftar siswa yang belum mengerjakan (opsional, jika ada lesson_id)
+        $roster = [];
+        if ($lesson) {
+            $attemptSiswaIds = $attempts->pluck('siswa_id')->map(fn ($id) => (int) $id)->all();
+            $pertemuanDate = $lesson->pertemuanTanggal();
+            $batchIdScope = (int) ($course->batch_id ?? 0);
+            $levelScope = $course->level === null ? null : (string) $course->level;
+
+            $absensiMap = [];
+            if ($pertemuanDate && $batchIdScope > 0) {
+                $absensiMap = AbsensiSiswa::whereHas('siswa', function ($sq) use ($batchIdScope, $levelScope) {
+                    $sq->where('batch_id', $batchIdScope);
+                    if ($levelScope !== null) {
+                        $sq->where('level', $levelScope);
+                    }
+                })
+                    ->whereDate('tanggal', $pertemuanDate)
+                    ->pluck('status', 'siswa_id')
+                    ->all();
+            }
+
+            $siswaQuery = Siswa::with('batchRelasi:id,nama_batch')
+                ->where('status', 'AKTIF');
+            if ($batchIdScope > 0) {
+                $siswaQuery->where('batch_id', $batchIdScope);
+            }
+            if ($levelScope !== null) {
+                $siswaQuery->where('level', $levelScope);
+            }
+            $roster = $siswaQuery->orderBy('nama')
+                ->get(['id', 'nama', 'batch_id', 'level'])
+                ->filter(function ($s) use ($attemptSiswaIds, $pertemuanDate, $absensiMap) {
+                    if (in_array((int) $s->id, $attemptSiswaIds, true)) {
+                        return false;
+                    }
+                    if ($pertemuanDate) {
+                        $status = $absensiMap[$s->id] ?? null;
+                        return in_array($status, ['HADIR', 'TERLAMBAT'], true);
+                    }
+                    return true;
+                })
+                ->map(function ($s) use ($absensiMap) {
+                    return [
+                        'id' => (int) $s->id,
+                        'nama' => $s->nama,
+                        'batch' => $s->batchRelasi?->nama_batch,
+                        'level' => $s->level,
+                        'attendance' => $absensiMap[$s->id] ?? null,
+                    ];
+                })
+                ->values()
+                ->all();
+        }
+
         // Ringkasan live / kumpul hari ini per paket, untuk chip pemilih paket.
         $paketSummary = $pakets->map(function ($p) use ($butuhScope, $scope) {
             return [
@@ -1205,6 +1261,7 @@ $data = $request->validate([
             'date' => $date,
             'dates' => $dates,
             'attempts' => $rows,
+            'roster' => $roster,
         ]);
     }
 

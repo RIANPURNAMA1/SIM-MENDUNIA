@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AbsensiSiswa;
 use App\Models\Batch;
 use App\Models\Course;
 use App\Models\KelasSensei;
+use App\Models\Lesson;
 use App\Models\QuizAnswer;
 use App\Models\QuizAttempt;
 use App\Models\QuizCategory;
@@ -1047,6 +1049,55 @@ $data = $request->validate([
                 'is_today' => (string) $r->day === now()->toDateString(),
             ]);
 
+        // Daftar kandidat yang BELUM memulai quiz, supaya guru melihat seluruh
+        // siswa pada kelas/pertemuan — bukan hanya yang sudah membuka quiz.
+        // Bila lesson_id dikirim, daftar difokuskan ke siswa yang hadir pada
+        // pertemuan itu (HADIR/TERLAMBAT) agar selaras dengan data kehadiran.
+        $roster = [];
+        if ($classIds !== null) {
+            $attemptSiswaIds = $attempts->pluck('siswa_id')->map(fn ($id) => (int) $id)->all();
+
+            $lessonIdReq = (int) $request->query('lesson_id');
+            $lessonRow = $lessonIdReq > 0 ? Lesson::find($lessonIdReq) : null;
+            $pertemuanDate = $lessonRow?->pertemuanTanggal();
+
+            $absensiMap = [];
+            if ($pertemuanDate) {
+                $absensiMap = AbsensiSiswa::whereIn('siswa_id', $classIds)
+                    ->whereDate('tanggal', $pertemuanDate)
+                    ->pluck('status', 'siswa_id')
+                    ->all();
+            }
+
+            $roster = Siswa::with('batchRelasi:id,nama_batch')
+                ->whereIn('id', $classIds)
+                ->where('status', 'AKTIF')
+                ->orderBy('nama')
+                ->get(['id', 'nama', 'batch_id', 'level'])
+                ->filter(function ($s) use ($attemptSiswaIds, $pertemuanDate, $absensiMap) {
+                    if (in_array((int) $s->id, $attemptSiswaIds, true)) {
+                        return false;
+                    }
+                    if ($pertemuanDate) {
+                        $status = $absensiMap[$s->id] ?? null;
+                        return in_array($status, ['HADIR', 'TERLAMBAT'], true);
+                    }
+                    return true;
+                })
+                ->map(function ($s) use ($levelPaket, $absensiMap) {
+                    $levelSiswa = ($s->level === null || $s->level === '') ? null : (int) $s->level;
+                    return [
+                        'id' => (int) $s->id,
+                        'nama' => $s->nama,
+                        'batch' => $s->batchRelasi?->nama_batch,
+                        'level' => $levelPaket ?? $levelSiswa,
+                        'attendance' => $absensiMap[$s->id] ?? null,
+                    ];
+                })
+                ->values()
+                ->all();
+        }
+
         $rows = $attempts->map(function ($a) use ($paket, $levelPaket) {
             $siswa = $a->siswa;
             $levelSiswa = ($siswa?->level === null || $siswa?->level === '') ? null : (int) $siswa->level;
@@ -1157,6 +1208,7 @@ $data = $request->validate([
             'date' => $date,
             'dates' => $dates,
             'attempts' => $rows,
+            'roster' => $roster,
         ]);
     }
 

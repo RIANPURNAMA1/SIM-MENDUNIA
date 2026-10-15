@@ -540,7 +540,7 @@ const attDate = (kehadiran?.tanggal || lesson.pertemuan_date || '').slice(0, 10)
                                 className="btn btn-neutral btn-sm px-2.5">
                                 <BarChart3 size={12} /><span className="hidden sm:inline">Hasil</span>
                               </button>
-                              <button onClick={() => navigate(`${base}/course/${lesson.course_id}/monitor/live?paket=${p.id}&lesson_id=${lesson.id}`, { state: { title: p.title, pertemuan_ke: lesson.pertemuan_ke } })}
+                              <button onClick={() => navigate(`${base}/course/${lesson.course_id}/monitor/live?paket=${p.id}&lesson_id=${lesson.id}`, { state: { title: p.title } })}
                                 title="Monitor" className="btn btn-neutral btn-sm px-2.5">
                                 <Activity size={12} /><span className="hidden sm:inline">Monitor</span>
                               </button>

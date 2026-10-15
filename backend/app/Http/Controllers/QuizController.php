@@ -113,7 +113,16 @@ class QuizController extends Controller
 
     private function isExpired(QuizAttempt $attempt)
     {
-        return $attempt->started_at->addSeconds((int) $attempt->time_limit_seconds)->addSeconds(5)->isPast();
+        $limit = (int) $attempt->time_limit_seconds;
+
+        // Batas waktu 0/tidak valid BUKAN berarti "habis seketika". Tanpa guard
+        // ini, attempt dengan time_limit_seconds=0 akan otomatis dikumpulkan
+        // hanya ~5 detik setelah dimulai.
+        if ($limit <= 0) {
+            return false;
+        }
+
+        return $attempt->started_at->addSeconds($limit)->addSeconds(5)->isPast();
     }
 
     private function finalize(QuizAttempt $attempt, bool $auto = false)
