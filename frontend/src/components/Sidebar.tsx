@@ -294,6 +294,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     ? []
     : isAdminPusat
     ? ([
+        { label: "Dashboard", icon: "LayoutDashboard", href: "/admin-pusat" },
         { label: "Data Affiliate", icon: "Handshake", href: "/data-affiliate" },
         { label: "Informasi Pendaftaran", icon: "ClipboardList", href: "/pendaftar" },
       ] as NavItem[])

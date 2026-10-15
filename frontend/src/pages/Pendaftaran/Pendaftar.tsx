@@ -58,6 +58,8 @@ interface ConfirmModal {
 export default function Pendaftar() {
   const { user } = useAuth()
   const isAccounting = user?.role === 'ACCOUNTING'
+  const isAdminPusat = user?.role === 'ADMIN_PUSAT'
+  const isReadOnly = isAccounting || isAdminPusat
   const [data, setData] = useState<PendaftarItem[]>([])
   const [loading, setLoading] = useState(true)
   const [totalItems, setTotalItems] = useState(0)
@@ -606,7 +608,7 @@ export default function Pendaftar() {
                             </button>
                           )}
                           <div className="my-1 border-t border-[#e8eaed]" />
-                          {!isAccounting && (
+                          {!isReadOnly && (
                             <button onClick={() => { handleDelete(p.id); setOpenActionId(null) }}
                               className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#c5221f] hover:bg-[#fce8e6] transition-colors">
                               <Trash2 size={14} className="text-[#ee675c]" />
@@ -1034,7 +1036,7 @@ export default function Pendaftar() {
               </div>
 
               {/* Ubah Status */}
-              {!isAccounting && (
+              {!isReadOnly && (
               <div>
                 <h3 className="mb-3 text-xs font-semibold r text-[#80868b]">Ubah Status</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">

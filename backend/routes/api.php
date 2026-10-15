@@ -752,6 +752,11 @@ Route::prefix('admin-mutasi')->middleware(['auth:sanctum', 'role:ADMIN_MUTASI'])
     Route::get('/dashboard', [AdminMutasiController::class, 'dashboard']);
 });
 
+// ========== Admin Pusat Routes ==========
+Route::prefix('admin-pusat')->middleware(['auth:sanctum', 'role:ADMIN_PUSAT'])->group(function () {
+    Route::get('/dashboard', [\App\Http\Controllers\AdminPusatController::class, 'dashboard']);
+});
+
 // ========== Evaluasi Instruktur (MANAGER/HR/ADMIN/ACCOUNTING) ==========
 Route::middleware(['auth:sanctum'])->get('/evaluasi-instruktur', [AdminCabangController::class, 'evaluasiInstrukturAll']);
 

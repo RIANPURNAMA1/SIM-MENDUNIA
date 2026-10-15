@@ -476,6 +476,10 @@ export const adminMutasiApi = {
   dashboard: () => api.get('/admin-mutasi/dashboard'),
 }
 
+export const adminPusatApi = {
+  dashboard: () => api.get('/admin-pusat/dashboard'),
+}
+
 export const profileApi = {
   update: (data: FormData) => api.post('/profile/update', data),
   changePassword: (data: { current_password: string; new_password: string; new_password_confirmation: string }) =>

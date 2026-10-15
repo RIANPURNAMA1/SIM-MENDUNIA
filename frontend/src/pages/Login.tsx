@@ -47,7 +47,7 @@ export default function Login() {
       } else if (role === "ACCOUNTING") {
         window.location.href = "/dashboard-keuangan";
       } else if (role === "ADMIN_PUSAT") {
-        window.location.href = "/data-affiliate";
+        window.location.href = "/admin-pusat";
       } else if (role === "MANAGER" || role === "HR" || role === "ADMIN") {
         window.location.href = "/";
       } else {

@@ -140,6 +140,7 @@ import CourseMonitorDashboard from './pages/Akademik/CourseMonitorDashboard'
 import GuruLayout from './layouts/GuruLayout'
 import AdminCabangLayout from './layouts/AdminCabangLayout'
 import AdminCabangDashboard from './pages/AdminCabang/AdminCabangDashboard'
+import AdminPusatDashboard from './pages/AdminPusat/AdminPusatDashboard'
 import AdminMutasiDashboard from './pages/AdminMutasi/AdminMutasiDashboard'
 import AdminCabangTagihan from './pages/AdminCabang/AdminCabangTagihan'
 import AdminCabangDataKandidat from './pages/AdminCabang/AdminCabangDataKandidat'
@@ -213,6 +214,7 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
       ACCOUNTING: '/dashboard-keuangan',
       
       ADMIN_MUTASI: '/admin-mutasi',
+      ADMIN_PUSAT: '/admin-pusat',
       
     }
     return <Navigate to={map[user?.role || ''] || '/login'} replace />
@@ -226,7 +228,8 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
       GURU: '/guru-dashboard',
       ADMIN_CABANG: '/admin-cabang',
       ACCOUNTING: '/dashboard-keuangan',
-      
+      ADMIN_MUTASI: '/admin-mutasi',
+      ADMIN_PUSAT: '/admin-pusat',
     }
     return <Navigate to={map[user.role] || '/login'} replace />
   }
@@ -493,6 +496,16 @@ function AppRoutes() {
             <AdminCabangLayout>
               <AdminCabangDashboard />
             </AdminCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin-pusat"
+        element={
+          <ProtectedRoute roleAllowed="ADMIN_PUSAT">
+            <DashboardLayout>
+              <AdminPusatDashboard />
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />
