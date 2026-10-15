@@ -123,6 +123,11 @@ class User extends Authenticatable
         return $this->role === 'ADMIN_MUTASI';
     }
 
+    public function isAdminPusat()
+    {
+        return $this->role === 'ADMIN_PUSAT';
+    }
+
     public function getBranchIdsAttribute()
     {
         return $this->cabang_ids ?? [];

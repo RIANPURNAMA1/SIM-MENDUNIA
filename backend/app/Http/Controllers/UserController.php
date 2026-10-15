@@ -133,7 +133,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6',
-            'role' => 'required|in:HR,MANAGER,KARYAWAN,GURU,ACCOUNTING,ADMIN_CABANG,ADMIN_MUTASI,AFFILIATE,KANDIDAT',
+            'role' => 'required|in:HR,MANAGER,KARYAWAN,GURU,ACCOUNTING,ADMIN_CABANG,ADMIN_MUTASI,ADMIN_PUSAT,AFFILIATE,KANDIDAT',
             'status' => 'required|in:AKTIF,NONAKTIF',
             'cabang_ids' => 'nullable|array',
             'cabang_ids.*' => 'integer|exists:cabangs,id',
@@ -162,7 +162,7 @@ class UserController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$id,
-            'role' => 'required|in:HR,MANAGER,KARYAWAN,GURU,ACCOUNTING,ADMIN_CABANG,ADMIN_MUTASI,AFFILIATE,KANDIDAT',
+            'role' => 'required|in:HR,MANAGER,KARYAWAN,GURU,ACCOUNTING,ADMIN_CABANG,ADMIN_MUTASI,ADMIN_PUSAT,AFFILIATE,KANDIDAT',
             'status' => 'required|in:AKTIF,NONAKTIF',
             'password' => 'nullable|min:6',
             'cabang_ids' => 'nullable|array',
