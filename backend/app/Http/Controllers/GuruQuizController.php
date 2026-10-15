@@ -189,21 +189,38 @@ class GuruQuizController extends Controller
             return null;
         }
 
-        return $this->kelasPairsToIds($kelas->id);
+        return $this->kelasBatchSiswaIds($kelas->id);
     }
 
-    private function kelasPairsToIds($kelasId): ?array
+    private function kelasBatchSiswaIds($kelasId): ?array
     {
-        return $this->siswaIdsForPairs(
-            KelasSensei::where('id', $kelasId)
-                ->where('status', 'aktif')
-                ->whereNotNull('batch_id')
-                ->whereNotNull('level')
-                ->get(['batch_id', 'level'])
-                ->map(fn ($k) => "{$k->batch_id}:{$k->level}")
-                ->values()
-                ->all()
-        );
+        // Keanggotaan kelas disamakan dengan halaman "Data Siswa" guru
+        // (GuruDashboardController::dataSiswa): seluruh siswa AKTIF pada batch
+        // kelas tersebut, TANPA mencocokkan level. Pencocokan batch:level terlalu
+        // ketat dan menyisihkan siswa yang kolom level-nya kosong/berbeda
+        // (umum pada data import), sehingga peserta yang sudah mengerjakan tidak
+        // muncul di monitoring/hasil walau terdaftar di kelas.
+        $batchIds = KelasSensei::where('id', $kelasId)
+            ->where('status', 'aktif')
+            ->whereNotNull('batch_id')
+            ->pluck('batch_id')
+            ->unique()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        if (empty($batchIds)) {
+            return null;
+        }
+
+        $ids = Siswa::whereIn('batch_id', $batchIds)
+            ->where('status', 'AKTIF')
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        return empty($ids) ? null : $ids;
     }
 
     /**
@@ -219,7 +236,7 @@ class GuruQuizController extends Controller
         }
 
         if ($kelasId) {
-            $ids = $this->kelasPairsToIds($kelasId);
+            $ids = $this->kelasBatchSiswaIds($kelasId);
             if ($ids !== null) {
                 return $ids;
             }
