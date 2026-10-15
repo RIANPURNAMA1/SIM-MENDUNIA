@@ -220,39 +220,52 @@ export default function AdminPusatDashboard() {
         {data.per_cabang.length === 0 ? (
           <div className="border border-[#dadce0] bg-white p-8 text-center text-sm text-[#80868b]">Belum ada data pendaftar</div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="space-y-4">
             {data.per_cabang.map(c => (
-              <div key={String(c.cabang_id)} className="border border-[#dadce0] bg-white">
-                <div className="flex items-center justify-between border-b border-[#e8eaed] px-4 py-3">
+              <div key={String(c.cabang_id)} className="border border-[#dadce0] bg-white overflow-hidden">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#dadce0] bg-[#f8f9fa] px-4 py-3">
                   <div className="flex items-center gap-2 min-w-0">
                     <Building2 size={16} className="text-[#1a73e8] shrink-0" />
                     <span className="truncate text-sm font-medium text-[#202124]">{c.cabang_nama}</span>
                   </div>
-                  <span className="text-xs font-medium text-[#5f6368] whitespace-nowrap ml-2">{c.total} pendaftar</span>
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-medium">
+                    <span className="border border-[#dadce0] bg-white px-2 py-0.5 text-[#5f6368]">{c.total} pendaftar</span>
+                    <span className={`border border-[#e6f4ea] px-2 py-0.5 ${statusBadge.disetujui}`}>{c.disetujui} disetujui</span>
+                    <span className={`border border-[#fef7e0] px-2 py-0.5 ${statusBadge.pending}`}>{c.pending} pending</span>
+                    <span className={`border border-[#fce8e6] px-2 py-0.5 ${statusBadge.ditolak}`}>{c.ditolak} ditolak</span>
+                  </div>
                 </div>
-                <div className="flex flex-wrap gap-2 px-4 py-2.5 border-b border-[#e8eaed]">
-                  <span className={`px-2 py-0.5 text-[11px] font-medium ${statusBadge.disetujui}`}>{c.disetujui} disetujui</span>
-                  <span className={`px-2 py-0.5 text-[11px] font-medium ${statusBadge.pending}`}>{c.pending} pending</span>
-                  <span className={`px-2 py-0.5 text-[11px] font-medium ${statusBadge.ditolak}`}>{c.ditolak} ditolak</span>
-                </div>
-                <div className="divide-y divide-[#f1f3f4]">
-                  {c.batches.map(b => (
-                    <div key={String(b.batch_id)} className="flex items-center justify-between px-4 py-2.5">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: b.warna || BRAND }} />
-                        <span className="truncate text-xs text-[#3c4043]">{b.nama_batch}</span>
-                      </div>
-                      <div className="flex items-center gap-3 shrink-0 ml-2 text-[11px] font-medium">
-                        <span className="text-[#5f6368]">{b.total}</span>
-                        <span className="text-[#137333]">{b.disetujui}</span>
-                        <span className="text-[#b06000]">{b.pending}</span>
-                        <span className="text-[#a50e0e]">{b.ditolak}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {c.batches.length === 0 && (
-                    <div className="px-4 py-2.5 text-xs text-[#80868b]">Tanpa batch</div>
-                  )}
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-sm">
+                    <thead>
+                      <tr>
+                        {['Batch', 'Total', 'Disetujui', 'Pending', 'Ditolak'].map((h, hi) => (
+                          <th key={h} className={`border border-[#e8eaed] bg-[#f8f9fa] px-3 py-2 text-[11px] font-medium uppercase tracking-wide text-[#80868b] ${hi === 0 ? 'text-left' : 'text-center'}`}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {c.batches.map(b => (
+                        <tr key={String(b.batch_id)}>
+                          <td className="border border-[#e8eaed] px-3 py-2">
+                            <span className="inline-flex items-center gap-2">
+                              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: b.warna || BRAND }} />
+                              <span className="text-xs text-[#3c4043]">{b.nama_batch}</span>
+                            </span>
+                          </td>
+                          <td className="border border-[#e8eaed] px-3 py-2 text-center text-xs font-medium text-[#202124]">{b.total}</td>
+                          <td className="border border-[#e8eaed] px-3 py-2 text-center text-xs font-medium text-[#137333]">{b.disetujui}</td>
+                          <td className="border border-[#e8eaed] px-3 py-2 text-center text-xs font-medium text-[#b06000]">{b.pending}</td>
+                          <td className="border border-[#e8eaed] px-3 py-2 text-center text-xs font-medium text-[#a50e0e]">{b.ditolak}</td>
+                        </tr>
+                      ))}
+                      {c.batches.length === 0 && (
+                        <tr>
+                          <td colSpan={5} className="border border-[#e8eaed] px-3 py-2 text-center text-xs text-[#80868b]">Tanpa batch</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             ))}
