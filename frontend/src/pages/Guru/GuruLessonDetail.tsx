@@ -1655,7 +1655,10 @@ export default function GuruLessonDetail() {
     return (
       <div key={q.id} className="border border-[#E5E7EF] rounded-md p-4">
         <div className="flex items-start justify-between gap-2">
-          <p className="text-[12px] font-bold text-[#14182B] leading-snug">{no}. {q.question}</p>
+          <div className="text-[12px] font-bold text-[#14182B] leading-snug min-w-0 flex-1">
+            <span className="font-black">{no}.</span>{' '}
+            <span className="[&_p]:my-0.5 [&_h1]:text-[12px] [&_h2]:text-[12px] [&_h3]:text-[12px] [&_h4]:text-[12px] [&_h1]:font-bold [&_h2]:font-bold [&_h3]:font-bold [&_h4]:font-bold [&_ol]:list-decimal [&_ol]:pl-4 [&_ul]:list-disc [&_ul]:pl-4 [&_img]:max-h-40 [&_img]:rounded [&_img]:my-1.5 [&_img]:border [&_img]:border-[#E5E7EF] inline-block" dangerouslySetInnerHTML={{ __html: cleanQuillHtml(q.question) }} />
+          </div>
           <span className={`text-[9px] font-bold shrink-0 px-2 py-0.5 rounded-full ${badgeCls}`}>{badge}</span>
         </div>
         {(q.image_url || q.audio_url) && (
