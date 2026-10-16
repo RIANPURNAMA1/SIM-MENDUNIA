@@ -10,6 +10,7 @@ import Swal from 'sweetalert2'
 import { Html5Qrcode } from 'html5-qrcode'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 import ThemeToggle from '../../components/ThemeToggle'
+import PwaInstallPrompt from '../../components/PwaInstallPrompt'
 
 const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
 const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des']
@@ -462,6 +463,9 @@ export default function KaryawanDashboard() {
             </div>
           )}
         </section>
+
+        {/* PWA Install */}
+        <PwaInstallPrompt />
 
         {/* Jadwal Shift Hari Ini */}
         <section className="rounded-xl bg-white p-4 shadow-sm animate-fade-up delay-200">
