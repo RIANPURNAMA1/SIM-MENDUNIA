@@ -625,7 +625,7 @@ export default function GuruDashboard() {
                               </div>
                             </div>
                             {lvl.avg !== null ? (
-                              <span className={`text-sm font-bold tabular-nums ${lvl.avg >= 85 ? 'text-emerald-600' : lvl.avg >= 70 ? 'text-[#0069b0]' : lvl.avg >= 55 ? 'text-amber-600' : 'text-red-600'}`}>
+                              <span className={`text-sm font-bold tabular-nums ${lvl.avg >= 170 ? 'text-emerald-600' : lvl.avg >= 140 ? 'text-[#0069b0]' : lvl.avg >= 110 ? 'text-amber-600' : 'text-red-600'}`}>
                                 {lvl.avg}
                               </span>
                             ) : (
@@ -640,7 +640,7 @@ export default function GuruDashboard() {
                                   <div className="flex items-center justify-between mb-1.5">
                                     <span className="text-[11px] font-semibold text-[#4B5063]">{cat.nama}</span>
                                     {cat.avg !== null ? (
-                                      <span className={`text-xs font-bold tabular-nums ${cat.avg >= 85 ? 'text-emerald-600' : cat.avg >= 70 ? 'text-[#0069b0]' : cat.avg >= 55 ? 'text-amber-600' : 'text-red-600'}`}>
+                                      <span className={`text-xs font-bold tabular-nums ${cat.avg >= 170 ? 'text-emerald-600' : cat.avg >= 140 ? 'text-[#0069b0]' : cat.avg >= 110 ? 'text-amber-600' : 'text-red-600'}`}>
                                         {cat.avg}
                                       </span>
                                     ) : (

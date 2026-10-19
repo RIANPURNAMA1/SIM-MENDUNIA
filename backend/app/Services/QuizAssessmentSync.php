@@ -16,6 +16,12 @@ class QuizAssessmentSync
     public const COMPONENT = 'Ulangan';
 
     /**
+     * Skala komponen penilaian: skor quiz (0-100) dikali skala ini agar
+     * masuk ke skala baru input penilaian (0-200).
+     */
+    public const COMPONENT_SCALE = 2;
+
+    /**
      * Tentukan level penilaian yang dipakai untuk menulis kolom "Ulangan".
      *
      * Grid "Penilaian Siswa" menampilkan komponen berdasarkan level KELAS
@@ -363,7 +369,7 @@ class QuizAssessmentSync
             ],
             [
                 'user_id' => $userId,
-                'nilai' => $nilai,
+                'nilai' => $nilai * self::COMPONENT_SCALE,
                 'sumber' => 'quiz',
             ]
         );

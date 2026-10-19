@@ -443,7 +443,7 @@
                     const val = map[c.id] !== undefined ? map[c.id] : '';
                     html += '<div class="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-2.5">';
                     html += '<label class="text-xs font-medium text-gray-700">' + c.sub_komponen + '</label>';
-                    html += '<input type="number" min="0" max="100" step="0.01" id="penilaianInput_' + c.id + '" value="' + val + '" class="w-16 text-center text-xs border border-gray-200 rounded-lg py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">';
+                    html += '<input type="number" min="0" max="200" step="0.01" id="penilaianInput_' + c.id + '" value="' + val + '" class="w-16 text-center text-xs border border-gray-200 rounded-lg py-1.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">';
                     html += '</div>';
                 });
                 body.innerHTML = html;

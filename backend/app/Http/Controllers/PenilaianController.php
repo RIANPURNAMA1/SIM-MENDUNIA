@@ -266,11 +266,11 @@ class PenilaianController extends Controller
             $resikoClass = null;
             $resikoText = null;
             if ($nilaiAkhir !== null) {
-                $resikoClass = $nilaiAkhir >= 75 ? 'success' : ($nilaiAkhir >= 65 ? 'warning' : 'danger');
+                $resikoClass = $nilaiAkhir >= 150 ? 'success' : ($nilaiAkhir >= 130 ? 'warning' : 'danger');
                 $resikoText = match(true) {
-                    $nilaiAkhir >= 85 => '🟢 Sangat Siap',
-                    $nilaiAkhir >= 75 => '🟢 Siap',
-                    $nilaiAkhir >= 65 => '🟡 Perlu Pendampingan',
+                    $nilaiAkhir >= 170 => '🟢 Sangat Siap',
+                    $nilaiAkhir >= 150 => '🟢 Siap',
+                    $nilaiAkhir >= 130 => '🟡 Perlu Pendampingan',
                     default => '🔴 Berisiko',
                 };
             }
@@ -718,7 +718,7 @@ class PenilaianController extends Controller
             'tanggal' => 'required|date',
             'scores' => 'required|array',
             'scores.*.component_id' => 'required|exists:assessment_components,id',
-            'scores.*.nilai' => 'nullable|numeric|min:0|max:100',
+            'scores.*.nilai' => 'nullable|numeric|min:0|max:200',
         ]);
 
         $user = auth()->user();

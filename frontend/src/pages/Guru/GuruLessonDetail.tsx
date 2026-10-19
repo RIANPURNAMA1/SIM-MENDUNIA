@@ -460,9 +460,9 @@ const RESIKO_STYLE: Record<string, string> = {
 
 const SCORE_BADGE = (s: number | null): string => {
   if (s === null) return 'bg-gray-100 text-gray-400'
-  if (s >= 90) return 'bg-emerald-100 text-emerald-700'
-  if (s >= 75) return 'bg-blue-100 text-blue-700'
-  if (s >= 60) return 'bg-amber-100 text-amber-700'
+  if (s >= 180) return 'bg-emerald-100 text-emerald-700'
+  if (s >= 150) return 'bg-blue-100 text-blue-700'
+  if (s >= 120) return 'bg-amber-100 text-amber-700'
   return 'bg-rose-100 text-rose-700'
 }
 
@@ -4136,10 +4136,10 @@ export default function GuruLessonDetail() {
                               <input
                                 type="number"
                                 min="0"
-                                max="100"
+                                max="200"
                                 value={scoreInputs[comp.id] ?? ''}
                                 onChange={e => setScoreInputs(prev => ({ ...prev, [comp.id]: e.target.value }))}
-                                placeholder="0-100"
+                                placeholder="0-200"
                                 className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-1 ${quizSource[comp.id] ? 'border-amber-300 bg-amber-50 focus:border-amber-400 focus:ring-amber-400' : 'border-[#E5E7EF] focus:border-[#0069b0] focus:ring-[#0069b0]'}`}
                               />
                               {quizSource[comp.id] && (

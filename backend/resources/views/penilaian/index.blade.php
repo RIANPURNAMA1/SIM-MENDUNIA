@@ -185,9 +185,9 @@
 <script>
 function getResikoBadge(avg) {
     var cls, text;
-    if (avg >= 85) { cls = 'success'; text = '🟢 Sangat Siap'; }
-    else if (avg >= 75) { cls = 'success'; text = '🟢 Siap'; }
-    else if (avg >= 65) { cls = 'warning'; text = '🟡 Perlu Pendampingan'; }
+    if (avg >= 170) { cls = 'success'; text = '🟢 Sangat Siap'; }
+    else if (avg >= 150) { cls = 'success'; text = '🟢 Siap'; }
+    else if (avg >= 130) { cls = 'warning'; text = '🟡 Perlu Pendampingan'; }
     else { cls = 'danger'; text = '🔴 Berisiko'; }
     return '<span class="badge bg-' + cls + ' fw-normal">' + text + '</span>';
 }
@@ -268,7 +268,7 @@ function openSummaryModal(siswaId, namaSiswa, batchId, level, guruId, kelasSense
                     $.each(cat.components, function(j, comp) {
                         var s = (j < latestScores.length) ? latestScores[j] : null;
                         if (s !== null) {
-                            var badge = s >= 90 ? 'success' : (s >= 75 ? 'primary' : (s >= 60 ? 'warning' : 'danger'));
+                            var badge = s >= 180 ? 'success' : (s >= 150 ? 'primary' : (s >= 120 ? 'warning' : 'danger'));
                             html += '<td class="text-center"><span class="badge bg-' + badge + ' fw-normal px-2 py-1" style="font-size: 10px;">' + Math.round(s) + '</span></td>';
                         } else {
                             html += '<td class="text-center text-muted">-</td>';
@@ -295,9 +295,9 @@ function openSummaryModal(siswaId, namaSiswa, batchId, level, guruId, kelasSense
                             if (s !== null) { total += s; count++; }
                             var badge = 'secondary';
                             if (s !== null) {
-                                if (s >= 90) badge = 'success';
-                                else if (s >= 75) badge = 'primary';
-                                else if (s >= 60) badge = 'warning';
+                                if (s >= 180) badge = 'success';
+                                else if (s >= 150) badge = 'primary';
+                                else if (s >= 120) badge = 'warning';
                                 else badge = 'danger';
                                 html += '<td class="text-center"><span class="badge bg-' + badge + ' fw-normal px-2 py-1" style="font-size: 10px;">' + Math.round(s) + '</span></td>';
                             } else {
@@ -358,9 +358,9 @@ function openSummaryModal(siswaId, namaSiswa, batchId, level, guruId, kelasSense
                             if (s !== null) { total += s; count++; }
                             var badge = 'secondary';
                             if (s !== null) {
-                                if (s >= 90) badge = 'success';
-                                else if (s >= 75) badge = 'primary';
-                                else if (s >= 60) badge = 'warning';
+                                if (s >= 180) badge = 'success';
+                                else if (s >= 150) badge = 'primary';
+                                else if (s >= 120) badge = 'warning';
                                 else badge = 'danger';
                                 html += '<td class="text-center"><span class="badge bg-' + badge + ' fw-normal px-2 py-1" style="font-size: 10px;">' + Math.round(s) + '</span></td>';
                             } else {

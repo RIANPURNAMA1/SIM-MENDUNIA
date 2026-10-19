@@ -55,9 +55,9 @@ interface Category {
 
 const SCORE_BADGE = (s: number | null): string => {
   if (s === null) return "bg-[#f1f3f4] text-[#80868b]";
-  if (s >= 90) return "bg-[#ceead6] text-[#137333]";
-  if (s >= 75) return "bg-[#e8f0fe] text-[#1967d2]";
-  if (s >= 60) return "bg-[#fef7e0] text-[#b06000]";
+  if (s >= 180) return "bg-[#ceead6] text-[#137333]";
+  if (s >= 150) return "bg-[#e8f0fe] text-[#1967d2]";
+  if (s >= 120) return "bg-[#fef7e0] text-[#b06000]";
   return "bg-[#f6d7d5] text-[#a50e0e]";
 };
 

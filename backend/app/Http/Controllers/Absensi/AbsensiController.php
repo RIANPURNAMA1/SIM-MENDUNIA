@@ -2000,7 +2000,7 @@ class AbsensiController extends Controller
             'tanggal' => 'required|date',
             'siswa_id' => 'required|exists:siswas,id',
             'nilai' => 'required|array',
-            'nilai.*' => 'nullable|numeric|min:0|max:100',
+            'nilai.*' => 'nullable|numeric|min:0|max:200',
         ]);
 
         $user = Auth::user();
