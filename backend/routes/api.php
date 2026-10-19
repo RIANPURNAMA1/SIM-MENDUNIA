@@ -333,6 +333,7 @@ Route::prefix('penilaian')->middleware('auth:sanctum')->group(function () {
     Route::post('/', [PenilaianController::class, 'apiStore']);
     Route::get('/rekap', [PenilaianController::class, 'apiRekapPenilaian']);
     Route::post('/student-assessment/store', [PenilaianController::class, 'apiStoreStudentAssessment']);
+    Route::post('/student-assessment/delete', [PenilaianController::class, 'apiDeleteStudentAssessment']);
     Route::put('/{id}', [PenilaianController::class, 'apiUpdate']);
     Route::delete('/{id}', [PenilaianController::class, 'apiDestroy']);
 });

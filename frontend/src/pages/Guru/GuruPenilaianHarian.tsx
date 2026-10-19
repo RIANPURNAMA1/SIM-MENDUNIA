@@ -97,6 +97,7 @@ export default function GuruPenilaianHarian() {
   const [selectedData, setSelectedData] = useState<PenilaianResponse | null>(null)
   const [loadingData, setLoadingData] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const [showModal, setShowModal] = useState(false)
   const [modalData, setModalData] = useState<DayDetailData | null>(null)
@@ -211,6 +212,42 @@ export default function GuruPenilaianHarian() {
       alert('Gagal menyimpan penilaian')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!selectedSiswa || !selectedData || !modalData) return
+    if (!window.confirm('Hapus semua nilai komponen pada tanggal ini?')) return
+    setDeleting(true)
+    try {
+      await penilaianApi.deleteStudentAssessment({
+        siswa_id: selectedSiswa.id,
+        batch_id: selectedData.kelas.batch_id,
+        kelas_sensei_id: selectedData.kelas.id,
+        tanggal: selectedTanggal,
+      })
+      await guruKelasApi.simpanPenilaianHarian({
+        siswa_id: selectedSiswa.id,
+        kelas_sensei_id: selectedData.kelas.id,
+        tanggal: selectedTanggal,
+        is_terisi: false,
+      })
+      setSelectedData(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          siswa: prev.siswa.map(s =>
+            s.id === selectedSiswa.id
+              ? { ...s, daily_status: { ...s.daily_status, [selectedTanggal]: { is_terisi: false, catatan: null } } }
+              : s
+          ),
+        }
+      })
+      await openPenilaianModal(selectedSiswa, selectedTanggal)
+    } catch {
+      alert('Gagal menghapus nilai')
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -455,17 +492,30 @@ export default function GuruPenilaianHarian() {
                   ))
                 )}
               </div>
-              <div className="flex justify-end gap-3 px-5 py-4 border-t border-gray-200">
-                <button onClick={closeModal} className="px-4 py-2 text-xs font-semibold text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition">
-                  Batal
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving || modalLoading || !modalData || modalData.categories.length === 0}
-                  className="px-4 py-2 text-xs font-semibold text-white bg-[#0069b0] rounded-lg hover:bg-[#004d7a] transition disabled:opacity-50"
-                >
-                  {saving ? 'Menyimpan...' : 'Simpan'}
-                </button>
+              <div className="flex justify-between gap-3 px-5 py-4 border-t border-gray-200">
+                <div>
+                  {Object.values(scoreInputs).some(v => v !== '') && (
+                    <button
+                      onClick={handleDelete}
+                      disabled={saving || deleting || modalLoading}
+                      className="px-4 py-2 text-xs font-semibold text-rose-600 bg-rose-50 rounded-lg hover:bg-rose-100 transition disabled:opacity-50"
+                    >
+                      {deleting ? 'Menghapus...' : 'Hapus Nilai'}
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={closeModal} className="px-4 py-2 text-xs font-semibold text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 transition">
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || modalLoading || !modalData || modalData.categories.length === 0}
+                    className="px-4 py-2 text-xs font-semibold text-white bg-[#0069b0] rounded-lg hover:bg-[#004d7a] transition disabled:opacity-50"
+                  >
+                    {saving ? 'Menyimpan...' : 'Simpan'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

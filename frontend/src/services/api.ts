@@ -266,6 +266,8 @@ export const penilaianApi = {
   destroy: (id: number) => api.delete(`/penilaian/${id}`),
   storeStudentAssessment: (data: Record<string, unknown>) =>
     api.post('/penilaian/student-assessment/store', data),
+  deleteStudentAssessment: (data: Record<string, unknown>) =>
+    api.post('/penilaian/student-assessment/delete', data),
   rekap: () => api.get('/penilaian/rekap'),
 }
 

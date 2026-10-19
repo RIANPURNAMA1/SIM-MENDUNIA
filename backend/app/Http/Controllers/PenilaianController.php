@@ -756,4 +756,31 @@ class PenilaianController extends Controller
             'data' => $stored,
         ]);
     }
+
+    public function apiDeleteStudentAssessment(Request $request)
+    {
+        $request->validate([
+            'siswa_id' => 'required|exists:siswas,id',
+            'batch_id' => 'nullable|exists:batches,id',
+            'kelas_sensei_id' => 'nullable|exists:kelas_sensei,id',
+            'tanggal' => 'required|date',
+        ]);
+
+        $batchId = $request->batch_id;
+        if (!$batchId && $request->kelas_sensei_id) {
+            $kelas = KelasSensei::find($request->kelas_sensei_id);
+            $batchId = $kelas?->batch_id;
+        }
+
+        $deleted = StudentAssessment::where('siswa_id', $request->siswa_id)
+            ->where('tanggal', $request->tanggal)
+            ->when($batchId, fn ($q) => $q->where('batch_id', $batchId))
+            ->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Penilaian berhasil dihapus',
+            'deleted' => $deleted,
+        ]);
+    }
 }

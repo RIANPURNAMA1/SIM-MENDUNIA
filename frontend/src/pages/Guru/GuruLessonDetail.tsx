@@ -584,6 +584,7 @@ export default function GuruLessonDetail() {
   const [scoreInputs, setScoreInputs] = useState<Record<number, string>>({})
   const [quizSource, setQuizSource] = useState<Record<number, boolean>>({})
   const [savingPenilaian, setSavingPenilaian] = useState(false)
+  const [deletingPenilaian, setDeletingPenilaian] = useState(false)
 
   const [rankings, setRankings] = useState<RankItem[]>([])
   const [rankingLoading, setRankingLoading] = useState(false)
@@ -836,6 +837,55 @@ export default function GuruLessonDetail() {
       Swal.fire({ icon: 'error', title: 'Gagal menyimpan penilaian' })
     } finally {
       setSavingPenilaian(false)
+    }
+  }
+
+  const handleDeletePenilaian = async () => {
+    if (!lesson || !penilaianSiswa || !penilaianData) return
+    if (!lesson.pertemuan_date || !lesson.course?.kelas_sensei_id) return
+    const kelasId = lesson.course.kelas_sensei_id
+    const tanggal = lesson.pertemuan_date.slice(0, 10)
+    const confirm = await Swal.fire({
+      icon: 'warning',
+      title: 'Hapus nilai tanggal ini?',
+      text: 'Semua nilai komponen pada tanggal ini akan dihapus.',
+      showCancelButton: true,
+      confirmButtonText: 'Ya, hapus',
+      cancelButtonText: 'Batal',
+      confirmButtonColor: '#e11d48',
+    })
+    if (!confirm.isConfirmed) return
+    setDeletingPenilaian(true)
+    try {
+      await penilaianApi.deleteStudentAssessment({
+        siswa_id: penilaianSiswa.id,
+        batch_id: lesson.course.batch_id ?? undefined,
+        kelas_sensei_id: kelasId,
+        tanggal,
+      })
+      await guruKelasApi.simpanPenilaianHarian({
+        siswa_id: penilaianSiswa.id,
+        kelas_sensei_id: kelasId,
+        tanggal,
+        is_terisi: false,
+      })
+      setPenilaianHarian(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          siswa: prev.siswa.map(s =>
+            s.id === penilaianSiswa.id
+              ? { ...s, daily_status: { ...s.daily_status, [tanggal]: { is_terisi: false, catatan: null } } }
+              : s
+          ),
+        }
+      })
+      await openPenilaianModal(penilaianSiswa)
+      Swal.fire({ icon: 'success', title: 'Nilai dihapus', timer: 1200, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal menghapus nilai' })
+    } finally {
+      setDeletingPenilaian(false)
     }
   }
 
@@ -4202,16 +4252,26 @@ export default function GuruLessonDetail() {
                 })
               )}
             </div>
-            <div className="px-5 py-4 border-t border-[#F0F1F5] flex items-center justify-end gap-2 shrink-0">
-              <button onClick={() => setShowPenilaianModal(false)} disabled={savingPenilaian}
-                className="px-4 py-2.5 text-[11px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] rounded-md transition-colors disabled:opacity-50">
-                Batal
-              </button>
-              <button onClick={handleSavePenilaian} disabled={savingPenilaian || penilaianDataLoading || !penilaianData}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-md hover:bg-[#004d7a] transition-colors disabled:opacity-50">
-                {savingPenilaian ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-                {savingPenilaian ? 'Menyimpan...' : 'Simpan'}
-              </button>
+            <div className="px-5 py-4 border-t border-[#F0F1F5] flex items-center justify-between gap-2 shrink-0">
+              <div>
+                {Object.values(scoreInputs).some(v => v !== '') && (
+                  <button onClick={handleDeletePenilaian} disabled={savingPenilaian || deletingPenilaian}
+                    className="px-4 py-2.5 text-[11px] font-bold text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-md transition-colors disabled:opacity-50">
+                    {deletingPenilaian ? 'Menghapus...' : 'Hapus Nilai'}
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setShowPenilaianModal(false)} disabled={savingPenilaian}
+                  className="px-4 py-2.5 text-[11px] font-bold text-[#4B5063] hover:bg-[#F4F5F8] rounded-md transition-colors disabled:opacity-50">
+                  Batal
+                </button>
+                <button onClick={handleSavePenilaian} disabled={savingPenilaian || penilaianDataLoading || !penilaianData}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 text-[11px] font-bold text-white bg-[#0069b0] rounded-md hover:bg-[#004d7a] transition-colors disabled:opacity-50">
+                  {savingPenilaian ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                  {savingPenilaian ? 'Menyimpan...' : 'Simpan'}
+                </button>
+              </div>
             </div>
           </div>
         </div>

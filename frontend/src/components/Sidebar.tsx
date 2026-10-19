@@ -509,7 +509,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         {badgePending + badgeTagihan > 99 ? "99+" : badgePending + badgeTagihan}
                       </span>
                     )}
-                    {group.label === "Program" && isApprover && jadwalPendingCount > 0 && (
+                    {group.label === "Akademik" && isApprover && jadwalPendingCount > 0 && (
                       <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
                         {jadwalPendingCount > 99 ? "99+" : jadwalPendingCount}
                       </span>
@@ -534,13 +534,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         >
                           <ChildIcon size={14} />
                           <span>{child.label}</span>
-                          {child.label === "Jadwal Level" &&
-                            isApprover &&
-                            jadwalPendingCount > 0 && (
-                              <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
-                                {jadwalPendingCount > 99 ? "99+" : jadwalPendingCount}
-                              </span>
-                            )}
+                           {child.label === "Monitoring Notifikasi" &&
+                             jadwalPendingCount > 0 && (
+                               <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
+                                 {jadwalPendingCount > 99 ? "99+" : jadwalPendingCount}
+                               </span>
+                             )}
                           {child.label === "Pendaftaran" &&
                             badgePending > 0 && (
                               <span className="ml-auto flex h-5 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1.5 text-[10px] font-bold text-white">
