@@ -57,13 +57,16 @@ interface Wilayah {
   name: string
 }
 
-function Field({ label, required, error, children }: { label: string; required?: boolean; error?: string; children: React.ReactNode }) {
+function Field({ label, required, error, hint, children }: { label: string; required?: boolean; error?: string; hint?: string; children: React.ReactNode }) {
   return (
     <div>
       <label className="mb-1 block text-xs font-semibold text-slate-600">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <div className={error ? 'rounded-md ring-2 ring-red-300' : ''}>{children}</div>
+      {hint && (
+        <p className="mt-1 text-[11px] text-slate-500">Contoh: 「{hint}」</p>
+      )}
       {error && (
         <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-red-500">
           <AlertCircle size={12} />
@@ -510,6 +513,8 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
     kekuranganDiri: '',
     hobi: '',
     keahlian: '',
+    promosiDiri: '',
+    catatanTambahan: '',
     bersediaShift: '',
     bersediaLembur: '',
     bersediaHariLibur: '',
@@ -791,7 +796,7 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
     ['levelJlpt', 'lamaBelajarJepang', 'levelBahasaJepang', 'keahlian'],
     ['penghasilanKeluarga', 'Ayah.nama', 'Ayah.usia', 'Ayah.pekerjaan', 'Ayah.penghasilan', 'Ibu.nama', 'Ibu.usia', 'Ibu.pekerjaan', 'Ibu.penghasilan'],
     ['pernahKeJepang', 'keluargaDiJepang', 'kenalanDiJepang'],
-    ['tujuanKeJepang', 'alasanKeJepang', 'citaCitaSetelahJepang', 'rencanaPengirimanUang', 'kelebihanDiri', 'kekuranganDiri', 'hobi', 'keahlian', 'bersediaShift', 'bersediaLembur', 'bersediaHariLibur', 'lamaTinggalJepang', 'lamaKerjaPerusahaan', 'rencanaPulang', 'sumberBiaya', 'biayaDisiapkan'],
+    ['tujuanKeJepang', 'alasanKeJepang', 'citaCitaSetelahJepang', 'rencanaPengirimanUang', 'kelebihanDiri', 'kekuranganDiri', 'hobi', 'keahlian', 'promosiDiri', 'catatanTambahan', 'bersediaShift', 'bersediaLembur', 'bersediaHariLibur', 'lamaTinggalJepang', 'lamaKerjaPerusahaan', 'rencanaPulang', 'sumberBiaya', 'biayaDisiapkan'],
     dokumenList.map(d => `dokumen.${d.jenis}`),
   ]
 
@@ -1062,6 +1067,8 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
         kekuranganDiri: v.kekurangan_diri || '',
         hobi: v.hobi || '',
         keahlian: v.keahlian || '',
+        promosiDiri: v.promosi_diri || '',
+        catatanTambahan: v.catatan_tambahan || '',
         bersediaShift: boolToStr(v.bersedia_shift),
         bersediaLembur: boolToStr(v.bersedia_lembur),
         bersediaHariLibur: boolToStr(v.bersedia_hari_libur),
@@ -1315,6 +1322,8 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
       kekurangan_diri: form.kekuranganDiri || null,
       hobi: form.hobi || null,
       keahlian: form.keahlian || null,
+      promosi_diri: form.promosiDiri || null,
+      catatan_tambahan: form.catatanTambahan || null,
       bersedia_shift: toBool(form.bersediaShift),
       bersedia_lembur: toBool(form.bersediaLembur),
       bersedia_hari_libur: toBool(form.bersediaHariLibur),
@@ -2002,16 +2011,25 @@ export default function MatchingJobForm({ adminKandidatId, onClose }: { adminKan
 
         {activeStep === 7 && (
           <div>
-            <h2 className="mb-4 text-sm font-bold text-slate-800">{adminKandidatId ? '8. Motivasi, Tujuan & Poin Pendukung' : 'MOTIVASI, TUJUAN & POIN PENDUKUNG'}</h2>
+            <h2 className="mb-2 text-sm font-bold text-slate-800">{adminKandidatId ? '8. Motivasi, Tujuan & Poin Pendukung' : 'MOTIVASI, TUJUAN & POIN PENDUKUNG'}</h2>
+            <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5 text-[11px] leading-relaxed text-slate-600">
+              <strong>Semua isian pada langkah ini wajib ditulis dalam bahasa Jepang (日本語で記入)</strong> karena akan dicantumkan pada CV yang dikirim ke perusahaan di Jepang. Gunakan contoh-contoh di bawah sebagai panduan. Tulis dalam bentuk <em>ます／たい</em> (polite) dan hindari penggunaan placeholder.
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Tujuan ke Jepang" required error={errors.tujuanKeJepang}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Tuliskan tujuan Anda pergi ke Jepang..." value={form.tujuanKeJepang} onChange={set('tujuanKeJepang')} /></Field>
-              <Field label="Alasan Ingin ke Jepang" required error={errors.alasanKeJepang}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Alasan Anda..." value={form.alasanKeJepang} onChange={set('alasanKeJepang')} /></Field>
-              <Field label="Cita-cita Setelah Pulang dari Jepang" required error={errors.citaCitaSetelahJepang}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Cita-cita..." value={form.citaCitaSetelahJepang} onChange={set('citaCitaSetelahJepang')} /></Field>
+              <Field label="Tujuan ke Jepang" required error={errors.tujuanKeJepang} hint="日本の製造業で働き、日本の経済発展に貢献したいと思っています。"><textarea className={`${inputCls} min-h-[70px]`} placeholder="例：日本の製造業で働き、日本の経済発展に貢献したいと思っています。" value={form.tujuanKeJepang} onChange={set('tujuanKeJepang')} /></Field>
+              <Field label="Alasan Ingin ke Jepang" required error={errors.alasanKeJepang} hint="日本の先端技術と高い品質に惹かれ、技術を磨きたいと考えています。"><textarea className={`${inputCls} min-h-[70px]`} placeholder="例：日本の先端技術と高い品質に惹かれ、技術を磨きたいと考えています。" value={form.alasanKeJepang} onChange={set('alasanKeJepang')} /></Field>
+              <Field label="Cita-cita Setelah Pulang dari Jepang" required error={errors.citaCitaSetelahJepang} hint="帰国後は母国の発展に貢献し、教育分野で後輩の育成に尽力したいと考えています。"><textarea className={`${inputCls} min-h-[70px]`} placeholder="例：帰国後は母国の発展に貢献し、教育分野で後輩の育成に尽力したいと考えています。" value={form.citaCitaSetelahJepang} onChange={set('citaCitaSetelahJepang')} /></Field>
               <Field label="Rencana Pengiriman Uang/Bulan ke Indonesia (Rp)" required error={errors.rencanaPengirimanUang}><input type="number" className={inputCls} placeholder="3000000" value={form.rencanaPengirimanUang} onChange={set('rencanaPengirimanUang')} /></Field>
-              <Field label="Kelebihan Diri" required error={errors.kelebihanDiri}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Kelebihan Anda..." value={form.kelebihanDiri} onChange={set('kelebihanDiri')} /></Field>
-              <Field label="Kekurangan Diri" required error={errors.kekuranganDiri}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Kekurangan Anda..." value={form.kekuranganDiri} onChange={set('kekuranganDiri')} /></Field>
-              <Field label="Hobi" required error={errors.hobi}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Hobi Anda..." value={form.hobi} onChange={set('hobi')} /></Field>
-              <Field label="Keahlian" required error={errors.keahlian}><textarea className={`${inputCls} min-h-[70px]`} placeholder="Keahlian Anda..." value={form.keahlian} onChange={set('keahlian')} /></Field>
+              <Field label="Kelebihan Diri" required error={errors.kelebihanDiri} hint="責任感が強く、チームワークを大切にする性格です。"><textarea className={`${inputCls} min-h-[70px]`} placeholder="例：責任感が強く、チームワークを大切にする性格です。" value={form.kelebihanDiri} onChange={set('kelebihanDiri')} /></Field>
+              <Field label="Kekurangan Diri" required error={errors.kekuranganDiri} hint="自分の意見をうまく伝えられないことがあります。"><textarea className={`${inputCls} min-h-[70px]`} placeholder="例：自分の意見をうまく伝えられないことがあります。" value={form.kekuranganDiri} onChange={set('kekuranganDiri')} /></Field>
+              <Field label="Hobi" required error={errors.hobi} hint="読書、ジョギング、料理"><textarea className={`${inputCls} min-h-[70px]`} placeholder="例：読書、ジョギング、料理" value={form.hobi} onChange={set('hobi')} /></Field>
+              <Field label="Keahlian" required error={errors.keahlian} hint="野菜栽培と収穫、トラック運転、清掃作業"><textarea className={`${inputCls} min-h-[70px]`} placeholder="例：野菜栽培と収穫、トラック運転、清掃作業" value={form.keahlian} onChange={set('keahlian')} /></Field>
+              <div className="sm:col-span-2">
+                <Field label="Promosi Diri (自己PR)" error={errors.promosiDiri} hint="農作業に熱意と責任をもって取り組み、個々の作物の生育を丁寧に確認します。"><textarea className={`${inputCls} min-h-[70px]`} placeholder="例：農作業に熱意と責任をもって取り組み、個々の作物の生育を丁寧に確認します。" value={form.promosiDiri} onChange={set('promosiDiri')} /></Field>
+              </div>
+              <div className="sm:col-span-2">
+                <Field label="Catatan Tambahan (備考)" error={errors.catatanTambahan} hint="健康状態は良好で、定期的な健康診断の結果も良好です。"><textarea className={`${inputCls} min-h-[70px]`} placeholder="例：健康状態は良好で、定期的な健康診断の結果も良好です。" value={form.catatanTambahan} onChange={set('catatanTambahan')} /></Field>
+              </div>
               <YesNo label="Bersedia Kerja Shift?" required value={form.bersediaShift} error={errors.bersediaShift} onChange={v => setForm(f => ({ ...f, bersediaShift: v }))} />
               <YesNo label="Bersedia Lembur?" required value={form.bersediaLembur} error={errors.bersediaLembur} onChange={v => setForm(f => ({ ...f, bersediaLembur: v }))} />
               <YesNo label="Bersedia Kerja Hari Libur?" required value={form.bersediaHariLibur} error={errors.bersediaHariLibur} onChange={v => setForm(f => ({ ...f, bersediaHariLibur: v }))} />

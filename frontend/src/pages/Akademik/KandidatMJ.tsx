@@ -771,6 +771,8 @@ export default function KandidatMJ() {
                       <Info label="Kekurangan Diri" value={d.kekurangan_diri} wide />
                       <Info label="Hobi" value={d.hobi} />
                       <Info label="Keahlian" value={d.keahlian} />
+                      <Info label="Promosi Diri (自己PR)" value={d.promosi_diri} wide />
+                      <Info label="Catatan Tambahan (備考)" value={d.catatan_tambahan} wide />
                       <Info label="Lama Tinggal di Jepang" value={d.lama_tinggal_jepang} />
                       <Info label="Lama Kerja di Perusahaan" value={d.lama_kerja_perusahaan} />
                       <Info label="Rencana Pulang" value={d.rencana_pulang} />

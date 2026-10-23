@@ -3673,6 +3673,8 @@ function MatchingJobSection({ data, learningLevel, statusFormulir }: { data: Rec
           <Item label="Kekurangan Diri" value={data.kekurangan_diri} />
           <Item label="Hobi" value={data.hobi} />
           <Item label="Keahlian" value={data.keahlian} />
+          <Item label="Promosi Diri (自己PR)" value={data.promosi_diri} />
+          <Item label="Catatan Tambahan (備考)" value={data.catatan_tambahan} />
           <Item label="Bersedia Shift" value={fmtYes(data.bersedia_shift)} />
           <Item label="Bersedia Lembur" value={fmtYes(data.bersedia_lembur)} />
           <Item label="Bersedia Bekerja Hari Libur" value={fmtYes(data.bersedia_hari_libur)} />
