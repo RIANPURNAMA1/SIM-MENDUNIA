@@ -70,6 +70,89 @@ class PendaftaranController extends Controller
         return ['coupon_id' => $coupon->id, 'diskon' => $diskon];
     }
 
+    /**
+     * Deteksi typo domain email umum (mis. gmial.com -> gmail.com).
+     * Mengembalikan domain yang disarankan atau null jika tidak ada typo.
+     */
+    private function detectEmailDomainTypo($email)
+    {
+        $parts = explode('@', strtolower(trim((string) $email)));
+        if (count($parts) !== 2) {
+            return null;
+        }
+
+        $typos = [
+            'gmial.com' => 'gmail.com',
+            'gamil.com' => 'gmail.com',
+            'gmai.com' => 'gmail.com',
+            'gmal.com' => 'gmail.com',
+            'gmail.co' => 'gmail.com',
+            'gmail.con' => 'gmail.com',
+            'gmail.cm' => 'gmail.com',
+            'gmail.om' => 'gmail.com',
+            'gmail.cpm' => 'gmail.com',
+            'gnail.com' => 'gmail.com',
+            'gmaill.com' => 'gmail.com',
+            'gmailcom' => 'gmail.com',
+            'yaho.com' => 'yahoo.com',
+            'yahoo.co' => 'yahoo.com',
+            'yahoo.con' => 'yahoo.com',
+            'yahooo.com' => 'yahoo.com',
+            'yhaoo.com' => 'yahoo.com',
+            'hotmial.com' => 'hotmail.com',
+            'hotmai.com' => 'hotmail.com',
+            'hotmail.co' => 'hotmail.com',
+            'hotmail.con' => 'hotmail.com',
+            'hotmal.com' => 'hotmail.com',
+            'outlok.com' => 'outlook.com',
+            'outlook.co' => 'outlook.com',
+            'outlook.con' => 'outlook.com',
+            'iclod.com' => 'icloud.com',
+            'icloud.co' => 'icloud.com',
+            'icloud.con' => 'icloud.com',
+            'protonmial.com' => 'protonmail.com',
+            'protonmail.co' => 'protonmail.com',
+        ];
+
+        return $typos[$parts[1]] ?? null;
+    }
+
+    private function emailTypoResponse($email)
+    {
+        $suggestion = $this->detectEmailDomainTypo($email);
+        if (!$suggestion) {
+            return null;
+        }
+
+        $message = "Domain email sepertinya typo. Mungkin maksud Anda @{$suggestion}.";
+        return response()->json([
+            'message' => $message,
+            'errors' => ['email' => [$message]],
+        ], 422);
+    }
+
+    /**
+     * Cek ketersediaan email secara realtime untuk form pendaftaran.
+     */
+    public function cekEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+        ], [
+            'email.required' => 'Alamat email wajib diisi.',
+            'email.email' => 'Format alamat email tidak valid.',
+        ]);
+
+        $email = strtolower(trim($request->email));
+        $exists = User::whereRaw('LOWER(email) = ?', [$email])->exists()
+            || Pendaftar::whereRaw('LOWER(email) = ?', [$email])->exists();
+
+        return response()->json([
+            'exists' => $exists,
+            'message' => $exists ? 'Email sudah terdaftar' : 'Email tersedia',
+        ]);
+    }
+
     public function daftarLangsung(Request $request)
     {
         $data = $request->validate([
@@ -96,6 +179,10 @@ class PendaftaranController extends Controller
             'password.min' => 'Password minimal :min karakter.',
             'telepon.required' => 'Nomor WhatsApp wajib diisi.',
         ]);
+
+        if ($typoResponse = $this->emailTypoResponse($data['email'])) {
+            return $typoResponse;
+        }
 
         $product = Product::findOrFail($data['product_id']);
         $nominal = $product->harga;
@@ -230,6 +317,10 @@ class PendaftaranController extends Controller
             'telepon.required' => 'Nomor WhatsApp wajib diisi.',
         ]);
 
+        if ($typoResponse = $this->emailTypoResponse($data['email'])) {
+            return $typoResponse;
+        }
+
         $link = AffiliateLink::with('product')->where('kode', $data['kode_link'])->firstOrFail();
         $nominal = $link->product->harga ?? 0;
 
@@ -342,6 +433,11 @@ class PendaftaranController extends Controller
     public function index(Request $request)
     {
         $pendaftars = Pendaftar::with(['affiliateLink.affiliate', 'product.biayaKategoris', 'user', 'coupon', 'batch', 'siswa'])
+            ->orderByRaw("CASE
+                WHEN status_pembayaran = 'processing' AND status_pendaftaran = 'pending' THEN 0
+                WHEN status_pembayaran = 'unpaid' THEN 1
+                ELSE 2
+            END")
             ->orderBy('created_at', 'desc');
 
         if ($request->status_pendaftaran) {
@@ -1125,6 +1221,19 @@ class PendaftaranController extends Controller
             }
         } catch (\Exception $e) {
             Log::error('Gagal kirim notifikasi status: ' . $e->getMessage());
+        }
+
+        // Notifikasi status ditangguhkan ke admin follow up.
+        if (($data['status_pembayaran'] ?? null) === 'ditangguhkan') {
+            try {
+                $freshAdmin = \App\Models\Pendaftar::with(['product', 'batch'])->find($pendaftarId);
+                if ($freshAdmin) {
+                    $waService = new \App\Services\WhatsAppService();
+                    $waService->sendDitangguhkanNotificationToAdmin($freshAdmin);
+                }
+            } catch (\Exception $e) {
+                Log::error('Gagal kirim notifikasi ditangguhkan ke admin: ' . $e->getMessage());
+            }
         }
 
         return response()->json(['message' => 'Status berhasil diperbarui']);

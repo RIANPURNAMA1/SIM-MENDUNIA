@@ -349,6 +349,8 @@ export const pendaftarApi = {
     api.post('/pendaftaran/daftar-langsung', data, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
+  cekEmail: (email: string) =>
+    api.get('/pendaftaran/cek-email', { params: { email } }),
   tagihanGroups: (params?: Record<string, unknown>) =>
     api.get('/tagihan/groups', { params }),
   tagihanBatch: (batchId: number, params?: Record<string, unknown>) =>

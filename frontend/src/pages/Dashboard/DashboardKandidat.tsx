@@ -132,6 +132,7 @@ export default function DashboardKandidat() {
       const now = new Date()
       return tgl.getMonth() === now.getMonth() && tgl.getFullYear() === now.getFullYear()
         && p.status_pembayaran === 'verified'
+        && p.status_pendaftaran !== 'ditolak'
     })
     .reduce((s, p) => s + Number(p.nominal || 0), 0)
 
@@ -143,6 +144,7 @@ export default function DashboardKandidat() {
       const lastYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
       return tgl.getMonth() === lastMonth && tgl.getFullYear() === lastYear
         && p.status_pembayaran === 'verified'
+        && p.status_pendaftaran !== 'ditolak'
     })
     .reduce((s, p) => s + Number(p.nominal || 0), 0)
 
@@ -796,10 +798,10 @@ export default function DashboardKandidat() {
               <div className="mb-1 flex items-center justify-between">
                 <span className="text-xs font-medium text-[#5f6368]">Total Semua</span>
                 <span className="text-base font-medium text-[#1a73e8]">
-                  Rp {pendaftar.filter(p => p.status_pembayaran === 'verified').reduce((s, p) => s + Number(p.nominal || 0), 0).toLocaleString('id-ID')}
+                  Rp {pendaftar.filter(p => p.status_pembayaran === 'verified' && p.status_pendaftaran !== 'ditolak').reduce((s, p) => s + Number(p.nominal || 0), 0).toLocaleString('id-ID')}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-[#5f6368]">{pendaftar.filter(p => p.status_pembayaran === 'verified').length} transaksi</p>
+              <p className="mt-1 text-xs text-[#5f6368]">{pendaftar.filter(p => p.status_pembayaran === 'verified' && p.status_pendaftaran !== 'ditolak').length} transaksi</p>
             </div>
           </div>
         </div>

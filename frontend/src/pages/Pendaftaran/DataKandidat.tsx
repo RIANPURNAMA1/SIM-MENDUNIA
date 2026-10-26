@@ -173,6 +173,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
   const [filterBatch, setFilterBatch] = useState('')
   const [filterCabang, setFilterCabang] = useState('')
   const [showBatchDropdown, setShowBatchDropdown] = useState(false)
+  const [batchSearch, setBatchSearch] = useState('')
   const [showTambahBatchDropdown, setShowTambahBatchDropdown] = useState(false)
   const [cabangOptions, setCabangOptions] = useState<{ id: number; nama: string }[]>([])
   const [loading, setLoading] = useState(true)

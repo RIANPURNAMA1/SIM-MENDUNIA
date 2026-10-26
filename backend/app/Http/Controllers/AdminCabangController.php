@@ -61,14 +61,15 @@ class AdminCabangController extends Controller
         $totalTagihan = 0;
         $totalTerkumpul = 0;
         $kategoris = BiayaKategori::orderBy('urutan')->get();
-        $pendaftarIds = Pendaftar::whereIn('batch_id', $batchIds)->pluck('id');
-        $allPembayaran = PembayaranItem::whereIn('pendaftar_id', $pendaftarIds)
-            ->get()
-            ->groupBy('pendaftar_id');
 
         $pendaftars = Pendaftar::with(['product.biayaKategoris'])
             ->whereIn('batch_id', $batchIds)
+            ->where('status_pendaftaran', '!=', 'ditolak')
             ->get();
+        $pendaftarIds = $pendaftars->pluck('id');
+        $allPembayaran = PembayaranItem::whereIn('pendaftar_id', $pendaftarIds)
+            ->get()
+            ->groupBy('pendaftar_id');
 
         foreach ($pendaftars as $p) {
             $product = $p->product;

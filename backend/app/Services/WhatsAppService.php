@@ -533,6 +533,55 @@ class WhatsAppService
     }
 
     /**
+     * Kirim notifikasi status ditangguhkan ke admin follow up.
+     * Nomor tujuan memakai setting 'wa_pendaftaran_admin_phones'.
+     */
+    public function sendDitangguhkanNotificationToAdmin($pendaftar)
+    {
+        if (!\App\Models\NotificationSetting::isEnabled('wa_pembayaran')) {
+            Log::info('Notifikasi wa_pembayaran dinonaktifkan.');
+            return false;
+        }
+
+        $adminPhones = $this->getAdminPhones('wa_pendaftaran_admin_phones');
+        if (empty($adminPhones)) {
+            Log::warning('Tidak ada nomor admin follow up untuk notifikasi ditangguhkan.');
+            return false;
+        }
+
+        $pendaftar->loadMissing(['product', 'batch']);
+        $nama = $pendaftar->nama;
+        $program = $pendaftar->product?->nama ?? '-';
+        $batchNama = $pendaftar->batch?->nama_batch ?? '-';
+        $noReg = $pendaftar->no_registrasi ?? '-';
+        $noHp = $pendaftar->telepon ?? '-';
+        $tanggal = now()->translatedFormat('d F Y H:i');
+        $frontendUrl = env('FRONTEND_URL', 'http://localhost:5173');
+        $detailUrl = $frontendUrl . '/pendaftar/' . $pendaftar->id;
+
+        $message = "⚠️ *PENDAFTARAN DITANGGUHKAN*\n\n"
+            . "Halo Admin,\n\n"
+            . "Status pendaftaran berikut diubah menjadi *Ditangguhkan*.\n\n"
+            . "👤 Nama: {$nama}\n"
+            . "📚 Program: {$program}\n"
+            . "🎓 Batch: {$batchNama}\n"
+            . "🗂️ No. Registrasi: {$noReg}\n"
+            . "📱 No. WhatsApp: {$noHp}\n"
+            . "🕒 Waktu: {$tanggal}\n\n"
+            . "🔗 Lihat Detail:\n{$detailUrl}\n\n"
+            . "- Sistem SIM Mendunia";
+
+        $results = [];
+        foreach ($adminPhones as $phone) {
+            $sent = $this->sendMessage($phone, $message);
+            $this->logNotification($pendaftar->id ?? null, 'ditangguhkan_admin', $phone, $message, $sent);
+            $results[] = $sent;
+        }
+
+        return in_array(true, $results);
+    }
+
+    /**
      * Hitung total tagihan pendaftar
      */
     private function getTotalTagihan($pendaftar)

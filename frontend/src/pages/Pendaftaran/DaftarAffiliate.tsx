@@ -4,6 +4,8 @@ import {
   User, Loader, Shield, Eye, EyeOff, Check, X,
 } from 'lucide-react'
 import { affiliateLinkApi, pendaftarApi, couponApi, paymentSettingApi } from '../../services/api'
+import { getEmailError } from '../../utils/emailValidation'
+import { useEmailAvailability } from '../../hooks/useEmailAvailability'
 
 interface KategoriItem {
   name: string
@@ -40,6 +42,22 @@ export default function DaftarAffiliate() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const emailAvailabilityError = useEmailAvailability(email)
+
+  useEffect(() => {
+    setFieldErrors(prev => {
+      if (emailAvailabilityError) {
+        if (prev.email === emailAvailabilityError) return prev
+        return { ...prev, email: emailAvailabilityError }
+      }
+      if (prev.email === 'Email sudah terdaftar') {
+        const next = { ...prev }
+        delete next.email
+        return next
+      }
+      return prev
+    })
+  }, [emailAvailabilityError])
 
   const [nama, setNama] = useState('')
   const [email, setEmail] = useState('')
@@ -171,8 +189,8 @@ const [showPassword, setShowPassword] = useState(false)
 
     const errors: Record<string, string> = {}
     if (!nama.trim()) errors.nama = "Nama lengkap wajib diisi"
-    if (!email.trim()) errors.email = "Alamat email wajib diisi"
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Format email tidak valid"
+    const emailError = getEmailError(email) || emailAvailabilityError
+    if (emailError) errors.email = emailError
     if (!password) errors.password = "Password wajib diisi"
     else if (password.length < 8) errors.password = "Password minimal 8 karakter"
     else if (!/[a-z]/.test(password) || !/[A-Z]/.test(password) || !/[0-9]/.test(password) || !/[!@#$%^&*]/.test(password)) {
@@ -230,8 +248,7 @@ const [showPassword, setShowPassword] = useState(false)
     let msg = ''
     if (name === 'nama' && !value.trim()) msg = 'Nama lengkap wajib diisi'
     else if (name === 'email') {
-      if (!value.trim()) msg = 'Alamat email wajib diisi'
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) msg = 'Format email tidak valid'
+      msg = getEmailError(value)
     } else if (name === 'password') {
       if (!value) msg = 'Password wajib diisi'
       else if (value.length < 8) msg = 'Password minimal 8 karakter'
@@ -436,7 +453,7 @@ const [showPassword, setShowPassword] = useState(false)
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => { setEmail(e.target.value); if (touched.email) validateField('email', e.target.value); }}
+                    onChange={(e) => { setEmail(e.target.value); validateField('email', e.target.value); }}
                     onBlur={() => { setTouched(p => ({ ...p, email: true })); validateField('email', email); }}
                     placeholder="Alamat Email"
                     className={`w-full px-4 py-3 bg-white border rounded-lg text-sm focus:ring-2 focus:ring-[#0E6187]/20 outline-none transition-colors ${fieldErrors.email ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20' : 'border-gray-300 focus:border-[#0E6187]'}`}

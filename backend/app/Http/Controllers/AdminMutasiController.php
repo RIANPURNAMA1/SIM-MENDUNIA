@@ -23,8 +23,11 @@ class AdminMutasiController extends Controller
             ->whereNotNull('kategori_id')
             ->count();
 
-        $pendapatanVerified = (float) Pembayaran::where('status', 'verified')->sum('jumlah');
-        $pendapatanBulanIni = (float) Pembayaran::where('status', 'verified')
+        $pendapatanQuery = fn () => Pembayaran::where('status', 'verified')
+            ->whereHas('pendaftar', fn ($q) => $q->where('status_pendaftaran', '!=', 'ditolak'));
+
+        $pendapatanVerified = (float) $pendapatanQuery()->sum('jumlah');
+        $pendapatanBulanIni = (float) $pendapatanQuery()
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->sum('jumlah');
@@ -81,6 +84,7 @@ class AdminMutasiController extends Controller
 
         $rekapPendapatan = $months->map(function ($m) {
             $total = Pembayaran::where('status', 'verified')
+                ->whereHas('pendaftar', fn ($q) => $q->where('status_pendaftaran', '!=', 'ditolak'))
                 ->whereMonth('created_at', $m['month'])
                 ->whereYear('created_at', $m['year'])
                 ->sum('jumlah');

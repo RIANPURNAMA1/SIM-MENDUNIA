@@ -642,6 +642,7 @@ Route::get('/guru/penilaian-rekap/{kelasId}', [GuruDashboardController::class, '
 
 // Public — daftar langsung tanpa affiliate
 Route::post('/pendaftaran/daftar-langsung', [PendaftaranController::class, 'daftarLangsung']);
+Route::get('/pendaftaran/cek-email', [PendaftaranController::class, 'cekEmail']);
 Route::get('/pendaftaran/bayar/{id}', [PendaftaranController::class, 'bayarInfo']);
 Route::get('/pendaftaran/bayar/token/{token}', [PendaftaranController::class, 'bayarInfoByToken']);
 Route::post('/pendaftar/{id}/bayar', [PendaftaranController::class, 'bayar']);
