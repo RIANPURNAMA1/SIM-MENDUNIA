@@ -711,29 +711,6 @@ export default function AdminCabangTagihan() {
 
         {isOpen && (
           <div className="overflow-x-auto border-t border-[#dadce0]">
-            {selectedLunasIds.size > 0 && (
-              <div className="flex items-center gap-3 border-b border-[#dadce0] bg-[#e8f0fe]/50 px-4 py-2">
-                <span className="text-xs font-medium text-[#5f6368]">{selectedLunasIds.size} pendaftar dipilih</span>
-                <button onClick={async () => {
-                  setBulkLunasLoading(true)
-                  try {
-                    await Promise.all([...selectedLunasIds].map(id => adminCabangApi.setLunas(id)))
-                    setSelectedLunasIds(new Set())
-                    await refreshAll()
-                    Swal.fire({ icon: 'success', title: 'Berhasil!', text: `${selectedLunasIds.size} pendaftar di-set lunas`, confirmButtonColor: '#0E6187', timer: 2000, timerProgressBar: true, showConfirmButton: false })
-                  } catch {
-                    Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status pembayaran', confirmButtonColor: '#0E6187' })
-                  } finally {
-                    setBulkLunasLoading(false)
-                  }
-                }} disabled={bulkLunasLoading} className="bg-[#0E6187] px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-[#084c63] disabled:opacity-50">
-                  {bulkLunasLoading ? 'Memproses...' : 'Set Lunas'}
-                </button>
-                <button onClick={() => setSelectedLunasIds(new Set())} className="border border-[#dadce0] bg-white px-3 py-1.5 text-xs font-medium text-[#5f6368] transition hover:bg-[#f8f9fa]">
-                  Batal Pilih
-                </button>
-              </div>
-            )}
             <table className="w-full min-w-[900px] border-collapse text-left text-sm text-[#3c4043]">
               <thead className="">
                   <tr>

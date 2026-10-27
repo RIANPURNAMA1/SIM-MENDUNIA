@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import { DollarSign, Users, Search, RotateCcw, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, RefreshCw, KeyRound, ClipboardPaste, LayoutDashboard } from 'lucide-react'
+import { DollarSign, Users, Search, Eye, Edit3, Power, PowerOff, CalendarOff, Calendar, Receipt, Check, X, Plus, Loader2, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, ChevronUp, ChevronDown, ChevronsUpDown, MoreHorizontal, FileText, Download, Upload, Trash2, ArrowRight, KeyRound, ClipboardPaste, LayoutDashboard, RotateCcw } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useReactTable, getCoreRowModel, getSortedRowModel, getPaginationRowModel, flexRender, type ColumnDef, type SortingState } from '@tanstack/react-table'
 import api, { pendaftarApi, batchApi, productApi, adminCabangApi, APP_URL } from '../../services/api'
@@ -971,6 +971,11 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
 
   const filteredList = kandidatList
 
+  const filteredBatchOptions = useMemo(() => {
+    const searchLower = batchSearch.toLowerCase()
+    return batchOptions.filter(b => b.nama.toLowerCase().includes(searchLower))
+  }, [batchSearch, batchOptions])
+
   const statusCounts = useMemo(() => {
     const counts: Record<string, number> = {
       'Calon Kandidat': 0,
@@ -1643,11 +1648,30 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
             </button>
             {showBatchDropdown && (
               <div className="absolute left-0 top-full z-50 mt-1 w-full min-w-[220px] border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] py-1 max-h-60 overflow-y-auto">
+                <div className="px-3 py-2 border-b border-[#e8eaed]">
+                  <div className="flex items-center gap-2">
+                    <Search size={14} className="text-[#80868b]" />
+                    <input
+                      type="text"
+                      placeholder="Cari batch..."
+                      value={batchSearch}
+                      onChange={(e) => setBatchSearch(e.target.value)}
+                      className="flex-1 border-none bg-transparent py-1 text-sm text-[#3c4043] outline-none w-full"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setBatchSearch('') }
+                      className="text-xs text-[#80868b] hover:underline"
+                    >
+                      Batal
+                    </button>
+                  </div>
+                </div>
                 <button type="button" onClick={() => { setFilterBatch(''); setShowBatchDropdown(false); setPage(1); doFetch(buildParams({ batch_id: '' })) }}
                   className="flex w-full items-center gap-2 px-3 py-2 text-sm text-[#5f6368] hover:bg-[#e8f0fe] hover:text-[#1967d2] transition">
                   Semua Batch
                 </button>
-                {batchOptions.map(b => (
+                {filteredBatchOptions.map(b => (
                   <button key={b.id} type="button" onClick={() => { setFilterBatch(String(b.id)); setShowBatchDropdown(false); setPage(1); doFetch(buildParams({ batch_id: String(b.id) })) }}
                     className={`flex w-full items-center gap-2 px-3 py-2 text-sm transition ${String(b.id) === filterBatch ? 'bg-[#e8f0fe] text-[#1967d2] font-medium' : 'text-[#3c4043] hover:bg-[#f8f9fa]'}`}>
                     <span className="inline-block h-3 w-3 shrink-0 ring-1 ring-black/10" style={{ backgroundColor: b.warna || '#3b82f6' }} />
@@ -1693,26 +1717,8 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 <KeyRound size={14} className="text-[#81c995]" />
                 Export PDF Akun Login
               </button>
-            </div>
-          </div>
-          {!isCabang && (
-            <button
-              onClick={() => setShowImport(true)}
-              className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-4 py-2.5 text-sm font-medium text-[#5f6368] transition hover:bg-[#f8f9fa] hover:text-[#202124]"
-            >
-              <Upload size={16} />
-              Import
-            </button>
-          )}
-          {!isCabang && (
-            <button
-              onClick={handleSyncNoRegistrasi}
-              className="inline-flex items-center justify-center gap-2 border border-[#a8dab5] bg-white px-4 py-2.5 text-sm font-medium text-[#137333] transition hover:bg-[#e6f4ea] hover:text-[#0d652d]"
-            >
-              <RefreshCw size={16} />
-              Sync No. Reg
-            </button>
-          )}
+</div>
+        </div>
         </div>
       </div>
 

@@ -123,12 +123,12 @@ const STATUS_MAP: Record<string, Record<string, string>> = {
 }
 
 const STATUS_OPTIONS = [
-  { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock, iconColor: 'text-white', bg: 'bg-[#5f6368] hover:bg-[#3c4043] border-[#80868b]' },
-  { val: 'confirmed', label: 'Menunggu Verifikasi', icon: BadgeCheck, iconColor: 'text-white', bg: 'bg-[#e37400] hover:bg-[#b06000] border-[#e37400]' },
-  { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-white', bg: 'bg-[#0E6187] hover:bg-[#0a4d6b] border-[#1a73e8]' },
-  { val: 'selesai', label: 'Pembayaran dikonfirmasi', icon: CheckCircle2, iconColor: 'text-white', bg: 'bg-[#137333] hover:bg-[#137333] border-[#137333]' },
-  { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-white', bg: 'bg-[#d93025] hover:bg-[#c5221f] border-[#d93025]' },
-  { val: 'ditangguhkan', label: 'Ditangguhkan', icon: Banknote, iconColor: 'text-white', bg: 'bg-[#e37400] hover:bg-[#b06000] border-[#e37400]' },
+  { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock },
+  { val: 'confirmed', label: 'Menunggu Verifikasi', icon: BadgeCheck },
+  { val: 'proses', label: 'Proses', icon: RefreshCw },
+  { val: 'selesai', label: 'Pembayaran dikonfirmasi', icon: CheckCircle2 },
+  { val: 'batal', label: 'Batal', icon: Ban },
+  { val: 'ditangguhkan', label: 'Ditangguhkan', icon: Banknote },
 ]
 
 const STATUS_CONFIRM: Record<string, { title: string; text: string; confirmText: string; icon: 'warning' | 'info' | 'question' }> = {
@@ -152,7 +152,7 @@ function combinedStatusLabel(p: any): string {
 function UbahStatusGrid({ pendaftarId, pendaftar, onChanged }: { pendaftarId: number; pendaftar: any; onChanged: () => void }) {
   const current = combinedStatusLabel(pendaftar)
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {STATUS_OPTIONS.map(opt => {
         const target = STATUS_MAP[opt.val]
         const msg = STATUS_CONFIRM[opt.val]
@@ -191,15 +191,15 @@ function UbahStatusGrid({ pendaftarId, pendaftar, onChanged }: { pendaftarId: nu
                 Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memperbarui status' })
               }
             }}
-            className={`flex items-center justify-between gap-2 border px-3 py-2.5 text-left text-sm font-medium transition ${opt.bg} ${isActive ? 'cursor-default opacity-100 ring-2 ring-offset-1 ring-[#1a73e8]' : 'cursor-pointer hover:brightness-95'}`}
+            className={`flex items-center justify-between gap-2 border px-3 py-2 text-left text-sm transition ${isActive ? 'cursor-default border-[#1a73e8] bg-[#f8f9fa] text-[#202124]' : 'cursor-pointer border-[#dadce0] bg-white text-[#3c4043] hover:bg-[#f8f9fa]'}`}
           >
             <span className="flex items-center gap-2">
-              <Icon size={15} className={opt.iconColor} />
-              <span className="text-white">{opt.label}</span>
+              <Icon size={15} className={isActive ? 'text-[#1a73e8]' : 'text-[#5f6368]'} />
+              <span className="font-medium">{opt.label}</span>
             </span>
             {isActive && (
-              <span className="flex-none bg-white/25 px-1.5 py-0.5 text-[9px] font-bold text-white">
-                saat ini
+              <span className="flex-none bg-[#e8f0fe] px-2 py-0.5 text-[10px] font-semibold text-[#1a73e8]">
+                Saat ini
               </span>
             )}
           </button>
@@ -233,6 +233,8 @@ export default function Tagihan() {
   const [showBatchDropdown, setShowBatchDropdown] = useState(false)
   const [showPendingModal, setShowPendingModal] = useState(false)
   const [selectedPendingPendaftarId, setSelectedPendingPendaftarId] = useState<number | null>(null)
+  const [openPendingGroup, setOpenPendingGroup] = useState<number | null>(null)
+  const [previewProof, setPreviewProof] = useState<{ url: string; pendaftarId: number } | null>(null)
   const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const [activeBatchId, setActiveBatchId] = useState<number | null>(null)
   const activeBatchRef = useRef<number | null>(null)
@@ -1340,33 +1342,33 @@ export default function Tagihan() {
           ? filteredPembayaran[0]?.pendaftar?.nama || ''
           : ''
         return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 px-3 py-6" onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}>
-          <div className="border border-[#dadce0] flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
-            <div className="flex flex-none items-center justify-between gap-3 bg-[#0E6187] px-4 py-3.5 sm:px-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 px-3 py-6" onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null); setOpenPendingGroup(null) }}>
+          <div className="border border-[#dadce0] flex max-h-[88vh] w-full max-w-2xl flex-col overflow-hidden bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-none items-center justify-between gap-3 border-b border-[#dadce0] bg-white px-4 py-3.5 sm:px-5">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 flex-none items-center justify-center bg-white/15">
-                  <Bell size={19} className="text-white" />
+                <div className="flex h-9 w-9 flex-none items-center justify-center border border-[#dadce0] bg-[#f8f9fa]">
+                  <Bell size={18} className="text-[#5f6368]" />
                 </div>
                 <div className="min-w-0">
-                  <h3 className="text-base font-bold text-white">Verifikasi Pembayaran</h3>
-                  <p className="truncate text-xs text-white/75">
-                    {filteredPembayaran.length} pembayaran menunggu verifikasi{filteredNama ? ` — ${filteredNama}` : ''}
+                  <h3 className="text-sm font-semibold text-[#202124]">Verifikasi Pembayaran</h3>
+                  <p className="truncate text-xs text-[#5f6368]">
+                    {(() => {
+                      const groupedCount = Object.values(filteredPembayaran.reduce((acc: any, pp: any) => {
+                        if (!acc[pp.pendaftar_id]) acc[pp.pendaftar_id] = true
+                        return acc
+                      }, {})).length
+                      return `${groupedCount} pembayaran menunggu verifikasi${filteredNama ? ` — ${filteredNama}` : ''}`
+                    })()}
                   </p>
                 </div>
               </div>
-              <div className="flex flex-none items-center gap-2">
-                <span className="inline-flex items-center gap-1 bg-[#f9ab00] px-2.5 py-1 text-xs font-bold text-white">
-                  <Bell size={12} />
-                  {filteredPembayaran.length}
-                </span>
-                <button
-                  onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}
-                  title="Tutup"
-                  className="p-1.5 text-white/70 transition hover:bg-white/15 hover:text-white"
-                >
-                  <X size={18} />
-                </button>
-              </div>
+              <button
+                onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null); setOpenPendingGroup(null) }}
+                title="Tutup"
+                className="p-1.5 text-[#80868b] transition hover:bg-[#f1f3f4] hover:text-[#5f6368]"
+              >
+                <X size={18} />
+              </button>
             </div>
             {filteredPembayaran.length === 0 ? (
               <div className="px-5 py-14 text-center">
@@ -1377,88 +1379,108 @@ export default function Tagihan() {
                 <p className="mt-1 text-xs text-[#5f6368]">Semua bukti pembayaran sudah diproses.</p>
               </div>
             ) : (
-              <div className="flex-1 space-y-3 overflow-y-auto bg-[#f8f9fa] p-3 sm:p-4">
-                {filteredPembayaran.map((pp: any) => (
-                  <div key={pp.id} className="overflow-hidden border border-[#dadce0] bg-white ">
-                    <div className="flex flex-col gap-3 border-b border-[#e8eaed] p-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <img
-                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(pp.pendaftar?.nama || '?')}&background=0E6187&color=ffffff&size=64`}
-                          alt=""
-                          className="h-11 w-11 flex-none object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-[#202124]">{pp.pendaftar?.nama}</p>
-                          <p className="truncate text-xs text-[#5f6368]">{pp.pendaftar?.email}</p>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                            <span className="bg-[#e8f0fe] px-2 py-0.5 text-[11px] font-semibold text-[#1967d2]">
-                              {pp.kategori?.nama || pp.kategori?.kode || 'Tagihan'}
-                            </span>
-                            <span className="inline-flex items-center gap-1 bg-[#f8f9fa] px-2 py-0.5 text-[11px] font-medium text-[#5f6368]">
-                              <Clock size={11} className="text-[#80868b]" />
-                              {new Date(pp.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                              {' · '}
-                              {new Date(pp.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
+              <div className="flex-1 overflow-y-auto bg-[#f8f9fa]">
+                {(() => {
+                  const groups = Object.values(filteredPembayaran.reduce((acc: any, pp: any) => {
+                    const key = pp.pendaftar_id
+                    if (!acc[key]) {
+                      acc[key] = {
+                        pendaftar_id: key,
+                        pendaftar: pp.pendaftar,
+                        items: [],
+                      }
+                    }
+                    acc[key].items.push(pp)
+                    return acc
+                  }, {})) as any[]
+                  return groups.map((group: any) => {
+                    const total = group.items.reduce((sum: number, it: any) => sum + Number(it.jumlah || 0), 0)
+                    const proof = group.items.find((it: any) => it.bukti_pembayaran && it.bukti_pembayaran !== 'manual' && it.bukti_pembayaran !== 'auto')
+                    const firstItem = group.items[0]
+                    const isOpen = openPendingGroup === group.pendaftar_id
+                    return (
+                <div key={group.pendaftar_id} className="border-b border-[#e8eaed] bg-white">
+                  <button
+                    onClick={() => setOpenPendingGroup(isOpen ? null : group.pendaftar_id)}
+                    className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left transition hover:bg-[#f8f9fa]"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <img
+                        src={`https://ui-avatars.com/api/?name=${encodeURIComponent(group.pendaftar?.nama || '?')}&background=e5e7eb&color=6b7280&size=32`}
+                        alt=""
+                        className="h-8 w-8 flex-none object-cover"
+                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+                      />
+                      <div className="min-w-0 leading-tight">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <p className="truncate text-sm font-medium text-[#202124]">{group.pendaftar?.nama}</p>
+                          <span className="truncate text-xs text-[#5f6368]">{group.pendaftar?.email}</span>
+                          {group.pendaftar?.level && (
+                            <span className="border border-[#dadce0] px-1 py-px text-[9px] uppercase tracking-wide text-[#5f6368]">LEVEL {group.pendaftar.level}</span>
+                          )}
                         </div>
-                      </div>
-
-                      <div className="flex flex-none items-center justify-between gap-2 sm:flex-col sm:items-end">
-                        <div className="text-left sm:text-right">
-                          <p className="text-[10px] font-semibold r text-[#80868b]">Nominal</p>
-                          <p className="text-lg font-bold leading-tight text-[#137333]">
-                            Rp {Number(pp.jumlah).toLocaleString('id-ID')}
-                          </p>
-                        </div>
-                        {pp.bukti_pembayaran && pp.bukti_pembayaran !== 'manual' && pp.bukti_pembayaran !== 'auto' && (
-                          <a
-                            href={`${APP_URL}/storage/${pp.bukti_pembayaran}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 border border-[#1a73e8] bg-white px-3 py-1.5 text-xs font-semibold text-[#1a73e8] transition hover:bg-[#0a4d6b] hover:text-white"
-                          >
-                            <Eye size={14} /> Lihat Bukti
-                          </a>
-                        )}
+                        <p className="mt-0.5 text-[11px] text-[#5f6368]">
+                          {group.pendaftar?.nama_pengirim || group.pendaftar?.nama_rekening || '-'} • {group.pendaftar?.bank_pengirim || group.pendaftar?.bank_asal || '-'}
+                        </p>
                       </div>
                     </div>
-
-                    <div className="grid grid-cols-1 gap-2 border-b border-[#e8eaed] p-4 sm:grid-cols-2">
-                      <div className="flex items-center gap-2.5 border border-[#dadce0] bg-[#f8f9fa] px-3 py-2">
-                        <UserRound size={14} className="flex-none text-[#80868b]" />
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-semibold r text-[#80868b]">Nama Pengirim</p>
-                          <p className="truncate text-xs font-semibold text-[#3c4043]">{pp.pendaftar?.nama_pengirim || pp.pendaftar?.nama_rekening || '-'}</p>
+                    <div className="flex flex-none items-center gap-2">
+                      <div className="text-right">
+                        <p className="text-[10px] text-[#80868b]">Total</p>
+                        <p className="text-sm font-semibold text-[#202124]">Rp {Number(total).toLocaleString('id-ID')}</p>
+                      </div>
+                      <ChevronDown size={16} className={`text-[#80868b] transition ${isOpen ? 'rotate-180' : ''}`} />
+                    </div>
+                  </button>
+                  {isOpen && (
+                    <div className="border-t border-[#e8eaed]">
+                      {proof && (
+                        <button
+                          onClick={() => setPreviewProof({ url: `${APP_URL}/storage/${proof.bukti_pembayaran}`, pendaftarId: group.pendaftar_id })}
+                          className="block w-full bg-[#f8f9fa]"
+                        >
+                          <img
+                            src={`${APP_URL}/storage/${proof.bukti_pembayaran}`}
+                            alt="Bukti Pembayaran"
+                            className="mx-auto max-h-[320px] w-full max-w-full object-contain"
+                          />
+                        </button>
+                      )}
+                      <div className="px-4 py-3">
+                        <p className="mb-2 text-xs font-medium text-[#202124]">Rincian Pembayaran</p>
+                        <div className="divide-y divide-[#f1f3f4]">
+                          {group.items.map((it: any) => (
+                            <div key={it.id} className="flex items-center justify-between py-1.5 text-xs">
+                              <span className="text-[#3c4043]">{it.kategori?.nama || it.kategori?.kode || '-'}</span>
+                              <span className="text-[#3c4043]">Rp {Number(it.jumlah || 0).toLocaleString('id-ID')}</span>
+                            </div>
+                          ))}
+                        </div>
+                        <div className="mt-2 flex items-center justify-between border-t border-[#e8eaed] pt-2 text-sm">
+                          <span className="font-medium text-[#202124]">Total</span>
+                          <span className="font-semibold text-[#202124]">Rp {Number(total).toLocaleString('id-ID')}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2.5 border border-[#dadce0] bg-[#f8f9fa] px-3 py-2">
-                        <Landmark size={14} className="flex-none text-[#80868b]" />
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-semibold r text-[#80868b]">Bank / Sumber</p>
-                          <p className="truncate text-xs font-semibold text-[#3c4043]">{pp.pendaftar?.bank_pengirim || pp.pendaftar?.bank_asal || '-'}</p>
+                      <div className="border-t border-[#e8eaed] px-4 py-3">
+                        <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-xs font-medium text-[#202124]">Ubah Status Pembayaran</p>
+                          <p className="text-[11px] text-[#80868b]">Pilih status baru untuk pendaftar ini</p>
                         </div>
+                        <UbahStatusGrid pendaftarId={group.pendaftar_id} pendaftar={group.pendaftar} onChanged={refreshAll} />
                       </div>
                     </div>
-
-                    <div className="p-4">
-                      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-xs font-bold text-[#3c4043]">Ubah Status Pembayaran</p>
-                        <p className="text-[11px] text-[#80868b]">Status saat ini ditandai, klik aksi lain untuk mengubah</p>
-                      </div>
-                      <UbahStatusGrid pendaftarId={pp.pendaftar_id} pendaftar={pp.pendaftar} onChanged={refreshAll} />
-                    </div>
-                  </div>
-                ))}
+                  )}
+                </div>
+                    )
+                  })
+                })()}
               </div>
             )}
 
-            <div className="flex flex-none flex-col gap-2 border-t border-[#dadce0] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[11px] text-[#5f6368]">Periksa bukti pembayaran sebelum mengubah status kandidat.</p>
+            <div className="flex flex-none items-center justify-end border-t border-[#dadce0] bg-white px-4 py-3">
               <button
-                onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}
-                className="inline-flex items-center justify-center bg-[#0E6187] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1a3a5c]"
+                onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null); setOpenPendingGroup(null) }}
+                className="inline-flex items-center justify-center border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
               >
                 Tutup
               </button>
@@ -1468,6 +1490,117 @@ export default function Tagihan() {
         )
       })()}
 
+      {previewProof && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#202124]/70 px-3 py-6" onClick={() => setPreviewProof(null)}>
+          <div className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_12px_32px_rgba(60,64,67,0.25)]" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-none items-center justify-between gap-2 border-b border-[#dadce0] px-4 py-2.5">
+              <p className="text-sm font-medium text-[#202124]">Bukti Pembayaran</p>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={async () => {
+                    try {
+                      Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
+                      await pendaftarApi.updateStatus(previewProof.pendaftarId, STATUS_MAP['selesai'])
+                      Swal.close()
+                      Swal.fire({ icon: 'success', title: 'Pembayaran dikonfirmasi', timer: 1000, showConfirmButton: false })
+                      setPreviewProof(null)
+                      await refreshAll()
+                    } catch {
+                      Swal.close()
+                      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status' })
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 bg-[#137333] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#0f5a28]"
+                >
+                  <CheckCircle2 size={14} />
+                  Konfirmasi Pembayaran
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
+                      await pendaftarApi.updateStatus(previewProof.pendaftarId, STATUS_MAP['ditangguhkan'])
+                      Swal.close()
+                      Swal.fire({ icon: 'success', title: 'Ditangguhkan', timer: 1000, showConfirmButton: false })
+                      setPreviewProof(null)
+                      await refreshAll()
+                    } catch {
+                      Swal.close()
+                      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status' })
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 border border-[#dadce0] bg-white px-3 py-1.5 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
+                >
+                  <Banknote size={14} />
+                  Tangguhkan
+                </button>
+                <button onClick={() => setPreviewProof(null)} className="p-1.5 text-[#80868b] transition hover:bg-[#f1f3f4] hover:text-[#5f6368]">
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto bg-[#f8f9fa] p-2">
+              <img src={previewProof.url} alt="Bukti Pembayaran" className="mx-auto h-full max-h-[80vh] w-auto max-w-full object-contain" />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {previewProof && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#202124]/70 px-3 py-6" onClick={() => setPreviewProof(null)}>
+          <div className="relative flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_12px_32px_rgba(60,64,67,0.25)]" onClick={e => e.stopPropagation()}>
+            <div className="flex flex-none items-center justify-between gap-2 border-b border-[#dadce0] px-4 py-2.5">
+              <p className="text-sm font-medium text-[#202124]">Bukti Pembayaran</p>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={async () => {
+                    try {
+                      Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
+                      await pendaftarApi.updateStatus(previewProof.pendaftarId, STATUS_MAP['selesai'])
+                      Swal.close()
+                      Swal.fire({ icon: 'success', title: 'Pembayaran dikonfirmasi', timer: 1000, showConfirmButton: false })
+                      setPreviewProof(null)
+                      await refreshAll()
+                    } catch {
+                      Swal.close()
+                      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status' })
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 bg-[#137333] px-3 py-1.5 text-xs font-medium text-white transition hover:bg-[#0f5a28]"
+                >
+                  <CheckCircle2 size={14} />
+                  Konfirmasi Pembayaran
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      Swal.fire({ title: 'Menyimpan...', allowOutsideClick: false, didOpen: () => Swal.showLoading() })
+                      await pendaftarApi.updateStatus(previewProof.pendaftarId, STATUS_MAP['ditangguhkan'])
+                      Swal.close()
+                      Swal.fire({ icon: 'success', title: 'Ditangguhkan', timer: 1000, showConfirmButton: false })
+                      setPreviewProof(null)
+                      await refreshAll()
+                    } catch {
+                      Swal.close()
+                      Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status' })
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 border border-[#dadce0] bg-white px-3 py-1.5 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
+                >
+                  <Banknote size={14} />
+                  Tangguhkan
+                </button>
+                <button onClick={() => setPreviewProof(null)} className="p-1.5 text-[#80868b] transition hover:bg-[#f1f3f4] hover:text-[#5f6368]">
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto bg-[#f8f9fa] p-2">
+              <img src={previewProof.url} alt="Bukti Pembayaran" className="mx-auto h-full max-h-[80vh] w-auto max-w-full object-contain" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
