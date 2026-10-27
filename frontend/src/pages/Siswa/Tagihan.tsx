@@ -797,7 +797,18 @@ export default function Tagihan() {
                           />
                           <div className="min-w-0">
                             <div className="text-sm font-semibold text-[#202124] truncate flex items-center gap-1">
-                              {p.nama}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (!pendingPembayaran.some((pp: any) => pp.pendaftar_id === p.id)) return
+                                  setSelectedPendingPendaftarId(p.id)
+                                  setOpenPendingGroup(p.id)
+                                  setShowPendingModal(true)
+                                }}
+                                className={`truncate text-left transition ${pendingPembayaran.some((pp: any) => pp.pendaftar_id === p.id) ? 'cursor-pointer hover:text-[#0E6187] hover:underline' : 'cursor-default'}`}
+                              >
+                                {p.nama}
+                              </button>
                               {pendingPembayaran.some((pp: any) => pp.pendaftar_id === p.id) && (
                                 <button
                                   onClick={() => { setSelectedPendingPendaftarId(p.id); setShowPendingModal(true) }}
@@ -1048,7 +1059,11 @@ export default function Tagihan() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { setSelectedPendingPendaftarId(null); setShowPendingModal(true) }}
+            onClick={() => {
+              if (pendingPembayaran.length === 0) return
+              setSelectedPendingPendaftarId(null)
+              setShowPendingModal(true)
+            }}
             className={`relative inline-flex items-center gap-2 border px-3 py-2 text-sm font-medium transition ${pendingPembayaran.length > 0 ? 'border-[#f6aea9] bg-[#fce8e6] text-[#c5221f] hover:bg-[#f6d7d5]' : 'border-[#dadce0] bg-white text-[#3c4043] hover:bg-[#f8f9fa]'}`}
           >
             <Bell size={16} />
@@ -1338,6 +1353,7 @@ export default function Tagihan() {
         const filteredPembayaran = selectedPendingPendaftarId
           ? pendingPembayaran.filter((pp: any) => pp.pendaftar_id === selectedPendingPendaftarId)
           : pendingPembayaran
+        if (filteredPembayaran.length === 0) return null
         const filteredNama = selectedPendingPendaftarId
           ? filteredPembayaran[0]?.pendaftar?.nama || ''
           : ''

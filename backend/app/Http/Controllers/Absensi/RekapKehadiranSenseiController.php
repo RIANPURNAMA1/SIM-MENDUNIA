@@ -56,7 +56,9 @@ class RekapKehadiranSenseiController extends Controller
                     if (\App\Models\HariLibur::apakahLibur($date->toDateString())) return false;
                     return true;
                 }, $tglSelesai->copy()->addSecond());
-                $jumlahAbsen = AbsensiSensei::where('kelas_sensei_id', $kelas->id)->count();
+                $jumlahAbsen = AbsensiSensei::where('kelas_sensei_id', $kelas->id)
+                    ->whereIn('status', ['HADIR', 'TERLAMBAT', 'ALPA', 'PULANG LEBIH AWAL', 'TIDAK ABSEN PULANG'])
+                    ->count();
 
                 return [
                     'id' => $kelas->id,
@@ -224,15 +226,75 @@ class RekapKehadiranSenseiController extends Controller
         ]);
     }
 
+    public function riwayatKelas($userId)
+    {
+        $user = User::findOrFail($userId);
+        $today = Carbon::now()->toDateString();
+
+        $riwayat = KelasSensei::with('batchRelasi.cabang')
+            ->where('user_id', $userId)
+            ->orderBy('tanggal_mulai', 'desc')
+            ->get()
+            ->map(function ($kelas) use ($today) {
+                $tglMulai = Carbon::parse($kelas->tanggal_mulai);
+                $tglSelesai = Carbon::parse($kelas->tanggal_selesai);
+
+                $status = 'selesai';
+                if ($kelas->status !== 'aktif') {
+                    $status = $kelas->status;
+                } elseif ($today >= $tglMulai->toDateString() && $today <= $tglSelesai->toDateString()) {
+                    $status = 'berjalan';
+                } elseif ($today < $tglMulai->toDateString()) {
+                    $status = 'akan_datang';
+                }
+
+                $absensi = AbsensiSensei::where('kelas_sensei_id', $kelas->id)->get();
+                $totalPertemuan = $kelas->totalPertemuan();
+                $hadir = $absensi->where('status', 'HADIR')->count();
+                $terlambat = $absensi->where('status', 'TERLAMBAT')->count();
+                $alpa = $absensi->where('status', 'ALPA')->count();
+                $pulangAwal = $absensi->where('status', 'PULANG LEBIH AWAL')->count();
+                $tidakAbsenPulang = $absensi->where('status', 'TIDAK ABSEN PULANG')->count();
+                $jumlahLibur = $absensi->where('status', 'LIBUR')->count();
+                $jumlahAbsen = $hadir + $terlambat + $alpa + $pulangAwal + $tidakAbsenPulang;
+
+                return [
+                    'id' => $kelas->id,
+                    'nama_kelas' => $kelas->nama_kelas,
+                    'level' => $kelas->level,
+                    'tanggal_mulai' => $tglMulai->toDateString(),
+                    'tanggal_selesai' => $tglSelesai->toDateString(),
+                    'total_pertemuan' => $totalPertemuan,
+                    'jumlah_absen' => $jumlahAbsen,
+                    'hadir' => $hadir,
+                    'terlambat' => $terlambat,
+                    'alpa' => $alpa,
+                    'pulang_awal' => $pulangAwal,
+                    'tidak_absen_pulang' => $tidakAbsenPulang,
+                    'libur' => $jumlahLibur,
+                    'belum_absen' => max(0, $totalPertemuan - $jumlahAbsen - $jumlahLibur),
+                    'batch_id' => $kelas->batch_id,
+                    'batch_nama' => $kelas->batchRelasi->nama_batch ?? '-',
+                    'batch_warna' => $kelas->batchRelasi->warna ?? null,
+                    'batch_cabang_nama' => $kelas->batchRelasi->cabang->nama_cabang ?? null,
+                    'status' => $status,
+                ];
+            });
+
+        return response()->json([
+            'success' => true,
+            'sensei' => $user->name,
+            'data' => $riwayat,
+        ]);
+    }
+
     public function tableData(Request $request)
     {
-        $liburDates = \App\Models\HariLibur::pluck('tanggal')->flip();
-
         $kelasList = KelasSensei::with('batchRelasi', 'user')
             ->where('status', 'aktif')
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(function ($kelas) use ($liburDates) {
+            ->map(function ($kelas) {
                 $tglMulai = Carbon::parse($kelas->tanggal_mulai);
                 $tglSelesai = Carbon::parse($kelas->tanggal_selesai);
                 $totalPertemuan = $tglMulai->copy()->diffInDaysFiltered(function ($date) {
@@ -242,17 +304,14 @@ class RekapKehadiranSenseiController extends Controller
                 }, $tglSelesai->copy()->addSecond());
 
                 $absensi = AbsensiSensei::where('kelas_sensei_id', $kelas->id)->get();
-                $harKerja = $absensi->filter(function ($a) use ($liburDates) {
-                    $d = Carbon::parse($a->tanggal);
-                    if ($d->isWeekend()) return false;
-                    if (isset($liburDates[$d->toDateString()])) return false;
-                    return true;
-                });
-                $absenTerisi = $harKerja->count();
-                $alpa = $harKerja->where('status', 'ALPA')->count();
-                $izin = $harKerja->whereIn('status', ['LIBUR'])->count();
-                $tidakAbsenPulang = $harKerja->where('status', 'TIDAK ABSEN PULANG')->count();
-                $pulangLebihAwal = $harKerja->where('status', 'PULANG LEBIH AWAL')->count();
+                $hadir = $absensi->where('status', 'HADIR')->count();
+                $terlambat = $absensi->where('status', 'TERLAMBAT')->count();
+                $alpa = $absensi->where('status', 'ALPA')->count();
+                $libur = $absensi->where('status', 'LIBUR')->count();
+                $tidakAbsenPulang = $absensi->where('status', 'TIDAK ABSEN PULANG')->count();
+                $pulangLebihAwal = $absensi->where('status', 'PULANG LEBIH AWAL')->count();
+                $absenTerisi = $hadir + $terlambat + $alpa + $pulangLebihAwal + $tidakAbsenPulang;
+                $belumAbsen = max(0, $totalPertemuan - $absenTerisi - $libur);
 
                 return [
                     'id' => $kelas->id,
@@ -264,10 +323,14 @@ class RekapKehadiranSenseiController extends Controller
                     'tanggal_selesai' => $tglSelesai->toDateString(),
                     'total_pertemuan' => $totalPertemuan,
                     'absen_terisi' => $absenTerisi,
+                    'hadir' => $hadir,
+                    'terlambat' => $terlambat,
                     'alpa' => $alpa,
-                    'izin' => $izin,
-                    'tidak_absen_pulang' => $tidakAbsenPulang,
                     'pulang_lebih_awal' => $pulangLebihAwal,
+                    'tidak_absen_pulang' => $tidakAbsenPulang,
+                    'libur' => $libur,
+                    'izin' => $libur,
+                    'belum_absen' => $belumAbsen,
                     'sensei' => $kelas->user->name ?? '-',
                     'batch_nama' => $kelas->batchRelasi->nama_batch ?? '-',
                     'status' => Carbon::now()->toDateString() > $tglSelesai->toDateString() ? 'selesai' : $kelas->status,

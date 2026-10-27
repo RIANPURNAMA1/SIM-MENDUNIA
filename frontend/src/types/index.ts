@@ -383,6 +383,28 @@ export interface KelasSenseiInfo {
   batch_warna: string | null
 }
 
+export interface RiwayatKelasSensei {
+  id: number
+  nama_kelas: string
+  level: string
+  tanggal_mulai: string
+  tanggal_selesai: string
+  total_pertemuan: number
+  jumlah_absen: number
+  hadir: number
+  terlambat: number
+  alpa: number
+  pulang_awal: number
+  tidak_absen_pulang: number
+  libur: number
+  belum_absen: number
+  batch_id: number | null
+  batch_nama: string
+  batch_warna: string | null
+  batch_cabang_nama: string | null
+  status: "berjalan" | "selesai" | "akan_datang" | "dibatalkan" | string
+}
+
 export interface RekapJadwalShiftDayShift {
   initial: string
   shift_nama: string

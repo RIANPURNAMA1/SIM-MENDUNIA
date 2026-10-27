@@ -218,6 +218,7 @@ Route::get('/data-agenda', [AdminAgendaController::class, 'apiIndex']);
 Route::prefix('rekap-kehadiran-sensei')->group(function () {
     Route::get('/', [RekapKehadiranSenseiController::class, 'apiIndex']);
     Route::get('/table-data', [RekapKehadiranSenseiController::class, 'tableData']);
+    Route::get('/riwayat/{userId}', [RekapKehadiranSenseiController::class, 'riwayatKelas']);
     Route::get('/{userId}', [RekapKehadiranSenseiController::class, 'getData']);
     Route::post('/update-status', [RekapKehadiranSenseiController::class, 'updateStatus']);
 });

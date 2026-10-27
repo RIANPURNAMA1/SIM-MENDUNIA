@@ -138,6 +138,7 @@ export const rekapKehadiranSenseiApi = {
   getRekap: (userId: number, params?: Record<string, string | number>) =>
     api.get(`/rekap-kehadiran-sensei/${userId}`, { params }),
   tableData: () => api.get('/rekap-kehadiran-sensei/table-data'),
+  riwayatKelas: (userId: number) => api.get(`/rekap-kehadiran-sensei/riwayat/${userId}`),
   updateStatus: (data: FormData) =>
     api.post('/rekap-kehadiran-sensei/update-status', data),
 }

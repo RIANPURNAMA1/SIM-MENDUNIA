@@ -1,14 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { BarChart3, Search, RotateCcw, X, Table, Calendar, Clock, Camera, ChevronDown } from "lucide-react";
+import { BarChart3, Search, RotateCcw, X, Table, Calendar, Clock, Camera, ChevronDown, History } from "lucide-react";
 import { rekapKehadiranSenseiApi, APP_URL } from "../../services/api";
-import type { RekapKehadiranSenseiDay, KelasSenseiInfo, Karyawan } from "../../types";
-
-const MONTHS_IND = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-];
+import type { RekapKehadiranSenseiDay, KelasSenseiInfo, Karyawan, RiwayatKelasSensei } from "../../types";
 
 const DAY_NAMES = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+
+const MONTHS_IND_SHORT = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+
+function formatTanggalIndo(value: string): string {
+  if (!value) return "-";
+  const [year, month, day] = value.slice(0, 10).split("-");
+  const monthIndex = Number(month) - 1;
+  if (!year || Number.isNaN(monthIndex) || !MONTHS_IND_SHORT[monthIndex]) return value;
+  return `${day} ${MONTHS_IND_SHORT[monthIndex]} ${year}`;
+}
 
 const STATUS_OPTIONS = [
   { value: "HADIR", label: "Hadir" },
@@ -48,6 +53,10 @@ export default function RekapKehadiranSenseiPage() {
   const [viewMode, setViewMode] = useState<"calendar" | "table">("calendar");
   const [tableData, setTableData] = useState<any[]>([]);
   const [tableLoading, setTableLoading] = useState(false);
+
+  const [riwayatModal, setRiwayatModal] = useState(false);
+  const [riwayatLoading, setRiwayatLoading] = useState(false);
+  const [riwayatList, setRiwayatList] = useState<RiwayatKelasSensei[]>([]);
 
   const [modal, setModal] = useState<{
     show: boolean;
@@ -218,6 +227,26 @@ export default function RekapKehadiranSenseiPage() {
     return true;
   });
 
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const activeKelasList = filteredKelasList.filter(
+    (k) => todayStr >= k.tanggal_mulai && todayStr <= k.tanggal_selesai
+  );
+
+  const openRiwayat = async () => {
+    if (!selectedUserId) return;
+    setRiwayatModal(true);
+    setRiwayatLoading(true);
+    try {
+      const res = await rekapKehadiranSenseiApi.riwayatKelas(selectedUserId as number);
+      setRiwayatList(res.data.data || []);
+    } catch (err) {
+      console.error(err);
+      setRiwayatList([]);
+    } finally {
+      setRiwayatLoading(false);
+    }
+  };
+
   const filteredTableData = tableData.filter((r) => {
     if (filterBatch && String(r.batch_id) !== filterBatch) return false;
     if (filterLevel && String(r.level) !== filterLevel) return false;
@@ -281,24 +310,6 @@ export default function RekapKehadiranSenseiPage() {
               <option key={k.id} value={k.id}>
                 {k.name} - {k.divisi?.nama_divisi || "-"}
               </option>
-            ))}
-          </select>
-          <select
-            value={bulan}
-            onChange={(e) => setBulan(Number(e.target.value))}
-            className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] sm:w-auto"
-          >
-            {MONTHS_IND.map((name, idx) => (
-              <option key={idx} value={idx + 1}>{name}</option>
-            ))}
-          </select>
-          <select
-            value={tahun}
-            onChange={(e) => setTahun(Number(e.target.value))}
-            className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8] sm:w-auto"
-          >
-            {Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i).map((y) => (
-              <option key={y} value={y}>{y}</option>
             ))}
           </select>
           {cabangList.length > 0 && (
@@ -389,7 +400,7 @@ export default function RekapKehadiranSenseiPage() {
               <p className="text-sm font-medium text-[#5f6368]">Tidak ada data kelas</p>
             </div>
           ) : (
-            <table className="w-full min-w-[900px] border-collapse text-left text-sm text-[#3c4043]">
+            <table className="w-full min-w-[1400px] border-collapse text-left text-sm text-[#3c4043]">
               <thead className="text-[10px] text-[#5f6368]">
                 <tr>
                   <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">No</th>
@@ -401,10 +412,13 @@ export default function RekapKehadiranSenseiPage() {
                   <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Tgl Selesai</th>
                   <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Total Pertemuan</th>
                   <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Absen Terisi</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Hadir</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Telat</th>
                   <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Alpa</th>
-                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Izin</th>
-                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Tidak Absen Pulang</th>
-                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Pulang Lebih Awal</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">P.Awal</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Tdk Absen Pulang</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Libur</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Blm Absen</th>
                   <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Status</th>
                 </tr>
               </thead>
@@ -416,14 +430,17 @@ export default function RekapKehadiranSenseiPage() {
                     <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold">{row.level}</td>
                     <td className="border-b border-[#e8eaed] px-3 py-2 text-xs font-medium text-[#202124]">{row.nama_kelas}</td>
                     <td className="border-b border-[#e8eaed] px-3 py-2 text-xs">{row.sensei}</td>
-                    <td className="border-b border-[#e8eaed] px-3 py-2 text-xs text-[#5f6368]">{row.tanggal_mulai}</td>
-                    <td className="border-b border-[#e8eaed] px-3 py-2 text-xs text-[#5f6368]">{row.tanggal_selesai}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-xs text-[#5f6368]">{formatTanggalIndo(row.tanggal_mulai)}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-xs text-[#5f6368]">{formatTanggalIndo(row.tanggal_selesai)}</td>
                     <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold">{row.total_pertemuan}</td>
                     <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold">{row.absen_terisi}</td>
-                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#c5221f]">{row.alpa}</td>
-                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#b06000]">{row.izin}</td>
-                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#c5221f]">{row.tidak_absen_pulang ?? 0}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#137333]">{row.hadir ?? 0}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#b06000]">{row.terlambat ?? 0}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#c5221f]">{row.alpa ?? 0}</td>
                     <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#b06000]">{row.pulang_lebih_awal ?? 0}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#7627bb]">{row.tidak_absen_pulang ?? 0}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#5f6368]">{row.libur ?? 0}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#80868b]">{row.belum_absen ?? 0}</td>
                     <td className="border-b border-[#e8eaed] px-3 py-2 text-center">
                       <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold ${row.status === 'aktif' ? 'bg-[#0E6187] text-white' : row.status === 'selesai' ? 'bg-[#e8f0fe] text-[#1967d2]' : 'bg-[#f1f3f4] text-[#5f6368]'}`}>
                         {row.status === 'aktif' ? 'Aktif' : row.status === 'selesai' ? 'Selesai' : row.status}
@@ -440,35 +457,57 @@ export default function RekapKehadiranSenseiPage() {
       {/* Calendar View */}
       {viewMode === "calendar" && (<>
       {/* Kelas Info Cards */}
-      {filteredKelasList.length > 0 && (
-        <div className="mb-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredKelasList.map((k) => {
-            const batchInfo = batchList.find((b) => b.id === k.batch_id);
-            return (
-            <div key={k.id} className="border border-[#dadce0] bg-white p-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="min-w-0 truncate text-xs font-bold text-[#3c4043]">{k.nama_kelas}</div>
-                {batchInfo && (
-                  <span className="inline-flex shrink-0 items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-white" style={{ backgroundColor: batchInfo.warna || "#0E6187" }}>
-                    <span className="h-1.5 w-1.5 bg-white" />
-                    {k.batch_nama}
-                  </span>
-                )}
-              </div>
-              <div className="mt-0.5 text-[10px] text-[#80868b]">
-                Level {k.level} · {k.batch_cabang_nama || "Tanpa Cabang"}
-              </div>
-              <div className="mt-1.5 flex items-center justify-between text-[10px]">
-                <span className="text-[#5f6368]">
-                  {k.tanggal_mulai} - {k.tanggal_selesai}
-                </span>
-                <span className="font-semibold text-[#3c4043]">
-                  {k.jumlah_absen}/{k.total_pertemuan} absen
-                </span>
-              </div>
+      {selectedUserId && !loading && (
+        <div className="mb-4">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-[#5f6368]">Kelas Aktif</span>
+              <span className="inline-flex items-center px-1.5 py-0.5 text-[10px] font-semibold text-white" style={{ backgroundColor: "#0E6187" }}>
+                {activeKelasList.length}
+              </span>
             </div>
-            );
-          })}
+            <button
+              onClick={openRiwayat}
+              className="inline-flex items-center gap-1.5 border border-[#dadce0] bg-white px-3 py-1.5 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
+            >
+              <History size={14} /> Riwayat Kelas
+            </button>
+          </div>
+          {activeKelasList.length > 0 ? (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+              {activeKelasList.map((k) => {
+                const batchInfo = batchList.find((b) => b.id === k.batch_id);
+                return (
+                <div key={k.id} className="border border-[#dadce0] bg-white p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 truncate text-xs font-bold text-[#3c4043]">{k.nama_kelas}</div>
+                    {batchInfo && (
+                      <span className="inline-flex shrink-0 items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-white" style={{ backgroundColor: batchInfo.warna || "#0E6187" }}>
+                        <span className="h-1.5 w-1.5 bg-white" />
+                        {k.batch_nama}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-[#80868b]">
+                    Level {k.level} · {k.batch_cabang_nama || "Tanpa Cabang"}
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-[10px]">
+                    <span className="text-[#5f6368]">
+                      {formatTanggalIndo(k.tanggal_mulai)} - {formatTanggalIndo(k.tanggal_selesai)}
+                    </span>
+                    <span className="font-semibold text-[#3c4043]">
+                      Absen {k.jumlah_absen} dari {k.total_pertemuan} pertemuan
+                    </span>
+                  </div>
+                </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="border border-dashed border-[#dadce0] bg-white px-4 py-6 text-center text-xs text-[#80868b]">
+              Tidak ada kelas aktif saat ini
+            </div>
+          )}
         </div>
       )}
 
@@ -587,6 +626,128 @@ export default function RekapKehadiranSenseiPage() {
         )}
       </div>
       </>)}
+
+      {/* Riwayat Kelas Modal */}
+      {riwayatModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/60 px-3">
+          <div className="flex max-h-[85vh] w-full max-w-2xl flex-col border border-[#dadce0] bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]">
+            <div className="flex items-center justify-between border-b border-[#dadce0] px-4 py-3">
+              <div>
+                <h3 className="text-sm font-semibold text-[#202124]">Riwayat Kelas Sensei</h3>
+                <p className="text-[11px] text-[#5f6368]">{selectedSensei?.name || "-"}</p>
+              </div>
+              <button
+                onClick={() => setRiwayatModal(false)}
+                className="p-1 text-[#80868b] transition hover:bg-[#f1f3f4] hover:text-[#5f6368]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-3">
+              {riwayatLoading ? (
+                <div className="py-12 text-center text-sm text-[#80868b]">Memuat data...</div>
+              ) : riwayatList.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-[#80868b]">
+                  <History size={36} className="mb-2" />
+                  <p className="text-sm font-medium text-[#5f6368]">Belum ada riwayat kelas</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {riwayatList.map((k) => {
+                    const statusStyle =
+                      k.status === "berjalan"
+                        ? "bg-[#0E6187] text-white"
+                        : k.status === "akan_datang"
+                        ? "bg-[#fef7e0] text-[#b06000]"
+                        : k.status === "dibatalkan"
+                        ? "bg-[#fce8e6] text-[#c5221f]"
+                        : "bg-[#f1f3f4] text-[#5f6368]";
+                    const statusLabel =
+                      k.status === "berjalan"
+                        ? "Berjalan"
+                        : k.status === "akan_datang"
+                        ? "Akan Datang"
+                        : k.status === "dibatalkan"
+                        ? "Dibatalkan"
+                        : "Selesai";
+                    return (
+                      <div key={k.id} className="border border-[#dadce0] bg-white p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="truncate text-xs font-bold text-[#202124]">{k.nama_kelas}</div>
+                            <div className="mt-0.5 text-[10px] text-[#80868b]">
+                              Level {k.level} · {k.batch_cabang_nama || "Tanpa Cabang"}
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 flex-col items-end gap-1">
+                            <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold ${statusStyle}`}>
+                              {statusLabel}
+                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-semibold text-white" style={{ backgroundColor: k.batch_warna || "#0E6187" }}>
+                              {k.batch_nama}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="mt-2 grid grid-cols-2 gap-2 border-t border-[#e8eaed] pt-2 text-[10px]">
+                          <div>
+                            <span className="block text-[#80868b]">Tanggal Mulai</span>
+                            <span className="font-semibold text-[#3c4043]">{formatTanggalIndo(k.tanggal_mulai)}</span>
+                          </div>
+                          <div>
+                            <span className="block text-[#80868b]">Tanggal Selesai</span>
+                            <span className="font-semibold text-[#3c4043]">{formatTanggalIndo(k.tanggal_selesai)}</span>
+                          </div>
+                        </div>
+                        <div className="mt-2 flex justify-end text-[10px]">
+                          <span className="font-semibold text-[#3c4043]">Absen {k.jumlah_absen} dari {k.total_pertemuan} pertemuan</span>
+                        </div>
+                        <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-7">
+                          <div className="border border-[#e8eaed] bg-[#f8f9fa] px-2 py-1 text-center">
+                            <span className="block text-xs font-bold text-[#137333]">{k.hadir}</span>
+                            <span className="text-[9px] font-medium uppercase tracking-wide text-[#5f6368]">Hadir</span>
+                          </div>
+                          <div className="border border-[#e8eaed] bg-[#f8f9fa] px-2 py-1 text-center">
+                            <span className="block text-xs font-bold text-[#b06000]">{k.terlambat}</span>
+                            <span className="text-[9px] font-medium uppercase tracking-wide text-[#5f6368]">Telat</span>
+                          </div>
+                          <div className="border border-[#e8eaed] bg-[#f8f9fa] px-2 py-1 text-center">
+                            <span className="block text-xs font-bold text-[#c5221f]">{k.alpa}</span>
+                            <span className="text-[9px] font-medium uppercase tracking-wide text-[#5f6368]">Alpa</span>
+                          </div>
+                          <div className="border border-[#e8eaed] bg-[#f8f9fa] px-2 py-1 text-center">
+                            <span className="block text-xs font-bold text-[#b06000]">{k.pulang_awal}</span>
+                            <span className="text-[9px] font-medium uppercase tracking-wide text-[#5f6368]">P.Awal</span>
+                          </div>
+                          <div className="border border-[#e8eaed] bg-[#f8f9fa] px-2 py-1 text-center">
+                            <span className="block text-xs font-bold text-[#7627bb]">{k.tidak_absen_pulang}</span>
+                            <span className="text-[9px] font-medium uppercase tracking-wide text-[#5f6368]">Tdk Absen Pulang</span>
+                          </div>
+                          <div className="border border-[#e8eaed] bg-[#f8f9fa] px-2 py-1 text-center">
+                            <span className="block text-xs font-bold text-[#5f6368]">{k.libur}</span>
+                            <span className="text-[9px] font-medium uppercase tracking-wide text-[#5f6368]">Libur</span>
+                          </div>
+                          <div className="border border-[#e8eaed] bg-[#f8f9fa] px-2 py-1 text-center">
+                            <span className="block text-xs font-bold text-[#80868b]">{k.belum_absen}</span>
+                            <span className="text-[9px] font-medium uppercase tracking-wide text-[#5f6368]">Blm Absen</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end border-t border-[#dadce0] px-4 py-3">
+              <button
+                onClick={() => setRiwayatModal(false)}
+                className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {modal.show && (
