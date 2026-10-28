@@ -25,6 +25,7 @@ use App\Http\Controllers\LemburController;
 use App\Http\Controllers\HariLiburController;
 use App\Http\Controllers\MonitoringController;
 use App\Http\Controllers\GuruController;
+use App\Http\Controllers\PengajuanGajiController;
 use App\Http\Controllers\Admin\AgendaController as AdminAgendaController;
 use App\Http\Controllers\Absensi\JadwalLevelController;
 use App\Http\Controllers\SiswaController;
@@ -236,6 +237,14 @@ Route::prefix('guru')->group(function () {
     Route::get('/', [GuruController::class, 'apiIndex']);
     Route::post('/', [GuruController::class, 'store']);
     Route::delete('/{id}', [GuruController::class, 'destroy']);
+});
+
+// Pengajuan Gaji
+Route::post('/guru/gaji', [PengajuanGajiController::class, 'store'])->middleware('auth:sanctum');
+Route::prefix('gaji')->middleware('auth:sanctum')->group(function () {
+    Route::get('/', [PengajuanGajiController::class, 'index']);
+    Route::post('/{id}/status', [PengajuanGajiController::class, 'updateStatus'])
+        ->middleware('role:HR,MANAGER,ACCOUNTING,ADMIN_CABANG,ADMIN_PUSAT');
 });
 
 // Kelas Sensei

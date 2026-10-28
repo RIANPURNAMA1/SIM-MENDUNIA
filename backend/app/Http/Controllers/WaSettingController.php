@@ -284,6 +284,7 @@ class WaSettingController extends Controller
             'wa_alpa' => 'Notifikasi WA untuk status ALPA',
             'wa_reminder_belum_absen' => 'Notifikasi reminder belum absen (30 menit sebelum jam masuk)',
             'wa_izin' => 'Notifikasi WA pengajuan izin ke manager',
+            'wa_pengajuan_gaji' => 'Pengajuan gaji sensei ke admin follow up (WA)',
             'email_pembayaran' => 'Notifikasi pembayaran ke admin (Email)',
             'email_pembayaran_admin_addresses' => 'Alamat email admin (pisahkan koma)',
             'email_reminder_pembayaran' => 'Pengingat pembayaran otomatis (Email)',

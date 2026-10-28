@@ -77,6 +77,7 @@ import DataNotifikasiSetting from './pages/Affiliate/DataNotifikasiSetting'
 import DataTemplateNotifikasi from './pages/Affiliate/DataTemplateNotifikasi'
 import DataKategoriPengeluaran from './pages/Keuangan/DataKategoriPengeluaran'
 import DataPengeluaran from './pages/Keuangan/DataPengeluaran'
+import DataPengajuanGaji from './pages/Keuangan/DataPengajuanGaji'
 import DashboardKeuangan from './pages/Keuangan/DashboardKeuangan'
 import DaftarAffiliate from './pages/Pendaftaran/DaftarAffiliate'
 import AffiliateDashboard from './pages/Affiliate/AffiliateDashboard'
@@ -130,6 +131,7 @@ import GuruLMS from './pages/Guru/GuruLMS'
 import GuruLMSAssignment from './pages/Guru/GuruLMSAssignment'
 import GuruLessonDetail from './pages/Guru/GuruLessonDetail'
 import GuruPaketSoal from './pages/Guru/GuruPaketSoal'
+import GuruPengajuanGaji from './pages/Guru/GuruPengajuanGaji'
 import GuruProfil from './pages/Guru/GuruProfil'
 import GuruPertemuan from './pages/Guru/GuruPertemuan'
 import GuruPertemuanDetail from './pages/Guru/GuruPertemuanDetail'
@@ -464,6 +466,17 @@ function AppRoutes() {
           <ProtectedRoute roleAllowed="GURU">
             <GuruLayout>
               <GuruPaketSoal />
+            </GuruLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/guru-pengajuan-gaji"
+        element={
+          <ProtectedRoute roleAllowed="GURU">
+            <GuruLayout>
+              <GuruPengajuanGaji />
             </GuruLayout>
           </ProtectedRoute>
         }
@@ -953,6 +966,16 @@ function AppRoutes() {
           <ProtectedRoute>
             <DashboardLayout>
               <DataPengeluaran />
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/pengajuan-gaji"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout>
+              <DataPengajuanGaji />
             </DashboardLayout>
           </ProtectedRoute>
         }

@@ -811,6 +811,13 @@ export const quizReferenceApi = {
   adminCategoryDestroy: (id: number) => api.delete(`/admin/lms/quiz-references/categories/${id}`),
 }
 
+export const gajiApi = {
+  store: (data: FormData) => api.post('/guru/gaji', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  list: (params?: Record<string, string | number | undefined>) => api.get('/gaji', { params }),
+  updateStatus: (id: number, data: { status: string; catatan?: string }) =>
+    api.post(`/gaji/${id}/status`, data),
+}
+
 export const paymentSettingApi = {
   getSettings: () => api.get('/payment-settings'),
   updateSettings: (data: Record<string, any>) => api.put('/payment-settings', data),

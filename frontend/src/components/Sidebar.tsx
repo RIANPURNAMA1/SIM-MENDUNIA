@@ -51,6 +51,7 @@ import {
   Newspaper,
   FileSignature,
   HelpCircle,
+  Banknote,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -108,6 +109,7 @@ const iconMap: Record<string, LucideIcon> = {
   ListOrdered,
   Wallet,
   MessageSquare,
+  Banknote,
   ClipboardCheck,
   ScanFace,
   CalendarRange,
@@ -241,6 +243,7 @@ const navItems: NavItem[] = [
         href: "/kategori-pengeluaran",
       },
       { label: "Data Pengeluaran", icon: "Wallet", href: "/pengeluaran" },
+      { label: "Pengajuan Gaji", icon: "Banknote", href: "/pengajuan-gaji" },
     ],
   },
   {

@@ -1038,6 +1038,54 @@ class WhatsAppService
     }
 
     /**
+     * Kirim notifikasi ke admin follow up saat sensei mengajukan gaji.
+     * Nomor tujuan memakai setting 'wa_pendaftaran_admin_phones', gating via toggle 'wa_pengajuan_gaji'.
+     */
+    public function sendPengajuanGajiToAdmin($pengajuan)
+    {
+        if (!\App\Models\NotificationSetting::isEnabled('wa_pengajuan_gaji')) {
+            Log::info("Notifikasi wa_pengajuan_gaji dinonaktifkan.");
+            return false;
+        }
+
+        $adminPhones = $this->getAdminPhones('wa_pendaftaran_admin_phones');
+        if (empty($adminPhones)) {
+            Log::warning('Tidak ada nomor admin follow up untuk notifikasi pengajuan gaji.');
+            return false;
+        }
+
+        $pengajuan->loadMissing('user:id,name,email');
+        $guruNama = $pengajuan->user?->name ?? '-';
+        $bulanTahun = trim(($pengajuan->bulan ?? '-') . ' ' . ($pengajuan->tahun ?? ''));
+        $jumlah = $pengajuan->jumlah !== null
+            ? 'Rp ' . number_format((float) $pengajuan->jumlah, 0, ',', '.')
+            : '-';
+        $keterangan = $pengajuan->keterangan ?: '-';
+        $waktu = now()->translatedFormat('d F Y H:i');
+
+        $message = "💰 *PENGAJUAN Gaji Sensei*\n\n"
+            . "Halo Admin,\n\n"
+            . "Sensei *{$guruNama}* telah mengajukan gaji dan menunggu follow up/approval Anda.\n\n"
+            . "👤 Guru: {$guruNama}\n"
+            . "📅 Bulan/Tahun: {$bulanTahun}\n"
+            . "💵 Nominal: {$jumlah}\n"
+            . "📝 Keterangan: {$keterangan}\n"
+            . "⏰ Waktu Pengajuan: {$waktu}\n"
+            . "📋 Status: Menunggu\n\n"
+            . "Silakan cek dan proses di panel admin.\n\n"
+            . "- Sistem SIM Mendunia";
+
+        $results = [];
+        foreach ($adminPhones as $phone) {
+            $sent = $this->sendMessage($phone, $message);
+            $this->logNotification(null, 'pengajuan_gaji', $phone, $message, $sent, $pengajuan->user_id);
+            $results[] = $sent;
+        }
+
+        return in_array(true, $results);
+    }
+
+    /**
      * Format nomor HP ke format 62
      */
     private function formatPhoneNumber($number)

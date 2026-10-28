@@ -473,7 +473,7 @@ export default function DataNotifikasiSetting() {
             />
             {setting.key === 'wa_pendaftaran_admin_phones' && (
               <p className="mt-1.5 text-[11px] text-slate-400">
-                Notifikasi pendaftaran baru & tagihan baru juga otomatis dikirim ke admin cabang sesuai batch program.
+                Notifikasi pendaftaran baru, tagihan baru, jadwal level & pengajuan gaji sensei juga otomatis dikirim ke nomor ini.
               </p>
             )}
           </div>
