@@ -144,6 +144,7 @@ export default function GuruDashboard() {
   const coordsRef = useRef<{ latitude: number; longitude: number } | null>(null)
   const [batchNilaiList, setBatchNilaiList] = useState<BatchNilai[]>([])
   const [expandedLevel, setExpandedLevel] = useState<string | null>(null)
+  const [selectedKelasId, setSelectedKelasId] = useState<number | null>(null)
   const [jadwalLevels, setJadwalLevels] = useState<Record<string, { tanggal_mulai: string; tanggal_selesai: string }>>({})
 
   const [showRefModal, setShowRefModal] = useState(false)
@@ -775,51 +776,98 @@ export default function GuruDashboard() {
               <p className="text-[11px] text-[#8B90A0] font-medium mt-0.5">
                 {monthNamesID[new Date().getMonth()]} {new Date().getFullYear()}
                 <span className="mx-1.5">·</span>
-                {riwayat_sensei.filter(r => r.status === 'HADIR').length} Hari Hadir
+                {selectedKelasId !== null
+                  ? riwayat_sensei.filter(r => {
+                      const kelas = kelasList.find(k => k.id === selectedKelasId)
+                      if (!kelas) return false
+                      return r.kelas_sensei?.batch_relasi?.nama_batch === kelas.batch_relasi?.nama_batch &&
+                        String(r.kelas_sensei?.level) === String(kelas.level)
+                    }).filter(r => r.status === 'HADIR').length
+                  : riwayat_sensei.filter(r => r.status === 'HADIR').length} Hari Hadir
               </p>
             </div>
             <ChevronRight size={18} className="text-[#8B90A0]" />
           </div>
 
-          {riwayat_sensei.length > 0 ? (
-            <div>
-              {riwayat_sensei.map(r => {
-                const d = new Date(r.tanggal)
-                const dayIdx = d.getDay()
-                const tgl = d.getDate()
-                const status = r.status
-                const statusStyle =
-                  status === 'HADIR' ? 'bg-[#DCFCE7] text-[#15803D]' :
-                  status === 'TERLAMBAT' ? 'bg-[#FEF3C7] text-[#B45309]' :
-                  status === 'LIBUR' ? 'bg-[#F0F1F5] text-[#6B7280]' :
-                  'bg-[#FEE2E2] text-[#B91C1C]'
-                return (
-                  <div key={r.id} className="flex items-start gap-3 px-5 py-3.5 border-t border-[#F0F1F5]">
-                    <div className="flex flex-col items-center w-10 flex-none">
-                      <span className="text-[10px] font-bold text-[#8B90A0] tracking-wider">{dayAbbr[dayIdx]}</span>
-                      <span className="text-lg font-bold text-[#14182B] -mt-0.5">{tgl}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-0.5">
-                        <span className="text-[9px] font-bold text-[#6B7280] bg-[#F0F1F5] px-1.5 py-0.5 rounded-sm tracking-wide">SENSEI</span>
-                        <span className="text-xs font-semibold text-[#14182B] truncate">{r.kelas_sensei?.batch_relasi?.nama_batch || r.kelas_sensei?.nama_kelas || '-'}</span>
-                      </div>
-                      <p className="text-[11px] text-[#8B90A0] font-medium">{dayNames[dayIdx]}, {tgl} {monthNamesID[d.getMonth()]}</p>
-                      <div className="flex items-center gap-2 mt-1 tabular-nums">
-                        <span className="text-xs font-semibold text-[#14182B]">{r.jam_masuk ? r.jam_masuk.slice(0, 8) : '—'}</span>
-                        <span className="text-[10px] text-[#C5C8D4]">—</span>
-                        <span className="text-xs font-semibold text-[#14182B]">{r.jam_keluar ? r.jam_keluar.slice(0, 8) : '—'}</span>
-                      </div>
-                    </div>
-                    <span className={`shrink-0 px-2 py-1 rounded-md text-[10px] font-bold self-center ${statusStyle}`}>{status}</span>
-                  </div>
-                )
-              })}
+          <div className="px-5 pb-3">
+            <label className="block text-[10px] font-medium text-[#6B7280] mb-2 w-full">Pilih Kelas</label>
+            <div className="flex flex-wrap gap-2">
+              {kelasList.map(k => (
+                <button
+                  key={k.id}
+                  onClick={() => setSelectedKelasId(k.id)}
+                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium whitespace-nowrap transition-colors ${
+                    selectedKelasId === k.id
+                      ? 'bg-[#0069b0] border-[#0069b0] text-white'
+                      : 'bg-white border-[#E5E7EF] text-[#4B5063] hover:bg-[#F4F5F8]'
+                  }`}
+                >
+                  {k.batch_relasi?.nama_batch || `Batch #${k.batch_id}`} · L{k.level}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {selectedKelasId === null ? (
+            <div className="text-center py-8 px-5">
+              <History size={24} className="mx-auto text-[#C5C8D4] mb-2" />
+              <p className="text-sm font-semibold text-[#4B5063]">Pilih kelas untuk melihat riwayat absensi</p>
+              <p className="text-xs text-[#8B90A0] mt-1">Data akan ditampilkan berdasarkan kelas yang Anda pilih</p>
             </div>
           ) : (
-            <div className="text-center py-8 px-5">
-              <p className="text-sm font-semibold text-[#4B5063]">Belum ada riwayat absensi</p>
-            </div>
+            <>
+              {(() => {
+                const kelas = kelasList.find(k => k.id === selectedKelasId)
+                const classRiwayat = riwayat_sensei.filter(r =>
+                  r.kelas_sensei?.batch_relasi?.nama_batch === kelas?.batch_relasi?.nama_batch &&
+                  String(r.kelas_sensei?.level) === String(kelas?.level)
+                )
+                if (classRiwayat.length === 0) {
+                  return (
+                    <div className="text-center py-8 px-5">
+                      <History size={24} className="mx-auto text-[#C5C8D4] mb-2" />
+                      <p className="text-sm font-semibold text-[#4B5063]">Belum ada riwayat absensi untuk kelas ini</p>
+                    </div>
+                  )
+                }
+                return (
+                  <div>
+                    {classRiwayat.map(r => {
+                      const d = new Date(r.tanggal)
+                      const dayIdx = d.getDay()
+                      const tgl = d.getDate()
+                      const status = r.status
+                      const statusStyle =
+                        status === 'HADIR' ? 'bg-[#DCFCE7] text-[#15803D]' :
+                        status === 'TERLAMBAT' ? 'bg-[#FEF3C7] text-[#B45309]' :
+                        status === 'LIBUR' ? 'bg-[#F0F1F5] text-[#6B7280]' :
+                        'bg-[#FEE2E2] text-[#B91C1C]'
+                      return (
+                        <div key={r.id} className="flex items-start gap-3 px-5 py-3.5 border-t border-[#F0F1F5]">
+                          <div className="flex flex-col items-center w-10 flex-none">
+                            <span className="text-[10px] font-bold text-[#8B90A0] tracking-wider">{dayAbbr[dayIdx]}</span>
+                            <span className="text-lg font-bold text-[#14182B] -mt-0.5">{tgl}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-0.5">
+                              <span className="text-[9px] font-bold text-[#6B7280] bg-[#F0F1F5] px-1.5 py-0.5 rounded-sm tracking-wide">SENSEI</span>
+                              <span className="text-xs font-semibold text-[#14182B] truncate">{r.kelas_sensei?.batch_relasi?.nama_batch || r.kelas_sensei?.nama_kelas || '-'}</span>
+                            </div>
+                            <p className="text-[11px] text-[#8B90A0] font-medium">{dayNames[dayIdx]}, {tgl} {monthNamesID[d.getMonth()]}</p>
+                            <div className="flex items-center gap-2 mt-1 tabular-nums">
+                              <span className="text-xs font-semibold text-[#14182B]">{r.jam_masuk ? r.jam_masuk.slice(0, 8) : '—'}</span>
+                              <span className="text-[10px] text-[#C5C8D4]">—</span>
+                              <span className="text-xs font-semibold text-[#14182B]">{r.jam_keluar ? r.jam_keluar.slice(0, 8) : '—'}</span>
+                            </div>
+                          </div>
+                          <span className={`shrink-0 px-2 py-1 rounded-md text-[10px] font-bold self-center ${statusStyle}`}>{status}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+            </>
           )}
         </section>
       </div>

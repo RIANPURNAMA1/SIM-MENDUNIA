@@ -2,13 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AbsensiSensei;
+use App\Models\HariLibur;
 use App\Models\IzinSensei;
 use App\Models\KelasSensei;
+use App\Models\NotificationSetting;
 use App\Models\User;
+use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class IzinSenseiController extends Controller
 {
@@ -408,6 +413,65 @@ class IzinSenseiController extends Controller
             'approved_at' => now(),
         ]);
 
+        // Buat record absensi untuk setiap tanggal yang diizinkan agar muncul di riwayat absensi
+        $affectedDates = [];
+        if ($izin->jadwal_terdampak === 'TERTENTU' && is_array($izin->jadwal_tertentu)) {
+            $affectedDates = array_values($izin->jadwal_tertentu);
+        } else {
+            $start = Carbon::parse($izin->tgl_mulai);
+            $end = Carbon::parse($izin->tgl_selesai);
+            while ($start->lte($end)) {
+                if ($start->dayOfWeek !== 0 && $start->dayOfWeek !== 6 && !HariLibur::apakahLibur($start->toDateString())) {
+                    $affectedDates[] = $start->toDateString();
+                }
+                $start->addDay();
+            }
+        }
+
+        foreach ($affectedDates as $tanggal) {
+            AbsensiSensei::firstOrCreate(
+                [
+                    'kelas_sensei_id' => $izin->kelas_sensei_id,
+                    'user_id' => $izin->user_id,
+                    'tanggal' => $tanggal,
+                ],
+                [
+                    'status' => 'IZIN',
+                    'catatan' => 'Izin: ' . ($izin->jenis_izin ?? '') . ' - ' . ($izin->alasan ?? ''),
+                ]
+            );
+        }
+
+        // Notifikasi WhatsApp ke sensei
+        try {
+            $izin->loadMissing('user', 'kelas');
+            $user = $izin->user;
+            $phone = $user?->no_hp;
+            if ($phone && NotificationSetting::isEnabled('wa_izin_sensei')) {
+                $kelasNama = $izin->kelas ? ($izin->kelas->batch_relasi?->nama_batch ?? $izin->kelas->nama_kelas ?? '-') : '-';
+                $level = $izin->kelas?->level ?? '-';
+                $jenisLabel = [
+                    'IZIN_PRIBADI' => 'Izin Pribadi',
+                    'SAKIT' => 'Sakit',
+                    'URUSAN_KELUARGA' => 'Urusan Keluarga',
+                    'DINAS_LEMBAGA' => 'Dinas Lembaga',
+                    'IZIN_MENDADAK' => 'Izin Mendadak',
+                ][$izin->jenis_izin ?? ''] ?? $izin->jenis_izin;
+                $periode = Carbon::parse($izin->tgl_mulai)->format('d M Y') . ' s.d ' . Carbon::parse($izin->tgl_selesai)->format('d M Y');
+                $message = "✅ *Pengajuan Izin Disetujui*\n\n"
+                    . "Halo {$user->name},\n\n"
+                    . "Pengajuan izin mengajar Anda telah disetujui oleh admin/koordinator.\n\n"
+                    . "📅 Tanggal: {$periode}\n"
+                    . "📋 Kelas: {$kelasNama} (Level {$level})\n"
+                    . "📝 Jenis: {$jenisLabel}\n"
+                    . "💬 Alasan: {$izin->alasan}\n\n"
+                    . "Terima kasih.";
+                app(WhatsAppService::class)->sendMessage($phone, $message);
+            }
+        } catch (\Exception $e) {
+            Log::warning('Gagal kirim notifikasi WA izin sensei (approve): ' . $e->getMessage());
+        }
+
         return response()->json([
             'message' => 'Pengajuan izin sensei disetujui.',
             'data' => $izin->fresh(['user:id,name', 'pengganti:id,name', 'approver:id,name']),
@@ -433,6 +497,37 @@ class IzinSenseiController extends Controller
             'approved_by' => $user?->id,
             'approved_at' => now(),
         ]);
+
+        // Notifikasi WhatsApp ke sensei
+        try {
+            $izin->loadMissing('user', 'kelas');
+            $senseiUser = $izin->user;
+            $phone = $senseiUser?->no_hp;
+            if ($phone && NotificationSetting::isEnabled('wa_izin_sensei')) {
+                $kelasNama = $izin->kelas ? ($izin->kelas->batch_relasi?->nama_batch ?? $izin->kelas->nama_kelas ?? '-') : '-';
+                $level = $izin->kelas?->level ?? '-';
+                $jenisLabel = [
+                    'IZIN_PRIBADI' => 'Izin Pribadi',
+                    'SAKIT' => 'Sakit',
+                    'URUSAN_KELUARGA' => 'Urusan Keluarga',
+                    'DINAS_LEMBAGA' => 'Dinas Lembaga',
+                    'IZIN_MENDADAK' => 'Izin Mendadak',
+                ][$izin->jenis_izin ?? ''] ?? $izin->jenis_izin;
+                $periode = Carbon::parse($izin->tgl_mulai)->format('d M Y') . ' s.d ' . Carbon::parse($izin->tgl_selesai)->format('d M Y');
+                $catatanAdmin = $izin->catatan_admin ? "\n📝 Catatan admin: {$izin->catatan_admin}" : '';
+                $message = "❌ *Pengajuan Izin Ditolak*\n\n"
+                    . "Halo {$senseiUser->name},\n\n"
+                    . "Maaf, pengajuan izin mengajar Anda ditolak oleh admin/koordinator.\n\n"
+                    . "📅 Tanggal: {$periode}\n"
+                    . "📋 Kelas: {$kelasNama} (Level {$level})\n"
+                    . "📝 Jenis: {$jenisLabel}\n"
+                    . "💬 Alasan: {$izin->alasan}{$catatanAdmin}\n\n"
+                    . "Silakan ajukan kembali jika diperlukan.";
+                app(WhatsAppService::class)->sendMessage($phone, $message);
+            }
+        } catch (\Exception $e) {
+            Log::warning('Gagal kirim notifikasi WA izin sensei (reject): ' . $e->getMessage());
+        }
 
         return response()->json([
             'message' => 'Pengajuan izin sensei ditolak.',

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import Swal from 'sweetalert2'
 import { izinSenseiApi } from '../../services/api'
+import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 
 interface KelasOption {
   id: number
@@ -762,6 +763,17 @@ export default function IzinSensei() {
           </div>
         )}
       </section>
+
+      <KaryawanBottomNav
+        activeTab="home"
+        absenStatus="belum"
+        hasJadwal={false}
+        homeHref="/guru-dashboard"
+        jadwalHref="/guru-dashboard"
+        laporanHref="/izin-sensei"
+        profilHref="/guru-profil"
+      />
+
     </div>
   )
 }

@@ -55,6 +55,7 @@ interface RiwayatAbsensiRow {
   jam_keluar: string | null
   status: string
   kelas: string
+  kelas_id?: number | null
   pertemuan_ke?: number | null
 }
 
@@ -138,12 +139,16 @@ export default function GuruPengajuanGaji() {
   const [ringkasanLoading, setRingkasanLoading] = useState(false)
   const [riwayatAll, setRiwayatAll] = useState<RiwayatAbsensiRow[]>([])
   const [riwayatIzin, setRiwayatIzin] = useState<RiwayatIzinItem[]>([])
+  const [selectedKelasId, setSelectedKelasId] = useState<number | null>(null)
+  const [selectedKelasName, setSelectedKelasName] = useState<string | null>(null)
 
   useEffect(() => {
     if (!showModal) return
     setRingkasan(null)
     setRiwayatAll([])
     setRiwayatIzin([])
+    setSelectedKelasId(null)
+    setSelectedKelasName(null)
     setRingkasanLoading(true)
     izinSenseiApi.list({ my: true, per_page: 10 })
       .then(res => setRiwayatIzin(res.data?.data ?? []))
@@ -153,7 +158,7 @@ export default function GuruPengajuanGaji() {
         setRingkasan(res.data)
         return api.get('/kehadiran-sensei', { params: { user_id: res.data.user?.id, start_date: '2020-01-01' } })
       })
-      .then(res => {
+        .then(res => {
         const rows: RiwayatAbsensiRow[] = []
         const groups = res.data?.data || []
         for (const group of (Array.isArray(groups) ? groups : [])) {
@@ -164,12 +169,19 @@ export default function GuruPengajuanGaji() {
               jam_masuk: a.jam_masuk,
               jam_keluar: a.jam_keluar,
               status: a.status,
-              kelas: group.kelas?.batch_relasi?.nama_batch || group.kelas?.nama_kelas || '-',
+              kelas: group.kelas?.batch_relasi?.nama_batch || group.kelas?.nama_kelass || '-',
+              kelas_id: group.kelas?.id ?? null,
               pertemuan_ke: a.pertemuan_ke ?? null,
             })
           }
         }
-        rows.sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
+        rows.sort((a, b) => {
+          const dateDiff = new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
+          if (dateDiff !== 0) return dateDiff
+          const aPertemuan = a.pertemuan_ke ?? 0
+          const bPertemuan = b.pertemuan_ke ?? 0
+          return aPertemuan - bPertemuan
+        })
         setRiwayatAll(rows)
       })
       .catch(() => setRingkasan(null))
@@ -193,7 +205,10 @@ export default function GuruPengajuanGaji() {
   useEffect(() => { fetchData(1) }, [fetchData, filterStatus, search])
 
   const hitungStatusAbsensi = () => {
-    const rows = riwayatAll.length > 0 ? riwayatAll : (ringkasan?.riwayat_sensei ?? [])
+    const allRows = riwayatAll.length > 0 ? riwayatAll : (ringkasan?.riwayat_sensei ?? [])
+    const rows = selectedKelasId !== null
+      ? allRows.filter(r => (r as RiwayatAbsensiRow).kelas_id === selectedKelasId)
+      : allRows
     const count = (statuses: string[]) =>
       rows.filter(r => statuses.includes((r.status || '').toUpperCase())).length
     return {
@@ -239,33 +254,43 @@ export default function GuruPengajuanGaji() {
     })
     if (!confirm.isConfirmed) return
 
-    setGajiSaving(true)
+setGajiSaving(true)
     try {
       const fd = new FormData()
       if (gajiForm.keterangan) fd.append('keterangan', gajiForm.keterangan)
+      if (selectedKelasId) fd.append('selected_kelas_id', String(selectedKelasId))
+      if (selectedKelasName) fd.append('selected_kelas_name', selectedKelasName)
       if (ringkasan) {
         fd.append('ringkasan_kehadiran', JSON.stringify({
           total_kelas: ringkasan.total_kelas,
           kehadiran_bulan_ini: ringkasan.kehadiran_bulan_ini,
           kelas_aktif: ringkasan.kelas_aktif.map(k => ({
+            id: k.id,
             nama_batch: k.batch_relasi?.nama_batch || k.nama_kelas,
             level: k.level,
             periode: `${k.tanggal_mulai_formatted || k.tanggal_mulai} – ${k.tanggal_selesai_formatted || k.tanggal_selesai}`,
           })),
-          riwayat: (riwayatAll.length > 0 ? riwayatAll : ringkasan.riwayat_sensei).map(r => ({
+          riwayat: (selectedKelasId !== null
+            ? riwayatAll.filter(r => (r as RiwayatAbsensiRow).kelas_id === selectedKelasId)
+            : riwayatAll
+          ).map(r => ({
+            id: r.id,
             tanggal: r.tanggal,
             status: r.status,
             jam_masuk: r.jam_masuk,
             jam_keluar: r.jam_keluar,
             pertemuan_ke: (r as RiwayatAbsensiRow).pertemuan_ke ?? null,
+            kelas_id: (r as RiwayatAbsensiRow).kelas_id ?? null,
+            kelas: r.kelas,
           })),
           riwayat_izin: riwayatIzin.map(i => ({
+            id: i.id,
             jenis_izin: i.jenis_izin,
             tgl_mulai: i.tgl_mulai,
             tgl_selesai: i.tgl_selesai,
             status: i.status,
             alasan: i.alasan,
-            kelas: i.kelas ? (i.kelas.batch_relasi?.nama_batch || i.kelas.nama_kelas) : null,
+            kelas: i.kelas ? (i.kelas.batch_relasi?.nama_batch || i.kelas?.nama_kelass) : null,
             pengganti: i.nama_pengganti || i.pengganti?.name || null,
           })),
         }))
@@ -471,132 +496,132 @@ export default function GuruPengajuanGaji() {
                       </tbody>
                     </table>
 
-                    <table className="w-full border-collapse text-left text-sm text-[#3c4043] bg-white rounded-lg">
+<table className="w-full border-collapse text-left text-sm text-[#3c4043] bg-white rounded-lg">
+                       <thead>
+                         <tr>
+                           <th colSpan={3} className="text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Pilih Kelas</th>
+                         </tr>
+                       </thead>
+                       <tbody>
+                         <tr>
+                           <td colSpan={3} className="border border-[#E5E7EF] px-3 py-2">
+                             <select
+                               value={selectedKelasId ?? ''}
+                               onChange={e => {
+                                 const val = e.target.value ? Number(e.target.value) : null
+                                 setSelectedKelasId(val)
+                                 const selected = ringkasan?.kelas_aktif.find(k => k.id === val)
+                                 setSelectedKelasName(selected ? (selected.batch_relasi?.nama_batch || selected.nama_kelas) : null)
+                               }}
+                               className="w-full border border-[#E5E7EF] bg-white px-3 py-2 text-[11px] text-[#3c4043] outline-none focus:border-[#0069b0] rounded-lg"
+                             >
+                               <option value="">-- Pilih Kelas Aktif --</option>
+                               {ringkasan.kelas_aktif.map(k => (
+                                 <option key={k.id} value={k.id}>
+                                   {k.batch_relasi?.nama_batch || k.nama_kelas} (Level {k.level})
+                                 </option>
+                               ))}
+                             </select>
+                           </td>
+                         </tr>
+                         {selectedKelasId && (
+                           <tr>
+                             <td className="border border-[#E5E7EF] px-3 py-2 text-[11px] text-[#8B90A0]">
+                               Periode: {ringkasan.kelas_aktif.find(k => k.id === selectedKelasId)?.tanggal_mulai_formatted || ringkasan.kelas_aktif.find(k => k.id === selectedKelasId)?.tanggal_mulai} – {ringkasan.kelas_aktif.find(k => k.id === selectedKelasId)?.tanggal_selesai_formatted || ringkasan.kelas_aktif.find(k => k.id === selectedKelasId)?.tanggal_selesai}
+                             </td>
+                           </tr>
+                         )}
+                       </tbody>
+                     </table>
+
+                    <div className="max-h-56 overflow-y-auto overflow-x-auto border border-t-0 border-[#E5E7EF] rounded-b-lg">
+                    <table className="w-full border-collapse text-left text-sm text-[#3c4043] bg-white rounded-lg overflow-hidden">
                       <thead>
                         <tr>
-                          <th colSpan={3} className="text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Kelas Hari Ini</th>
-                        </tr>
-                        <tr>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Kelas</th>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Level</th>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Periode</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Tanggal</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 text-center bg-[#FAFBFD]">Pertemuan</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Jam Masuk</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Jam Keluar</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 text-center bg-[#FAFBFD]">Status</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {ringkasan.kelas_aktif.length === 0 ? (
+                        {selectedKelasId === null ? (
                           <tr>
-                            <td colSpan={3} className="border border-[#E5E7EF] px-3 py-2 text-[11px] text-[#8B90A0] text-center">Tidak ada kelas aktif hari ini</td>
+                            <td colSpan={5} className="px-3 py-4 text-[11px] text-[#8B90A0] text-center border-b border-[#E5E7EF]">Silakan pilih kelas terlebih dahulu untuk melihat riwayat kehadiran</td>
+                          </tr>
+                        ) : riwayatAll.filter(r => (r as RiwayatAbsensiRow).kelas_id === selectedKelasId).length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="px-3 py-4 text-[11px] text-[#8B90A0] text-center border-b border-[#E5E7EF]">Belum ada riwayat absensi untuk kelas ini</td>
                           </tr>
                         ) : (
-                          ringkasan.kelas_aktif.map(k => (
-                            <tr key={k.id}>
-                              <td className="border border-[#E5E7EF] px-3 py-2 text-[11px] font-semibold text-[#14182B] truncate max-w-[140px]">{k.batch_relasi?.nama_batch || k.nama_kelas}</td>
-                              <td className="border border-[#E5E7EF] px-3 py-2 text-[11px] font-semibold text-[#0069b0]">Level {k.level}</td>
-                              <td className="border border-[#E5E7EF] px-3 py-2 text-[11px] text-[#3c4043] whitespace-nowrap">
-                                {k.tanggal_mulai_formatted || k.tanggal_mulai} – {k.tanggal_selesai_formatted || k.tanggal_selesai}
+                          riwayatAll.filter(r => (r as RiwayatAbsensiRow).kelas_id === selectedKelasId).map(r => (
+                            <tr key={r.id} className="border-b border-[#E5E7EF]">
+                              <td className="px-3 py-2 text-[11px] font-semibold text-[#14182B] whitespace-nowrap">{formatTanggalRiwayat(r.tanggal)}</td>
+                              <td className="px-3 py-2 text-[11px] text-center whitespace-nowrap">
+                                <span className="inline-flex px-1.5 py-0.5 rounded bg-[#E8F0FE] text-[#0069b0] text-[9px] font-bold">
+                                  {r.pertemuan_ke ? `Ke-${r.pertemuan_ke}` : '—'}
+                                </span>
+                              </td>
+                              <td className="px-3 py-2 text-[11px] text-[#3c4043] tabular-nums">{r.jam_masuk ? r.jam_masuk.slice(0, 5) : '—'}</td>
+                              <td className="px-3 py-2 text-[11px] text-[#3c4043] tabular-nums">{r.jam_keluar ? r.jam_keluar.slice(0, 5) : '—'}</td>
+                              <td className="px-3 py-2 text-center">
+                                <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                  r.status === 'HADIR' ? 'bg-[#DCFCE7] text-[#15803D]' :
+                                  r.status === 'TERLAMBAT' ? 'bg-[#FEF3C7] text-[#B45309]' :
+                                  r.status === 'LIBUR' ? 'bg-[#F0F1F5] text-[#6B7280]' :
+                                  'bg-[#FEE2E2] text-[#B91C1C]'
+                                }`}>{r.status}</span>
                               </td>
                             </tr>
                           ))
                         )}
                       </tbody>
                     </table>
+                  </div>
 
-                    <table className="w-full border-collapse text-left text-sm text-[#3c4043] bg-white rounded-lg">
+                  <div className="max-h-40 overflow-y-auto overflow-x-auto border border-t-0 border-[#E5E7EF] rounded-b-lg">
+                    <table className="w-full border-collapse text-left text-sm text-[#3c4043] bg-white rounded-lg overflow-hidden">
                       <thead>
                         <tr>
-                          <th colSpan={5} className="text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Riwayat Absensi</th>
-                        </tr>
-                        <tr>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Tanggal</th>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 text-center">Pertemuan</th>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Jam Masuk</th>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Jam Keluar</th>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 text-center">Status</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Jenis</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Periode</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Kelas</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Pengganti</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 text-center bg-[#FAFBFD]">Status</th>
                         </tr>
                       </thead>
-                    </table>
-                    <div className="max-h-56 overflow-y-auto border border-t-0 border-[#E5E7EF] rounded-b-lg">
-                      <table className="w-full border-collapse text-left text-sm text-[#3c4043] bg-white">
-                        <tbody>
-                          {riwayatAll.length === 0 ? (
-                            <tr>
-                              <td colSpan={5} className="px-3 py-3 text-[11px] text-[#8B90A0] text-center">Belum ada riwayat absensi</td>
+                      <tbody>
+                        {riwayatIzin.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="px-3 py-4 text-[11px] text-[#8B90A0] text-center border-b border-[#E5E7EF]">Belum ada riwayat izin</td>
+                          </tr>
+                        ) : (
+                          riwayatIzin.map(i => (
+                            <tr key={i.id} className="border-b border-[#E5E7EF]">
+                              <td className="px-3 py-2 text-[11px] font-semibold text-[#14182B] whitespace-nowrap">
+                                {jenisIzinLabel[i.jenis_izin] || i.jenis_izin}
+                              </td>
+                              <td className="px-3 py-2 text-[11px] text-[#3c4043] whitespace-nowrap">
+                                {formatPeriodeIzin(i.tgl_mulai, i.tgl_selesai)}
+                              </td>
+                              <td className="px-3 py-2 text-[11px] text-[#3c4043] truncate max-w-[80px]">
+                                {i.kelas ? (i.kelas.batch_relasi?.nama_batch || i.kelas.nama_kelas) : '—'}
+                              </td>
+                              <td className="px-3 py-2 text-[11px] text-[#3c4043] truncate max-w-[80px]">
+                                {i.nama_pengganti || i.pengganti?.name || <span className="text-[#8B90A0]">—</span>}
+                              </td>
+                              <td className="px-3 py-2 text-center">
+                                <span className={`inline-flex px-1.5 py-0.5 rounded border text-[9px] font-bold ${statusIzinStyle[i.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                                  {statusIzinLabel[i.status] || i.status}
+                                </span>
+                              </td>
                             </tr>
-                          ) : (
-                            riwayatAll.map(r => (
-                              <tr key={r.id}>
-                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-[11px] font-semibold text-[#14182B] whitespace-nowrap">{formatTanggalRiwayat(r.tanggal)}</td>
-                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-[11px] text-center whitespace-nowrap">
-                                  <span className="inline-flex px-1.5 py-0.5 rounded bg-[#E8F0FE] text-[#0069b0] text-[9px] font-bold">
-                                    {r.pertemuan_ke ? `Ke-${r.pertemuan_ke}` : '—'}
-                                  </span>
-                                </td>
-                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-[11px] text-[#3c4043] tabular-nums">{r.jam_masuk ? r.jam_masuk.slice(0, 5) : '—'}</td>
-                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-[11px] text-[#3c4043] tabular-nums">{r.jam_keluar ? r.jam_keluar.slice(0, 5) : '—'}</td>
-                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-center">
-                                  <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                    r.status === 'HADIR' ? 'bg-[#DCFCE7] text-[#15803D]' :
-                                    r.status === 'TERLAMBAT' ? 'bg-[#FEF3C7] text-[#B45309]' :
-                                    r.status === 'LIBUR' ? 'bg-[#F0F1F5] text-[#6B7280]' :
-                                    'bg-[#FEE2E2] text-[#B91C1C]'
-                                  }`}>{r.status}</span>
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-
-                    <table className="w-full border-collapse text-left text-sm text-[#3c4043] bg-white rounded-lg">
-                      <thead>
-                        <tr>
-                          <th colSpan={5} className="text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">
-                            Riwayat Izin Sensei
-                          </th>
-                        </tr>
-                        <tr>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Jenis</th>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Periode</th>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Kelas</th>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Pengganti</th>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 text-center">Status</th>
-                        </tr>
-                      </thead>
+                          ))
+                        )}
+                      </tbody>
                     </table>
-                    <div className="max-h-40 overflow-y-auto border border-t-0 border-[#E5E7EF] rounded-b-lg">
-                      <table className="w-full border-collapse text-left text-sm text-[#3c4043] bg-white">
-                        <tbody>
-                          {riwayatIzin.length === 0 ? (
-                            <tr>
-                              <td colSpan={5} className="px-3 py-3 text-[11px] text-[#8B90A0] text-center">Belum ada riwayat izin</td>
-                            </tr>
-                          ) : (
-                            riwayatIzin.map(i => (
-                              <tr key={i.id}>
-                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-[11px] font-semibold text-[#14182B] whitespace-nowrap">
-                                  {jenisIzinLabel[i.jenis_izin] || i.jenis_izin}
-                                </td>
-                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-[11px] text-[#3c4043] whitespace-nowrap">
-                                  {formatPeriodeIzin(i.tgl_mulai, i.tgl_selesai)}
-                                </td>
-                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-[11px] text-[#3c4043] truncate max-w-[100px]">
-                                  {i.kelas ? (i.kelas.batch_relasi?.nama_batch || i.kelas.nama_kelas) : '—'}
-                                </td>
-                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-[11px] text-[#3c4043] truncate max-w-[110px]">
-                                  {i.nama_pengganti || i.pengganti?.name || <span className="text-[#8B90A0]">—</span>}
-                                </td>
-                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-center">
-                                  <span className={`inline-flex px-1.5 py-0.5 rounded border text-[9px] font-bold ${statusIzinStyle[i.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
-                                    {statusIzinLabel[i.status] || i.status}
-                                  </span>
-                                </td>
-                              </tr>
-                            ))
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
+                  </div>
                   </div>
                 ) : (
                   <p className="px-4 pb-3.5 text-xs text-[#8B90A0]">Data kehadiran tidak tersedia</p>
