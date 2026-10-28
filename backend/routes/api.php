@@ -21,6 +21,7 @@ use App\Http\Controllers\Absensi\RekapJadwalShiftController;
 use App\Http\Controllers\Absensi\RekapKehadiranSenseiController;
 use App\Http\Controllers\Absensi\KehadiranSenseiController;
 use App\Http\Controllers\IzinController;
+use App\Http\Controllers\IzinSenseiController;
 use App\Http\Controllers\LemburController;
 use App\Http\Controllers\HariLiburController;
 use App\Http\Controllers\MonitoringController;
@@ -182,6 +183,20 @@ Route::prefix('izin')->middleware('auth:sanctum')->group(function () {
     Route::post('/', [IzinController::class, 'apiStore']);
     Route::post('/{id}/approve', [IzinController::class, 'apiApprove']);
     Route::post('/{id}/reject', [IzinController::class, 'apiReject']);
+});
+
+// Izin Sensei (pengajuan izin mengajar & pengganti sementara)
+Route::prefix('izin-sensei')->middleware('auth:sanctum')->group(function () {
+    Route::get('/meta', [IzinSenseiController::class, 'meta']);
+    Route::get('/jadwal', [IzinSenseiController::class, 'jadwal']);
+    Route::get('/pengganti', [IzinSenseiController::class, 'pengganti']);
+    Route::get('/', [IzinSenseiController::class, 'index']);
+    Route::post('/', [IzinSenseiController::class, 'store']);
+
+    Route::middleware('role:HR,MANAGER,ADMIN,ADMIN_CABANG,ADMIN_PUSAT')->group(function () {
+        Route::post('/{id}/approve', [IzinSenseiController::class, 'approve']);
+        Route::post('/{id}/reject', [IzinSenseiController::class, 'reject']);
+    });
 });
 
 // Lembur

@@ -688,7 +688,7 @@ export default function GuruDashboard() {
               { icon: BookOpen, label: 'Kelas', action: () => setShowModal(true) },
               { icon: ClipboardList, label: 'Data Siswa', href: '/guru-data-siswa' },
               { icon: Notebook, label: 'Penilaian', href: '/guru-data-siswa' },
-              { icon: FileText, label: 'Izin/Sakit', href: '/pengajuan-izin' },
+              { icon: FileText, label: 'Izin Sensei', href: '/izin-sensei' },
               { icon: History, label: 'Riwayat', href: '/riwayat-absensi-karyawan' },
               { icon: Clock, label: 'Lembur', href: '/lembur-karyawan' },
               { icon: BookOpen, label: 'Kelas Mendunia', href: '/guru-lms' },

@@ -20,6 +20,7 @@ interface PengajuanGajiItem {
     kehadiran_bulan_ini?: number
     kelas_aktif?: { nama_batch?: string; nama_kelas?: string; level?: string | number; periode?: string }[]
     riwayat?: { tanggal: string; status: string; jam_masuk?: string | null; jam_keluar?: string | null; pertemuan_ke?: number | null }[]
+    riwayat_izin?: { jenis_izin: string; tgl_mulai: string; tgl_selesai: string; status: string; alasan?: string | null; kelas?: string | null; pengganti?: string | null }[]
   } | null
   created_at: string
   updated_at: string
@@ -40,6 +41,32 @@ const statusLabel: Record<string, string> = {
 }
 
 const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+
+const jenisIzinLabel: Record<string, string> = {
+  IZIN_PRIBADI: 'Izin Pribadi',
+  SAKIT: 'Sakit',
+  URUSAN_KELUARGA: 'Urusan Keluarga',
+  DINAS_LEMBAGA: 'Dinas Lembaga',
+  IZIN_MENDADAK: 'Izin Mendadak',
+}
+
+const statusIzinStyle: Record<string, string> = {
+  PENDING: 'bg-amber-50 text-amber-600 border-amber-200',
+  APPROVED: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+  REJECTED: 'bg-red-50 text-red-600 border-red-200',
+}
+
+const statusIzinLabel: Record<string, string> = {
+  PENDING: 'Menunggu',
+  APPROVED: 'Disetujui',
+  REJECTED: 'Ditolak',
+}
+
+function formatPeriodeIzin(mulai: string, selesai: string) {
+  const pendek = (v: string) =>
+    new Date(`${v}T00:00:00`).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+  return mulai === selesai ? pendek(mulai) : `${pendek(mulai)} – ${pendek(selesai)}`
+}
 
 function formatTanggalRiwayat(dateStr: string) {
   const d = new Date(dateStr)
@@ -501,6 +528,44 @@ export default function DataPengajuanGaji() {
                       </div>
                     ) : (
                       <p className="text-xs text-[#80868b]">Belum ada data absensi.</p>
+                    )}
+
+                    {detailItem.ringkasan_kehadiran.riwayat_izin && detailItem.ringkasan_kehadiran.riwayat_izin.length > 0 && (
+                      <div>
+                        <p className="mb-2 text-xs font-medium text-[#5f6368]">Riwayat Izin Sensei</p>
+                        <div className="overflow-x-auto border border-[#dadce0] bg-white">
+                          <table className="w-full min-w-[540px] border-collapse text-left text-xs text-[#3c4043]">
+                            <thead>
+                              <tr className="bg-[#f8f9fa]">
+                                <th className="border-b border-[#dadce0] px-3 py-2 font-semibold text-[#5f6368]">Jenis</th>
+                                <th className="border-b border-[#dadce0] px-3 py-2 font-semibold text-[#5f6368]">Periode</th>
+                                <th className="border-b border-[#dadce0] px-3 py-2 font-semibold text-[#5f6368]">Kelas</th>
+                                <th className="border-b border-[#dadce0] px-3 py-2 font-semibold text-[#5f6368]">Pengganti</th>
+                                <th className="border-b border-[#dadce0] px-3 py-2 font-semibold text-[#5f6368] text-center">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {detailItem.ringkasan_kehadiran.riwayat_izin.map((i, idx) => (
+                                <tr key={idx} className="bg-white transition hover:bg-[#f8f9fa]">
+                                  <td className="border-b border-[#e8eaed] px-3 py-2 font-medium text-black whitespace-nowrap">
+                                    {jenisIzinLabel[i.jenis_izin] || i.jenis_izin}
+                                  </td>
+                                  <td className="border-b border-[#e8eaed] px-3 py-2 text-black whitespace-nowrap">
+                                    {formatPeriodeIzin(i.tgl_mulai, i.tgl_selesai)}
+                                  </td>
+                                  <td className="border-b border-[#e8eaed] px-3 py-2 text-black">{i.kelas || '—'}</td>
+                                  <td className="border-b border-[#e8eaed] px-3 py-2 text-black">{i.pengganti || '—'}</td>
+                                  <td className="border-b border-[#e8eaed] px-3 py-2 text-center">
+                                    <span className={`inline-flex border px-1.5 py-0.5 text-[10px] font-bold ${statusIzinStyle[i.status] || 'border-gray-200 bg-gray-100 text-gray-500'}`}>
+                                      {statusIzinLabel[i.status] || i.status}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
                     )}
                   </div>
                 ) : (

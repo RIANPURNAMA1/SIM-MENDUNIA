@@ -98,6 +98,19 @@ export const izinApi = {
   reject: (id: number, data?: Record<string, unknown>) => api.post(`/izin/${id}/reject`, data || {}),
 }
 
+export const izinSenseiApi = {
+  meta: () => api.get('/izin-sensei/meta'),
+  jadwal: (params: { kelas_sensei_id: number; tgl_mulai: string; tgl_selesai: string }) =>
+    api.get('/izin-sensei/jadwal', { params }),
+  list: (params?: Record<string, string | number | boolean | undefined>) =>
+    api.get('/izin-sensei', { params }),
+  store: (data: Record<string, unknown>) => api.post('/izin-sensei', data),
+  approve: (id: number, data?: { catatan_admin?: string }) =>
+    api.post(`/izin-sensei/${id}/approve`, data || {}),
+  reject: (id: number, data?: { catatan_admin?: string }) =>
+    api.post(`/izin-sensei/${id}/reject`, data || {}),
+}
+
 export const kehadiranKhususApi = {
   list: (params?: Record<string, unknown>) => api.get('/kehadiran-khusus', { params }),
   updateStatus: (data: { id: number; status: string }) => api.post('/kehadiran-khusus/update-status', data),

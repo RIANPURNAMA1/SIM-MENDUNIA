@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Banknote, Plus, X, CalendarCheck, ChevronLeft } from 'lucide-react'
-import api, { gajiApi } from '../../services/api'
+import api, { gajiApi, izinSenseiApi } from '../../services/api'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 
@@ -19,6 +19,7 @@ interface PengajuanGajiItem {
     kehadiran_bulan_ini?: number
     kelas_aktif?: { nama_batch?: string; nama_kelas?: string; level?: string | number; periode?: string }[]
     riwayat?: { tanggal: string; status: string; jam_masuk?: string | null; jam_keluar?: string | null }[]
+    riwayat_izin?: { jenis_izin: string; tgl_mulai: string; tgl_selesai: string; status: string; alasan?: string | null; kelas?: string | null; pengganti?: string | null }[]
   } | null
   created_at: string
   updated_at: string
@@ -57,6 +58,49 @@ interface RiwayatAbsensiRow {
   pertemuan_ke?: number | null
 }
 
+interface RiwayatIzinItem {
+  id: number
+  jenis_izin: string
+  tgl_mulai: string
+  tgl_selesai: string
+  alasan: string | null
+  status: 'PENDING' | 'APPROVED' | 'REJECTED'
+  created_at: string
+  nama_pengganti: string | null
+  pengganti?: { id: number; name: string } | null
+  kelas?: {
+    nama_kelas: string
+    level?: string | number
+    batch_relasi?: { nama_batch: string } | null
+  } | null
+}
+
+const jenisIzinLabel: Record<string, string> = {
+  IZIN_PRIBADI: 'Izin Pribadi',
+  SAKIT: 'Sakit',
+  URUSAN_KELUARGA: 'Urusan Keluarga',
+  DINAS_LEMBAGA: 'Dinas Lembaga',
+  IZIN_MENDADAK: 'Izin Mendadak',
+}
+
+const statusIzinStyle: Record<string, string> = {
+  PENDING: 'bg-amber-50 text-amber-600 border-amber-200',
+  APPROVED: 'bg-emerald-50 text-emerald-600 border-emerald-200',
+  REJECTED: 'bg-red-50 text-red-600 border-red-200',
+}
+
+const statusIzinLabel: Record<string, string> = {
+  PENDING: 'Menunggu',
+  APPROVED: 'Disetujui',
+  REJECTED: 'Ditolak',
+}
+
+function formatPeriodeIzin(mulai: string, selesai: string) {
+  const pendek = (v: string) =>
+    new Date(`${v}T00:00:00`).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+  return mulai === selesai ? pendek(mulai) : `${pendek(mulai)} – ${pendek(selesai)}`
+}
+
 const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
 
 function formatTanggalRiwayat(dateStr: string) {
@@ -93,12 +137,17 @@ export default function GuruPengajuanGaji() {
   const [ringkasan, setRingkasan] = useState<DashboardRingkasan | null>(null)
   const [ringkasanLoading, setRingkasanLoading] = useState(false)
   const [riwayatAll, setRiwayatAll] = useState<RiwayatAbsensiRow[]>([])
+  const [riwayatIzin, setRiwayatIzin] = useState<RiwayatIzinItem[]>([])
 
   useEffect(() => {
     if (!showModal) return
     setRingkasan(null)
     setRiwayatAll([])
+    setRiwayatIzin([])
     setRingkasanLoading(true)
+    izinSenseiApi.list({ my: true, per_page: 10 })
+      .then(res => setRiwayatIzin(res.data?.data ?? []))
+      .catch(() => setRiwayatIzin([]))
     api.get('/guru-dashboard')
       .then(res => {
         setRingkasan(res.data)
@@ -179,6 +228,7 @@ export default function GuruPengajuanGaji() {
           ${statRow('Alpa', s.alpa)}
           ${statRow('Izin', s.izin)}
           ${statRow('Total Absensi', s.total)}
+          ${statRow('Riwayat Pengajuan Izin', riwayatIzin.length)}
         </div>
       `,
       showCancelButton: true,
@@ -208,6 +258,15 @@ export default function GuruPengajuanGaji() {
             jam_masuk: r.jam_masuk,
             jam_keluar: r.jam_keluar,
             pertemuan_ke: (r as RiwayatAbsensiRow).pertemuan_ke ?? null,
+          })),
+          riwayat_izin: riwayatIzin.map(i => ({
+            jenis_izin: i.jenis_izin,
+            tgl_mulai: i.tgl_mulai,
+            tgl_selesai: i.tgl_selesai,
+            status: i.status,
+            alasan: i.alasan,
+            kelas: i.kelas ? (i.kelas.batch_relasi?.nama_batch || i.kelas.nama_kelas) : null,
+            pengganti: i.nama_pengganti || i.pengganti?.name || null,
           })),
         }))
       }
@@ -379,15 +438,16 @@ export default function GuruPengajuanGaji() {
 
       {/* Modal Ajukan Gaji */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowModal(false)}>
-          <div className="w-full max-w-lg mx-3 bg-white rounded-xl shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4" onClick={() => setShowModal(false)}>
+          <div className="w-full max-w-lg mx-3 bg-white rounded-xl shadow-xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
               <h3 className="text-sm font-bold text-gray-900">Ajukan Gaji</h3>
               <button onClick={() => setShowModal(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
                 <X size={18} />
               </button>
             </div>
-            <form onSubmit={handleKirimGaji} className="p-5 space-y-4">
+            <form onSubmit={handleKirimGaji} className="flex min-h-0 flex-1 flex-col">
+              <div className="flex-1 overflow-y-auto p-5 space-y-4">
               <div className="rounded-xl border border-[#E5E7EF] bg-[#FAFBFD] overflow-hidden">
                 <div className="flex items-center gap-2 px-4 pt-3.5 pb-2">
                   <CalendarCheck size={14} className="text-[#0069b0]" />
@@ -487,6 +547,56 @@ export default function GuruPengajuanGaji() {
                         </tbody>
                       </table>
                     </div>
+
+                    <table className="w-full border-collapse text-left text-sm text-[#3c4043] bg-white rounded-lg">
+                      <thead>
+                        <tr>
+                          <th colSpan={5} className="text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">
+                            Riwayat Izin Sensei
+                          </th>
+                        </tr>
+                        <tr>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Jenis</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Periode</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Kelas</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5">Pengganti</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 text-center">Status</th>
+                        </tr>
+                      </thead>
+                    </table>
+                    <div className="max-h-40 overflow-y-auto border border-t-0 border-[#E5E7EF] rounded-b-lg">
+                      <table className="w-full border-collapse text-left text-sm text-[#3c4043] bg-white">
+                        <tbody>
+                          {riwayatIzin.length === 0 ? (
+                            <tr>
+                              <td colSpan={5} className="px-3 py-3 text-[11px] text-[#8B90A0] text-center">Belum ada riwayat izin</td>
+                            </tr>
+                          ) : (
+                            riwayatIzin.map(i => (
+                              <tr key={i.id}>
+                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-[11px] font-semibold text-[#14182B] whitespace-nowrap">
+                                  {jenisIzinLabel[i.jenis_izin] || i.jenis_izin}
+                                </td>
+                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-[11px] text-[#3c4043] whitespace-nowrap">
+                                  {formatPeriodeIzin(i.tgl_mulai, i.tgl_selesai)}
+                                </td>
+                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-[11px] text-[#3c4043] truncate max-w-[100px]">
+                                  {i.kelas ? (i.kelas.batch_relasi?.nama_batch || i.kelas.nama_kelas) : '—'}
+                                </td>
+                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-[11px] text-[#3c4043] truncate max-w-[110px]">
+                                  {i.nama_pengganti || i.pengganti?.name || <span className="text-[#8B90A0]">—</span>}
+                                </td>
+                                <td className="border-b border-[#E5E7EF] px-3 py-2 text-center">
+                                  <span className={`inline-flex px-1.5 py-0.5 rounded border text-[9px] font-bold ${statusIzinStyle[i.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                                    {statusIzinLabel[i.status] || i.status}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 ) : (
                   <p className="px-4 pb-3.5 text-xs text-[#8B90A0]">Data kehadiran tidak tersedia</p>
@@ -498,7 +608,8 @@ export default function GuruPengajuanGaji() {
                 <textarea value={gajiForm.keterangan} onChange={e => setGajiForm(f => ({ ...f, keterangan: e.target.value }))}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0] resize-none" rows={3} placeholder="Tambahkan keterangan jika diperlukan..." />
               </div>
-              <div className="flex justify-end gap-3 pt-2">
+              </div>
+              <div className="flex justify-end gap-3 border-t border-gray-200 bg-white px-5 py-3.5 shrink-0">
                 <button type="button" onClick={() => setShowModal(false)}
                   className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition">
                   Batal

@@ -132,6 +132,7 @@ import GuruLMSAssignment from './pages/Guru/GuruLMSAssignment'
 import GuruLessonDetail from './pages/Guru/GuruLessonDetail'
 import GuruPaketSoal from './pages/Guru/GuruPaketSoal'
 import GuruPengajuanGaji from './pages/Guru/GuruPengajuanGaji'
+import IzinSensei from './pages/Guru/IzinSensei'
 import GuruProfil from './pages/Guru/GuruProfil'
 import GuruPertemuan from './pages/Guru/GuruPertemuan'
 import GuruPertemuanDetail from './pages/Guru/GuruPertemuanDetail'
@@ -477,6 +478,17 @@ function AppRoutes() {
           <ProtectedRoute roleAllowed="GURU">
             <GuruLayout>
               <GuruPengajuanGaji />
+            </GuruLayout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/izin-sensei"
+        element={
+          <ProtectedRoute roleAllowed="GURU">
+            <GuruLayout>
+              <IzinSensei />
             </GuruLayout>
           </ProtectedRoute>
         }

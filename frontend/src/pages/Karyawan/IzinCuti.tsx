@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { FileText, Search, RotateCcw, CheckCircle, XCircle, AlertTriangle, RefreshCw } from 'lucide-react'
 import { izinApi } from '../../services/api'
 import type { Izin, Pagination } from '../../types'
+import IzinSenseiApproval from './IzinSenseiApproval'
 
 const jenisColors: Record<string, string> = {
   SAKIT: 'bg-[#f6d7d5] text-[#a50e0e]',
@@ -29,6 +30,7 @@ export default function IzinCutiPage() {
   const [showConfirm, setShowConfirm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<'karyawan' | 'sensei'>('karyawan')
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -111,11 +113,37 @@ export default function IzinCutiPage() {
           </div>
           <div>
             <h1 className="text-xl font-medium text-[#202124]">Izin & Cuti</h1>
-            <p className="text-sm text-[#5f6368]">Pengajuan izin dan cuti karyawan</p>
+            <p className="text-sm text-[#5f6368]">Pengajuan izin karyawan dan sensei</p>
           </div>
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="mb-4 flex gap-1 border-b border-[#dadce0]">
+        <button
+          onClick={() => setActiveTab('karyawan')}
+          className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition ${
+            activeTab === 'karyawan'
+              ? 'border-[#1a73e8] text-[#1a73e8]'
+              : 'border-transparent text-[#5f6368] hover:text-[#202124]'
+          }`}
+        >
+          Izin Karyawan
+        </button>
+        <button
+          onClick={() => setActiveTab('sensei')}
+          className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition ${
+            activeTab === 'sensei'
+              ? 'border-[#1a73e8] text-[#1a73e8]'
+              : 'border-transparent text-[#5f6368] hover:text-[#202124]'
+          }`}
+        >
+          Izin Sensei
+        </button>
+      </div>
+
+      {activeTab === 'karyawan' ? (
+        <>
       {/* Summary */}
       {!loading && data.length > 0 && (
         <div className="mb-4 flex flex-wrap gap-2">
@@ -325,6 +353,10 @@ export default function IzinCutiPage() {
             </div>
           </div>
         </div>
+      )}
+        </>
+      ) : (
+        <IzinSenseiApproval />
       )}
     </div>
   )
