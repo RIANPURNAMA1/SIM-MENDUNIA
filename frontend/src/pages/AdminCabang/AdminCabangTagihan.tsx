@@ -11,12 +11,10 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { Link } from 'react-router-dom'
 import {
   FileText, Search, Receipt, CheckCircle, Clock, AlertCircle, RotateCcw,
-  DollarSign, X, Save, Bell, Eye, Loader, XCircle, Users,
-  ChevronLeft, ChevronRight, ChevronDown, MoreHorizontal, LayoutDashboard,
-  BadgeCheck, RefreshCw, CheckCircle2, Ban, Banknote, UserRound, Landmark,
+  Bell, Loader, Users,
+  ChevronLeft, ChevronRight, ChevronDown, LayoutDashboard,
 } from 'lucide-react'
-import Swal from 'sweetalert2'
-import api, { adminCabangApi, productApi, APP_URL } from '../../services/api'
+import { adminCabangApi, productApi } from '../../services/api'
 
 interface KategoriInfo {
   id: number
@@ -113,102 +111,6 @@ interface CandidatePage {
   loading: boolean
 }
 
-const STATUS_MAP: Record<string, Record<string, string>> = {
-  waiting_payment: { status_pembayaran: 'unpaid', status_pendaftaran: 'pending' },
-  confirmed: { status_pembayaran: 'processing', status_pendaftaran: 'pending' },
-  proses: { status_pembayaran: 'processing', status_pendaftaran: 'disetujui' },
-  selesai: { status_pembayaran: 'verified', status_pendaftaran: 'disetujui' },
-  batal: { status_pembayaran: 'ditolak', status_pendaftaran: 'ditolak' },
-  ditangguhkan: { status_pembayaran: 'ditangguhkan', status_pendaftaran: 'pending' },
-}
-
-const STATUS_OPTIONS = [
-  { val: 'waiting_payment', label: 'Menunggu Pembayaran', icon: Clock, iconColor: 'text-white', bg: 'bg-[#5f6368] hover:bg-[#3c4043] border-[#80868b]' },
-  { val: 'confirmed', label: 'Menunggu Verifikasi', icon: BadgeCheck, iconColor: 'text-white', bg: 'bg-[#e37400] hover:bg-[#b06000] border-[#e37400]' },
-  { val: 'proses', label: 'Proses', icon: RefreshCw, iconColor: 'text-white', bg: 'bg-[#0E6187] hover:bg-[#0a4d6b] border-[#1a73e8]' },
-  { val: 'selesai', label: 'Pembayaran dikonfirmasi', icon: CheckCircle2, iconColor: 'text-white', bg: 'bg-[#137333] hover:bg-[#137333] border-[#137333]' },
-  { val: 'batal', label: 'Batal', icon: Ban, iconColor: 'text-white', bg: 'bg-[#d93025] hover:bg-[#c5221f] border-[#d93025]' },
-  { val: 'ditangguhkan', label: 'Ditangguhkan', icon: Banknote, iconColor: 'text-white', bg: 'bg-[#e37400] hover:bg-[#b06000] border-[#e37400]' },
-]
-
-const STATUS_CONFIRM: Record<string, { title: string; text: string; confirmText: string; icon: 'warning' | 'info' | 'question' }> = {
-  waiting_payment: { title: 'Ubah ke Menunggu Pembayaran?', text: 'Status pembayaran akan diubah menjadi "Menunggu Pembayaran".', confirmText: 'Ya, Ubah', icon: 'info' },
-  confirmed: { title: 'Konfirmasi Pembayaran?', text: 'Bukti bayar akan ditandai sebagai "Menunggu Verifikasi".', confirmText: 'Ya, Verifikasi', icon: 'warning' },
-  proses: { title: 'Mulai Proses?', text: 'Pendaftaran akan diproses lebih lanjut.', confirmText: 'Ya, Proses', icon: 'question' },
-  selesai: { title: 'Konfirmasi Pembayaran?', text: 'Pembayaran akan ditandai sebagai "Pembayaran dikonfirmasi".', confirmText: 'Ya, Konfirmasi', icon: 'question' },
-  batal: { title: 'Batalkan Pendaftaran?', text: 'Pendaftaran akan dibatalkan. Tindakan ini tidak dapat dibatalkan.', confirmText: 'Ya, Batalkan', icon: 'warning' },
-  ditangguhkan: { title: 'Tangguhkan Pendaftaran?', text: 'Pendaftaran akan ditangguhkan (uang belum masuk).', confirmText: 'Ya, Tangguhkan', icon: 'warning' },
-}
-
-function combinedStatusLabel(p: any): string {
-  if (p?.status_pembayaran === 'ditangguhkan') return 'Ditangguhkan'
-  if (p?.status_pembayaran === 'verified') return 'Pembayaran dikonfirmasi'
-  if (p?.status_pendaftaran === 'ditolak' || p?.status_pembayaran === 'ditolak') return 'Batal'
-  if (p?.status_pembayaran === 'processing' && p?.status_pendaftaran === 'pending') return 'Menunggu Verifikasi'
-  if (p?.status_pembayaran === 'unpaid') return 'Menunggu Pembayaran'
-  return 'Proses'
-}
-
-function UbahStatusGrid({ pendaftarId, pendaftar, onChanged }: { pendaftarId: number; pendaftar: any; onChanged: () => void }) {
-  const current = combinedStatusLabel(pendaftar)
-  return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-      {STATUS_OPTIONS.map(opt => {
-        const target = STATUS_MAP[opt.val]
-        const msg = STATUS_CONFIRM[opt.val]
-        const isActive = opt.label === current
-        const Icon = opt.icon
-        return (
-          <button
-            key={opt.val}
-            type="button"
-            disabled={isActive}
-            onClick={async () => {
-              const result = await Swal.fire({
-                icon: msg.icon,
-                title: msg.title,
-                text: msg.text,
-                showCancelButton: true,
-                confirmButtonColor: '#0E6187',
-                cancelButtonColor: '#6b7280',
-                confirmButtonText: msg.confirmText,
-                cancelButtonText: 'Batal',
-              })
-              if (!result.isConfirmed) return
-              try {
-                Swal.fire({
-                  title: 'Menyimpan...',
-                  text: 'Mohon tunggu, sedang memperbarui status.',
-                  allowOutsideClick: false,
-                  didOpen: () => Swal.showLoading(),
-                })
-                await adminCabangApi.updateStatus(pendaftarId, target)
-                Swal.close()
-                Swal.fire({ icon: 'success', title: 'Status diperbarui', timer: 1200, showConfirmButton: false })
-                onChanged()
-              } catch {
-                Swal.close()
-                Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal memperbarui status' })
-              }
-            }}
-            className={`flex items-center justify-between gap-2 border px-3 py-2.5 text-left text-sm font-medium transition ${opt.bg} ${isActive ? 'cursor-default opacity-100 ring-2 ring-offset-1 ring-[#1a73e8]' : 'cursor-pointer hover:brightness-95'}`}
-          >
-            <span className="flex items-center gap-2">
-              <Icon size={15} className={opt.iconColor} />
-              <span className="text-white">{opt.label}</span>
-            </span>
-            {isActive && (
-              <span className="flex-none bg-white/25 px-1.5 py-0.5 text-[9px] font-bold text-white">
-                saat ini
-              </span>
-            )}
-          </button>
-        )
-      })}
-    </div>
-  )
-}
-
 export default function AdminCabangTagihan() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -221,55 +123,25 @@ export default function AdminCabangTagihan() {
   const [batches, setBatches] = useState<BatchOption[]>([])
   const [products, setProducts] = useState<ProductOption[]>([])
   const [kategoris, setKategoris] = useState<KategoriInfo[]>([])
-  const [modalBayar, setModalBayar] = useState<{
-    pendaftar: TagihanItem
-    items: KategoriItem[]
-    originalItems: KategoriItem[]
-  } | null>(null)
-  const [saving, setSaving] = useState(false)
-  const [pendingChanges, setPendingChanges] = useState<Record<string, number>>({})
-  const [savingInline, setSavingInline] = useState(false)
-  const [pendingPembayaran, setPendingPembayaran] = useState<any[]>([])
   const [showBatchDropdown, setShowBatchDropdown] = useState(false)
-  const [showPendingModal, setShowPendingModal] = useState(false)
-  const [selectedPendingPendaftarId, setSelectedPendingPendaftarId] = useState<number | null>(null)
-  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const [activeBatchId, setActiveBatchId] = useState<number | null>(null)
   const activeBatchRef = useRef<number | null>(null)
   const [groupsMeta, setGroupsMeta] = useState<BatchGroupMeta[]>([])
   const [candidates, setCandidates] = useState<Record<number, CandidatePage>>({})
   const [stats, setStats] = useState({ total: 0, paid: 0, outstanding: 0, count: 0 })
   const [batchTotal, setBatchTotal] = useState(0)
-  const [uniqueCodeOp, setUniqueCodeOp] = useState<string>('add')
-  const [openActionId, setOpenActionId] = useState<number | null>(null)
-  const [selectedLunasIds, setSelectedLunasIds] = useState<Set<number>>(new Set())
-  const [bulkLunasLoading, setBulkLunasLoading] = useState(false)
-  const actionRef = useRef<HTMLDivElement>(null)
   const batchStripRef = useRef<HTMLDivElement | null>(null)
-  const pendingRef = useRef<any[]>([])
-  const fetchGroupsRef = useRef<(() => Promise<void>) | null>(null)
   const batchPerPage = 50
   const maxBatchPages = 10
   const candidatePerPage = 5
   const isFirstRender = useRef(true)
-
-  const pendingCount = Object.keys(pendingChanges).length
-
-  function fetchPendingPembayaran() {
-    adminCabangApi.pendingPembayaran().then(res => {
-      const data = res.data.data || []
-      pendingRef.current = data
-      setPendingPembayaran(data)
-    }).catch(() => {})
-  }
 
   useEffect(() => {
     Promise.all([
       adminCabangApi.biayaKategori(),
       adminCabangApi.batches(),
       productApi.list(),
-      api.get('/payment-settings'),
-    ]).then(([katRes, batchRes, prodRes, settingsRes]) => {
+    ]).then(([katRes, batchRes, prodRes]) => {
       setKategoris((() => {
         const all = katRes.data || []
         const childrenOf = new Map<number | null, KategoriInfo[]>()
@@ -293,38 +165,8 @@ export default function AdminCabangTagihan() {
       })())
       setBatches(batchRes.data?.data || batchRes.data || [])
       setProducts(prodRes.data || [])
-      setUniqueCodeOp(settingsRes.data?.unique_code_operation?.value ?? 'add')
     }).catch(() => {})
     fetchGroups()
-    fetchPendingPembayaran()
-
-    const interval = setInterval(() => {
-      adminCabangApi.pendingPembayaran().then(res => {
-        const newPending = res.data.data || []
-        const changed = JSON.stringify(pendingRef.current) !== JSON.stringify(newPending)
-        if (changed) {
-          pendingRef.current = newPending
-          setPendingPembayaran(newPending)
-          fetchGroupsRef.current?.()
-        }
-        if (newPending.length === 0) {
-          setShowPendingModal(false)
-          setSelectedPendingPendaftarId(null)
-        }
-      }).catch(() => {})
-    }, 15000)
-
-    return () => clearInterval(interval)
-  }, [])
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (actionRef.current && !actionRef.current.contains(e.target as Node)) {
-        setOpenActionId(null)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
   const filterParams = useCallback(() => ({
@@ -360,8 +202,6 @@ export default function AdminCabangTagihan() {
     const next = activeBatchRef.current === batchId ? null : batchId
     activeBatchRef.current = next
     setActiveBatchId(next)
-    setSelectedLunasIds(new Set())
-    setOpenActionId(null)
     if (next === null) {
       setCandidates({})
     } else {
@@ -394,7 +234,6 @@ export default function AdminCabangTagihan() {
       if (activeBatchRef.current !== nextActive) {
         activeBatchRef.current = nextActive
         setActiveBatchId(nextActive)
-        setSelectedLunasIds(new Set())
       }
       if (nextActive === null) {
         setCandidates({})
@@ -407,10 +246,6 @@ export default function AdminCabangTagihan() {
       setLoading(false)
     }
   }, [filterParams, fetchCandidates])
-
-  useEffect(() => {
-    fetchGroupsRef.current = fetchGroups
-  }, [fetchGroups])
 
   useEffect(() => {
     if (isFirstRender.current) {
@@ -456,8 +291,6 @@ export default function AdminCabangTagihan() {
   )
 
   const getDibayar = (p: TagihanItem, kategoriId: number): number => {
-    const key = `${p.id}_${kategoriId}`
-    if (key in pendingChanges) return pendingChanges[key]
     const d = p.detail?.find(d => d.kategori_id === kategoriId)
     return d?.dibayar || 0
   }
@@ -503,54 +336,6 @@ export default function AdminCabangTagihan() {
     const sisa = Math.max(0, tagihan - dibayar)
     return { tagihan, dibayar, sisa }
   }
-
-  const handleSaveInline = async () => {
-    if (pendingCount === 0) return
-    setSavingInline(true)
-    try {
-      const grouped: Record<number, { kategori_id: number; jumlah: number }[]> = {}
-      for (const [key, val] of Object.entries(pendingChanges)) {
-        const [pid, kid] = key.split('_').map(Number)
-        if (!grouped[pid]) grouped[pid] = []
-        grouped[pid].push({ kategori_id: kid, jumlah: val })
-      }
-      await Promise.all(
-        Object.entries(grouped).map(([pid, items]) =>
-          adminCabangApi.savePembayaranItem(Number(pid), items)
-        )
-      )
-      setPendingChanges({})
-      await fetchGroups()
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setSavingInline(false)
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent, key: string, p: TagihanItem, kats: KategoriInfo[]) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      const [, kid] = key.split('_').map(Number)
-      const visibleKats = kats.filter(k => hasKategori(p, k.id))
-      const katIndex = visibleKats.findIndex(k => k.id === kid)
-      if (katIndex < visibleKats.length - 1) {
-        const nextKey = `${p.id}_${visibleKats[katIndex + 1].id}`
-        inputRefs.current[nextKey]?.focus()
-      }
-    }
-  }
-
-  const refreshAll = useCallback(async () => {
-    const pendingRes = await adminCabangApi.pendingPembayaran()
-    const newPending = pendingRes.data.data || []
-    setPendingPembayaran(newPending)
-    if (newPending.length === 0) {
-      setShowPendingModal(false)
-      setSelectedPendingPendaftarId(null)
-    }
-    await fetchGroups()
-  }, [fetchGroups])
 
   const scrollBatches = (dir: 1 | -1) => {
     const el = batchStripRef.current
@@ -714,15 +499,6 @@ export default function AdminCabangTagihan() {
             <table className="w-full min-w-[900px] border-collapse text-left text-sm text-[#3c4043]">
               <thead className="">
                   <tr>
-                    <th scope="col" className="text-xs font-medium text-[#5f6368] px-3 py-3 w-[40px] text-center">
-                      <input type="checkbox" checked={pagedItems.length > 0 && pagedItems.every(p => selectedLunasIds.has(p.id))} onChange={() => {
-                        if (pagedItems.every(p => selectedLunasIds.has(p.id))) {
-                          setSelectedLunasIds(prev => { const n = new Set(prev); pagedItems.forEach(p => n.delete(p.id)); return n })
-                        } else {
-                          setSelectedLunasIds(prev => { const n = new Set(prev); pagedItems.forEach(p => n.add(p.id)); return n })
-                        }
-                      }} className="h-4 w-4 border-[#dadce0] bg-white text-[#1a73e8] focus:ring-0 cursor-pointer" />
-                    </th>
                     <th scope="col" className="text-xs font-medium text-[#5f6368] px-4 py-3 w-[220px]">Pendaftar</th>
                   {kategoriColumns.map(col => {
                     const k = col.kategori
@@ -757,12 +533,7 @@ export default function AdminCabangTagihan() {
                 {!isLoading && pagedItems.map(p => {
                   const { tagihan, dibayar, sisa } = calcRow(p, kats)
                   return (
-                    <tr key={p.id} className={`transition ${p.is_cuti ? 'bg-[#feefc3] hover:bg-[#fdd663]/70' : p.status_kandidat === 'Mengundurkan Diri' ? 'bg-[#f6d7d5] hover:bg-[#f6aea9]/70' : 'bg-white hover:bg-[#f8f9fa]'} ${selectedLunasIds.has(p.id) ? '!bg-[#e8f0fe]/50' : ''}`}>
-                      <td className="border-b border-[#e8eaed] px-3 py-3 text-center">
-                        <input type="checkbox" checked={selectedLunasIds.has(p.id)} onChange={() => {
-                          setSelectedLunasIds(prev => { const n = new Set(prev); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n })
-                        }} className="h-4 w-4 border-[#dadce0] text-[#1a73e8] focus:ring-[#1a73e8] cursor-pointer" />
-                      </td>
+                    <tr key={p.id} className={`transition ${p.is_cuti ? 'bg-[#feefc3] hover:bg-[#fdd663]/70' : p.status_kandidat === 'Mengundurkan Diri' ? 'bg-[#f6d7d5] hover:bg-[#f6aea9]/70' : 'bg-white hover:bg-[#f8f9fa]'}`}>
                       <td className="border-b border-[#e8eaed] px-4 py-3">
                         <div className="flex items-center gap-3">
                           <img
@@ -771,18 +542,8 @@ export default function AdminCabangTagihan() {
                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
                           />
                           <div className="min-w-0">
-                            <div className="text-sm font-semibold text-[#202124] truncate flex items-center gap-1">
+                            <div className="text-sm font-semibold text-[#202124] truncate">
                               {p.nama}
-                              {pendingPembayaran.some((pp: any) => pp.pendaftar_id === p.id) && (
-                                <button
-                                  onClick={() => { setSelectedPendingPendaftarId(p.id); setShowPendingModal(true) }}
-                                  title="Ada pembayaran menunggu verifikasi"
-                                  className="inline-flex items-center gap-1 bg-[#d93025] px-2 py-1 text-[11px] font-bold text-white transition-colors hover:bg-[#c5221f] shrink-0"
-                                >
-                                  <Bell size={12} className="animate-pulse" />
-                                  {pendingPembayaran.filter((pp: any) => pp.pendaftar_id === p.id).length}
-                                </button>
-                              )}
                             </div>
                             <div className="text-xs text-[#5f6368] truncate">{p.email}</div>
                           </div>
@@ -792,49 +553,21 @@ export default function AdminCabangTagihan() {
                         const k = col.kategori
                         const relevant = hasKategori(p, k.id)
                         const isUnpaid = p.status_pembayaran === 'unpaid'
-                        if (!relevant) {
+                        if (!relevant || isUnpaid) {
                           return (
                             <td key={k.id} className="border border-[#dadce0] px-4 py-3 text-right text-sm text-[#9aa0a6] min-w-[120px]">-</td>
                           )
                         }
-                        const key = `${p.id}_${k.id}`
                         const val = getDibayar(p, k.id)
-                        const isChanged = key in pendingChanges
                         const katDetail = p.detail?.find((d: DetailItem) => d.kategori_id === k.id)
                         const biayaKatRaw = katDetail?.biaya || 0
-                        const katTotalTransfer = Number(katDetail?.total_transfer) || 0
-                        const biayaKat = uniqueCodeOp === 'subtract' && katTotalTransfer > 0 ? katTotalTransfer : biayaKatRaw
                         const isLunas = biayaKatRaw > 0 && val >= biayaKatRaw
                         const isPartial = val > 0 && !isLunas
-                        void biayaKat
-                        if (isUnpaid) {
-                          return (
-                            <td key={k.id} className="border border-[#dadce0] px-4 py-3 text-right text-sm text-[#9aa0a6] min-w-[120px]">-</td>
-                          )
-                        }
                         return (
                           <td key={k.id} className="border border-[#dadce0] px-4 py-3 text-right whitespace-nowrap min-w-[120px]">
-                            <input
-                              ref={el => { inputRefs.current[key] = el }}
-                              type="text"
-                              value={val > 0 ? val.toLocaleString('id-ID') : ''}
-                              title={val > 0 ? val.toLocaleString('id-ID') : ''}
-                              onChange={e => {
-                                const num = parseInput(e.target.value)
-                                setPendingChanges(prev => {
-                                  const next = { ...prev }
-                                  if (num === (p.detail?.find(d => d.kategori_id === k.id)?.dibayar || 0)) {
-                                    delete next[key]
-                                  } else {
-                                    next[key] = num
-                                  }
-                                  return next
-                                })
-                              }}
-                              onKeyDown={e => handleKeyDown(e, key, p, kats)}
-                              className={`w-full bg-transparent text-right text-sm outline-none transition ${isChanged ? 'font-semibold text-[#1a73e8]' : isLunas ? 'font-semibold text-[#137333]' : isPartial ? 'font-semibold text-[#b06000]' : 'text-[#5f6368]'} placeholder:text-[#9aa0a6] focus:bg-[#0E6187]/5 focus:px-1`}
-                              placeholder="-"
-                            />
+                            <div className={`text-sm ${isLunas ? 'font-semibold text-[#137333]' : isPartial ? 'font-semibold text-[#b06000]' : 'text-[#5f6368]'}`}>
+                              {val > 0 ? val.toLocaleString('id-ID') : '-'}
+                            </div>
                             {biayaKatRaw > 0 && (
                               <div className="text-[10px] text-[#80868b] mt-0.5">Rp {fmt(biayaKatRaw)}</div>
                             )}
@@ -854,72 +587,13 @@ export default function AdminCabangTagihan() {
                         {statusBadge(p.status_pembayaran, dibayar, tagihan)}
                       </td>
                       <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
-                        <div className="relative flex justify-center" ref={openActionId === p.id ? actionRef : undefined}>
-                          <button
-                            onClick={() => setOpenActionId(openActionId === p.id ? null : p.id)}
-                            className="border border-[#dadce0] bg-white p-1.5 text-[#5f6368] transition hover:border-[#dadce0] hover:bg-[#f8f9fa] hover:text-[#3c4043]"
-                            title="Aksi"
-                          >
-                            <MoreHorizontal size={16} />
-                          </button>
-                          {openActionId === p.id && (
-                            <div className="absolute right-0 top-full z-30 mt-1 w-52 border border-[#dadce0] bg-white py-1 shadow-[0_1px_3px_rgba(60,64,67,0.15)]">
-                              <Link to={`/admin-cabang/pendaftar/${p.id}/invoice`} onClick={() => setOpenActionId(null)}
-                                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors">
-                                <FileText size={14} className="text-[#80868b]" />
-                                <span>Lihat Invoice</span>
-                              </Link>
-                              <div className="my-1 border-t border-[#e8eaed]" />
-                              <p className="px-3 py-1 text-[10px] font-semibold text-[#80868b]">Status</p>
-                              {(() => {
-                                const { tagihan, dibayar } = calcRow(p, kats)
-                                const isLunas = dibayar >= tagihan && tagihan > 0
-                                return (
-                                  <button
-                                    onClick={async () => {
-                                      setOpenActionId(null)
-                                      try {
-                                        if (isLunas) {
-                                          await adminCabangApi.batalLunas(p.id)
-                                        } else {
-                                          await adminCabangApi.setLunas(p.id)
-                                        }
-                                        refreshAll()
-                                      } catch (err) {
-                                        console.error(err)
-                                        Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal mengubah status pembayaran', confirmButtonColor: '#0E6187' })
-                                      }
-                                    }}
-                                    className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors"
-                                  >
-                                    {isLunas
-                                      ? <XCircle size={14} className="text-[#ee675c]" />
-                                      : <CheckCircle size={14} className="text-[#81c995]" />}
-                                    <span>{isLunas ? 'Batalkan Lunas' : 'Set Lunas'}</span>
-                                  </button>
-                                )
-                              })()}
-                              <div className="my-1 border-t border-[#e8eaed]" />
-                              <p className="px-3 py-1 text-[10px] font-semibold text-[#80868b]">Pembayaran</p>
-                              <button
-                                onClick={async () => {
-                                  setOpenActionId(null)
-                                  try {
-                                    const res = await adminCabangApi.pembayaranItem(p.id)
-                                    const items = res.data.items || []
-                                    setModalBayar({ pendaftar: p, items, originalItems: items.map((i: KategoriItem) => ({...i})) })
-                                  } catch (err) {
-                                    console.error(err)
-                                  }
-                                }}
-                                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors"
-                              >
-                                <DollarSign size={14} className="text-[#81c995]" />
-                                <span>Input Pembayaran</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                        <Link to={`/admin-cabang/pendaftar/${p.id}/invoice`}
+                          className="inline-flex items-center justify-center gap-1.5 border border-[#dadce0] bg-white px-2.5 py-1.5 text-xs text-[#5f6368] transition hover:border-[#dadce0] hover:bg-[#f8f9fa] hover:text-[#3c4043]"
+                          title="Lihat Invoice"
+                        >
+                          <FileText size={14} />
+                          <span>Lihat Invoice</span>
+                        </Link>
                       </td>
                     </tr>
                   )
@@ -934,7 +608,7 @@ export default function AdminCabangTagihan() {
                   <td className="border-b border-[#e8eaed] px-4 py-3 text-right text-[#202124]">Rp {fmt(groupTagihan)}</td>
                   <td className="border-b border-[#e8eaed] px-4 py-3 text-right text-[#137333]">Rp {fmt(groupDibayar)}</td>
                   <td className="border-b border-[#e8eaed] px-4 py-3 text-right text-[#c5221f]">{groupSisa > 0 ? `Rp ${fmt(groupSisa)}` : '-'}</td>
-                  <td className="border-b border-[#e8eaed] px-4 py-3 text-center text-[#5f6368]">{group.totalPendaftar} orang</td>
+                  <td colSpan={2} className="border-b border-[#e8eaed] px-4 py-3 text-center text-[#5f6368]">{group.totalPendaftar} orang</td>
                 </tr>
               </tfoot>
               )}
@@ -1023,18 +697,6 @@ export default function AdminCabangTagihan() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => { setSelectedPendingPendaftarId(null); setShowPendingModal(true) }}
-            className={`relative inline-flex items-center gap-2 border px-3 py-2 text-sm font-medium transition ${pendingPembayaran.length > 0 ? 'border-[#f6aea9] bg-[#fce8e6] text-[#c5221f] hover:bg-[#f6d7d5]' : 'border-[#dadce0] bg-white text-[#3c4043] hover:bg-[#f8f9fa]'}`}
-          >
-            <Bell size={16} />
-            <span>Verifikasi</span>
-            {pendingPembayaran.length > 0 && (
-              <span className="absolute -top-2 -right-2 inline-flex h-5 min-w-[20px] items-center justify-center bg-[#d93025] px-1 text-[10px] font-bold text-white ring-2 ring-white animate-pulse">
-                {new Set(pendingPembayaran.map((pp: any) => pp.pendaftar_id)).size}
-              </span>
-            )}
-          </button>
           <button
             onClick={() => setShowFilter(v => !v)}
             className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium transition ${showFilter ? 'bg-[#1a3a5c] text-white' : 'bg-[#0E6187] text-white hover:bg-[#1a3a5c]'}`}
@@ -1148,7 +810,7 @@ export default function AdminCabangTagihan() {
             <option value="verified">Lunas</option>
           </select>
           <button
-            onClick={() => { setSearch(''); setFilterStatus(''); setFilterBatch(''); setFilterProduct(''); setFilterDateFrom(''); setFilterDateTo(''); setPendingChanges({}); activeBatchRef.current = null; setActiveBatchId(null); setCandidates({}); setSelectedLunasIds(new Set()) }}
+            onClick={() => { setSearch(''); setFilterStatus(''); setFilterBatch(''); setFilterProduct(''); setFilterDateFrom(''); setFilterDateTo(''); activeBatchRef.current = null; setActiveBatchId(null); setCandidates({}) }}
             className="inline-flex items-center justify-center gap-2 border border-[#dadce0] bg-white px-3 py-2 text-sm font-medium text-[#3c4043] transition hover:bg-[#f8f9fa] w-full sm:w-auto"
           >
             <RotateCcw size={16} />
@@ -1193,258 +855,6 @@ export default function AdminCabangTagihan() {
           </div>
         </div>
       )}
-
-      {/* Floating save bar */}
-      {pendingCount > 0 && (
-        <div className="sticky bottom-4 z-40 mt-4 flex flex-col gap-3 border border-[#dadce0] bg-white px-4 py-3 shadow-[0_1px_3px_rgba(60,64,67,0.15)] sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3">
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center bg-[#0E6187]/10">
-              <AlertCircle size={17} className="text-[#1a73e8]" />
-            </span>
-            <p className="text-sm text-[#5f6368]">
-              <span className="font-bold text-[#1a73e8]">{pendingCount}</span> perubahan belum disimpan
-            </p>
-          </div>
-          <div className="flex items-center justify-end gap-2">
-            <button
-              onClick={() => setPendingChanges({})}
-              className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]"
-            >
-              Batal
-            </button>
-            <button
-              onClick={handleSaveInline}
-              disabled={savingInline}
-              className="inline-flex items-center gap-1.5 bg-[#0E6187] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#0a4f6e] disabled:opacity-50"
-            >
-              <Save size={14} />
-              {savingInline ? 'Menyimpan...' : 'Simpan'}
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Bayar Manual */}
-      {modalBayar && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 px-3 py-6" onClick={() => setModalBayar(null)}>
-          <div className="border border-[#dadce0] w-full max-w-lg max-h-[85vh] overflow-y-auto bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between border-b border-[#dadce0] px-5 py-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center bg-[#e6f4ea]">
-                  <DollarSign size={18} className="text-[#137333]" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-[#202124]">Input Pembayaran Manual</h3>
-                  <p className="text-xs text-[#5f6368]">{modalBayar.pendaftar.nama}</p>
-                </div>
-              </div>
-              <button onClick={() => setModalBayar(null)} className="p-1 text-[#80868b] hover:bg-[#f1f3f4] hover:text-[#5f6368]"><X size={17} /></button>
-            </div>
-            <div className="px-5 py-4 space-y-3">
-              {modalBayar.items.map((item, i) => (
-                <div key={item.kategori_id} className="flex items-center gap-3">
-                  <div className="flex-1">
-                    <label className="block text-xs font-medium text-[#5f6368]">{item.nama}</label>
-                    <p className="text-[10px] text-[#80868b]">Biaya: Rp {fmt(item.biaya)}</p>
-                  </div>
-                  <div className="relative w-36">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-medium text-[#80868b]">Rp</span>
-                    <input
-                      type="text"
-                      value={item.dibayar ? Number(item.dibayar).toLocaleString('id-ID') : ''}
-                      onChange={e => {
-                        const raw = e.target.value.replace(/\./g, '')
-                        const newItems = [...modalBayar.items]
-                        newItems[i] = { ...newItems[i], dibayar: raw === '' ? 0 : Number(raw.replace(/\D/g, '')) }
-                        setModalBayar({ ...modalBayar, items: newItems })
-                      }}
-                      className="w-full border border-[#dadce0] bg-white py-2 pl-8 pr-3 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="flex items-center justify-between border-t border-[#dadce0] px-5 py-3">
-              <p className="text-[11px] text-[#80868b]">Kosongi jika belum bayar</p>
-              <div className="flex gap-2">
-                <button onClick={() => setModalBayar(null)} className="border border-[#dadce0] bg-white px-4 py-2 text-xs font-medium text-[#3c4043] transition hover:bg-[#f8f9fa]">Batal</button>
-                <button
-                  onClick={async () => {
-                    if (!modalBayar) return
-                    setSaving(true)
-                    try {
-                      const changed = modalBayar.items.filter((item, i) => {
-                        const orig = modalBayar.originalItems[i]
-                        return item.dibayar > 0 && item.dibayar !== orig?.dibayar
-                      })
-                      if (changed.length === 0) {
-                        setModalBayar(null)
-                        setSaving(false)
-                        return
-                      }
-                      for (const item of changed) {
-                        await adminCabangApi.bayarManual(modalBayar.pendaftar.id, {
-                          jumlah: item.dibayar,
-                          kategori_id: item.kategori_id,
-                        })
-                      }
-                      await fetchGroups()
-                      setModalBayar(null)
-                    } catch (err: any) {
-                      const msg = err?.response?.data?.message || err?.message || 'Terjadi kesalahan'
-                      Swal.fire({ icon: 'error', title: 'Gagal', text: msg })
-                    } finally {
-                      setSaving(false)
-                    }
-                  }}
-                  disabled={saving}
-                  className="inline-flex items-center gap-1.5 bg-[#0E6187] px-5 py-2 text-xs font-medium text-white transition hover:bg-[#084c63] disabled:opacity-50"
-                >
-                  {saving ? 'Menyimpan...' : 'Simpan Pembayaran'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Verifikasi */}
-      {showPendingModal && (() => {
-        const filteredPembayaran = selectedPendingPendaftarId
-          ? pendingPembayaran.filter((pp: any) => pp.pendaftar_id === selectedPendingPendaftarId)
-          : pendingPembayaran
-        const filteredNama = selectedPendingPendaftarId
-          ? filteredPembayaran[0]?.pendaftar?.nama || ''
-          : ''
-        return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#202124]/50 px-3 py-6" onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}>
-          <div className="border border-[#dadce0] flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden bg-white shadow-[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)]" onClick={e => e.stopPropagation()}>
-            <div className="flex flex-none items-center justify-between gap-3 bg-[#0E6187] px-4 py-3.5 sm:px-5">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 flex-none items-center justify-center bg-white/15">
-                  <Bell size={19} className="text-white" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="text-base font-bold text-white">Verifikasi Pembayaran</h3>
-                  <p className="truncate text-xs text-white/75">
-                    {filteredPembayaran.length} pembayaran menunggu verifikasi{filteredNama ? ` — ${filteredNama}` : ''}
-                  </p>
-                </div>
-              </div>
-              <div className="flex flex-none items-center gap-2">
-                <span className="inline-flex items-center gap-1 bg-[#f9ab00] px-2.5 py-1 text-xs font-bold text-white">
-                  <Bell size={12} />
-                  {filteredPembayaran.length}
-                </span>
-                <button
-                  onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}
-                  title="Tutup"
-                  className="p-1.5 text-white/70 transition hover:bg-white/15 hover:text-white"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-            </div>
-            {filteredPembayaran.length === 0 ? (
-              <div className="px-5 py-14 text-center">
-                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center bg-[#e6f4ea] text-[#188038]">
-                  <CheckCircle size={28} />
-                </div>
-                <p className="text-sm font-semibold text-[#3c4043]">Tidak ada pembayaran yang perlu diverifikasi</p>
-                <p className="mt-1 text-xs text-[#5f6368]">Semua bukti pembayaran sudah diproses.</p>
-              </div>
-            ) : (
-              <div className="flex-1 space-y-3 overflow-y-auto bg-[#f8f9fa] p-3 sm:p-4">
-                {filteredPembayaran.map((pp: any) => (
-                  <div key={pp.id} className="overflow-hidden border border-[#dadce0] bg-white ">
-                    <div className="flex flex-col gap-3 border-b border-[#e8eaed] p-4 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="flex min-w-0 items-center gap-3">
-                        <img
-                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(pp.pendaftar?.nama || '?')}&background=0E6187&color=ffffff&size=64`}
-                          alt=""
-                          className="h-11 w-11 flex-none object-cover"
-                          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-bold text-[#202124]">{pp.pendaftar?.nama}</p>
-                          <p className="truncate text-xs text-[#5f6368]">{pp.pendaftar?.email}</p>
-                          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                            <span className="bg-[#e8f0fe] px-2 py-0.5 text-[11px] font-semibold text-[#1967d2]">
-                              {pp.kategori?.nama || pp.kategori?.kode || 'Tagihan'}
-                            </span>
-                            <span className="inline-flex items-center gap-1 bg-[#f8f9fa] px-2 py-0.5 text-[11px] font-medium text-[#5f6368]">
-                              <Clock size={11} className="text-[#80868b]" />
-                              {new Date(pp.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                              {' · '}
-                              {new Date(pp.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex flex-none items-center justify-between gap-2 sm:flex-col sm:items-end">
-                        <div className="text-left sm:text-right">
-                          <p className="text-[10px] font-semibold text-[#80868b]">Nominal</p>
-                          <p className="text-lg font-bold leading-tight text-[#137333]">
-                            Rp {Number(pp.jumlah).toLocaleString('id-ID')}
-                          </p>
-                        </div>
-                        {pp.bukti_pembayaran && pp.bukti_pembayaran !== 'manual' && pp.bukti_pembayaran !== 'auto' && (
-                          <a
-                            href={`${APP_URL}/storage/${pp.bukti_pembayaran}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 border border-[#1a73e8] bg-white px-3 py-1.5 text-xs font-semibold text-[#1a73e8] transition hover:bg-[#0a4d6b] hover:text-white"
-                          >
-                            <Eye size={14} /> Lihat Bukti
-                          </a>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-2 border-b border-[#e8eaed] p-4 sm:grid-cols-2">
-                      <div className="flex items-center gap-2.5 border border-[#dadce0] bg-[#f8f9fa] px-3 py-2">
-                        <UserRound size={14} className="flex-none text-[#80868b]" />
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-semibold text-[#80868b]">Nama Pengirim</p>
-                          <p className="truncate text-xs font-semibold text-[#3c4043]">{pp.pendaftar?.nama_pengirim || pp.pendaftar?.nama_rekening || '-'}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2.5 border border-[#dadce0] bg-[#f8f9fa] px-3 py-2">
-                        <Landmark size={14} className="flex-none text-[#80868b]" />
-                        <div className="min-w-0">
-                          <p className="text-[10px] font-semibold text-[#80868b]">Bank / Sumber</p>
-                          <p className="truncate text-xs font-semibold text-[#3c4043]">{pp.pendaftar?.bank_pengirim || pp.pendaftar?.bank_asal || '-'}</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4">
-                      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-xs font-bold text-[#3c4043]">Ubah Status Pembayaran</p>
-                        <p className="text-[11px] text-[#80868b]">Status saat ini ditandai, klik aksi lain untuk mengubah</p>
-                      </div>
-                      <UbahStatusGrid pendaftarId={pp.pendaftar_id} pendaftar={pp.pendaftar} onChanged={refreshAll} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="flex flex-none flex-col gap-2 border-t border-[#dadce0] bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[11px] text-[#5f6368]">Periksa bukti pembayaran sebelum mengubah status kandidat.</p>
-              <button
-                onClick={() => { setShowPendingModal(false); setSelectedPendingPendaftarId(null) }}
-                className="inline-flex items-center justify-center bg-[#0E6187] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#1a3a5c]"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-        )
-      })()}
 
     </div>
   )
