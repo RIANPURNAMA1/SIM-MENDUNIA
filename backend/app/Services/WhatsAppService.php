@@ -1038,8 +1038,8 @@ class WhatsAppService
     }
 
     /**
-     * Kirim notifikasi ke admin follow up saat sensei mengajukan gaji.
-     * Nomor tujuan memakai setting 'wa_pendaftaran_admin_phones', gating via toggle 'wa_pengajuan_gaji'.
+     * Kirim notifikasi ke admin mutasi saat sensei mengajukan gaji.
+     * Nomor tujuan memakai setting 'wa_pembayaran_admin_phones' (Nomor HP admin mutasi, pisahkan koma), gating via toggle 'wa_pengajuan_gaji'.
      */
     public function sendPengajuanGajiToAdmin($pengajuan)
     {
@@ -1048,9 +1048,9 @@ class WhatsAppService
             return false;
         }
 
-        $adminPhones = $this->getAdminPhones('wa_mutasi_admin_phones') ?: $this->getAdminPhones('wa_pendaftaran_admin_phones');
+        $adminPhones = $this->getAdminPhones('wa_pembayaran_admin_phones');
         if (empty($adminPhones)) {
-            Log::warning('Tidak ada nomor admin follow up untuk notifikasi pengajuan gaji.');
+            Log::warning('Tidak ada nomor admin mutasi untuk notifikasi pengajuan gaji.');
             return false;
         }
 
