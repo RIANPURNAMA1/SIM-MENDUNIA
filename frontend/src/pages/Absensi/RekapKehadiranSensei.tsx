@@ -19,6 +19,7 @@ const STATUS_OPTIONS = [
   { value: "HADIR", label: "Hadir" },
   { value: "TERLAMBAT", label: "Terlambat" },
   { value: "ALPA", label: "Alpa" },
+  { value: "IZIN", label: "Izin" },
   { value: "PULANG LEBIH AWAL", label: "Pulang Lebih Awal" },
   { value: "TIDAK ABSEN PULANG", label: "Tidak Absen Pulang" },
   { value: "LIBUR", label: "Libur" },
@@ -255,7 +256,7 @@ export default function RekapKehadiranSenseiPage() {
   });
 
   const getSummary = () => {
-    const s = { hadir: 0, terlambat: 0, alpa: 0, tidakAbsenPulang: 0, pulangAwal: 0, libur: 0, belumAbsen: 0 };
+    const s = { hadir: 0, terlambat: 0, alpa: 0, tidakAbsenPulang: 0, pulangAwal: 0, izin: 0, libur: 0, belumAbsen: 0 };
     const filteredNames = new Set(filteredKelasList.map((k) => k.nama_kelas));
     Object.values(rekapData).forEach((day) => {
       day.entries.forEach((e) => {
@@ -265,6 +266,7 @@ export default function RekapKehadiranSenseiPage() {
         else if (e.status === "ALPA") s.alpa++;
         else if (e.status === "TIDAK ABSEN PULANG") s.tidakAbsenPulang++;
         else if (e.status === "PULANG LEBIH AWAL") s.pulangAwal++;
+        else if (e.status === "IZIN") s.izin++;
         else if (e.status === "LIBUR") s.libur++;
         else s.belumAbsen++;
       });
@@ -400,7 +402,7 @@ export default function RekapKehadiranSenseiPage() {
               <p className="text-sm font-medium text-[#5f6368]">Tidak ada data kelas</p>
             </div>
           ) : (
-            <table className="w-full min-w-[1400px] border-collapse text-left text-sm text-[#3c4043]">
+            <table className="w-full min-w-[1580px] border-collapse text-left text-sm text-[#3c4043]">
               <thead className="text-[10px] text-[#5f6368]">
                 <tr>
                   <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">No</th>
@@ -418,6 +420,8 @@ export default function RekapKehadiranSenseiPage() {
                   <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">P.Awal</th>
                   <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Tdk Absen Pulang</th>
                   <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Libur</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Izin</th>
+                  <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5">Digantikan Oleh</th>
                   <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Blm Absen</th>
                   <th className="text-xs font-medium text-[#5f6368] px-3 py-2.5 text-center">Status</th>
                 </tr>
@@ -440,6 +444,8 @@ export default function RekapKehadiranSenseiPage() {
                     <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#b06000]">{row.pulang_lebih_awal ?? 0}</td>
                     <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#7627bb]">{row.tidak_absen_pulang ?? 0}</td>
                     <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#5f6368]">{row.libur ?? 0}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#1967d2]">{row.izin ?? 0}</td>
+                    <td className="border-b border-[#e8eaed] px-3 py-2 text-xs">{row.pengganti || <span className="text-[#9aa0a6]">—</span>}</td>
                     <td className="border-b border-[#e8eaed] px-3 py-2 text-center text-xs font-semibold text-[#80868b]">{row.belum_absen ?? 0}</td>
                     <td className="border-b border-[#e8eaed] px-3 py-2 text-center">
                       <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-semibold ${row.status === 'aktif' ? 'bg-[#0E6187] text-white' : row.status === 'selesai' ? 'bg-[#e8f0fe] text-[#1967d2]' : 'bg-[#f1f3f4] text-[#5f6368]'}`}>
@@ -513,7 +519,7 @@ export default function RekapKehadiranSenseiPage() {
 
       {/* Summary */}
       {!loading && Object.keys(rekapData).length > 0 && (
-        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-7">
           <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
             <span className="block text-lg font-bold text-[#137333]">{s.hadir}</span>
             <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Hadir</p>
@@ -535,6 +541,10 @@ export default function RekapKehadiranSenseiPage() {
             <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">P.Awal</p>
           </div>
           <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
+            <span className="block text-lg font-bold text-[#1967d2]">{s.izin}</span>
+            <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Izin</p>
+          </div>
+          <div className="border border-[#dadce0] bg-white px-3 py-2 text-center">
             <span className="block text-lg font-bold text-[#5f6368]">{s.libur}</span>
             <p className="text-[10px] font-semibold tracking-wider text-[#5f6368] uppercase">Libur</p>
           </div>
@@ -547,6 +557,7 @@ export default function RekapKehadiranSenseiPage() {
           <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#0E6187]" /> Hadir</span>
           <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#f9ab00]" /> Telat</span>
           <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#d93025]" /> Alpa</span>
+          <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#039be5]" /> Izin</span>
           <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#f9ab00]" /> P.Awal</span>
           <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 bg-[#bdc1c6]" /> Libur</span>
           <span className="inline-flex items-center gap-1"><span className="inline-block h-3 w-3 border border-[#dadce0] bg-white" /> Blm Absen</span>
@@ -600,19 +611,25 @@ export default function RekapKehadiranSenseiPage() {
                     key={ds}
                     className={`relative min-h-[70px] border-b border-r border-[#e8eaed] p-1.5 transition last:border-r-0 ${clickable ? "cursor-pointer hover:bg-[#f8f9fa]" : ""} ${!inClassRange && !dayData ? "bg-[#f8f9fa]" : ""}`}
                     onClick={() => clickable && handleCellClick(ds, dayData)}
-                    title={filteredEntries.length ? filteredEntries.map((e) => `${e.kelas_nama}: ${e.status}`).join(", ") : (inClassRange ? "Rentang kelas - klik untuk ubah status" : "")}
+                    title={filteredEntries.length ? filteredEntries.map((e) => `${e.kelas_nama}: ${e.status}${e.status === "IZIN" && e.pengganti ? ` (digantikan ${e.pengganti})` : ""}`).join(", ") : (inClassRange ? "Rentang kelas - klik untuk ubah status" : "")}
                     style={inClassRange ? { backgroundColor: "#fef7e0" } : undefined}
                   >
                     <span className={`text-[10px] font-bold ${filteredEntries.length ? "text-[#5f6368]" : inClassRange ? "text-[#b06000]" : "text-[#9aa0a6]"}`}>
                       {day}
                     </span>
                     {filteredEntries.map((e, ei) => (
-                      <div
-                        key={ei}
-                        className={`mt-0.5 inline-flex items-center justify-center px-1 py-0.5 text-[9px] font-bold leading-tight ${statusColorClass(e.status)}`}
-                        style={{ minWidth: 16, minHeight: 16 }}
-                      >
-                        {e.initial}
+                      <div key={ei} className="mt-0.5">
+                        <span
+                          className={`inline-flex items-center justify-center px-1 py-0.5 text-[9px] font-bold leading-tight ${statusColorClass(e.status)}`}
+                          style={{ minWidth: 16, minHeight: 16 }}
+                        >
+                          {e.initial}
+                        </span>
+                        {e.status === "IZIN" && e.pengganti && (
+                          <span className="block truncate text-[8px] leading-tight text-[#1967d2]" title={`Digantikan oleh ${e.pengganti}`}>
+                            {e.pengganti}
+                          </span>
+                        )}
                       </div>
                     ))}
                     {!dayData && inClassRange && (
@@ -906,6 +923,7 @@ function statusColorClass(status: string): string {
     case "ALPA":
     case "TIDAK ABSEN PULANG": return "bg-[#d93025] text-white";
     case "PULANG LEBIH AWAL": return "bg-[#f9ab00] text-white";
+    case "IZIN": return "bg-[#039be5] text-white";
     case "LIBUR": return "bg-[#bdc1c6] text-white";
     default: return "border border-[#dadce0] bg-white text-[#5f6368]";
   }

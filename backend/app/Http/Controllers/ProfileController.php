@@ -101,6 +101,8 @@ class ProfileController extends Controller
             'bank' => 'nullable|string|max:50',
             'no_rekening' => 'nullable|string|max:50',
             'nama_rekening' => 'nullable|string|max:100',
+            'no_req_list' => 'nullable',
+            'rekening_list' => 'nullable',
         ]);
 
         $user->name = $request->name;
@@ -119,6 +121,37 @@ class ProfileController extends Controller
         $user->bank = $request->bank;
         $user->no_rekening = $request->no_rekening;
         $user->nama_rekening = $request->nama_rekening;
+
+        if ($request->filled('rekening_list')) {
+            $decoded = is_array($request->input('rekening_list'))
+                ? $request->input('rekening_list')
+                : json_decode($request->input('rekening_list'), true);
+            if (is_array($decoded)) {
+                $clean = [];
+                foreach ($decoded as $item) {
+                    if (!is_array($item)) continue;
+                    $nm = trim($item['nama_rekening'] ?? '');
+                    $nr = trim($item['no_rekening'] ?? '');
+                    $bk = trim($item['bank'] ?? '');
+                    $req = trim($item['no_req'] ?? '');
+                    if ($nm === '' && $nr === '' && $bk === '' && $req === '') continue;
+                    $clean[] = [
+                        'nama_rekening' => $nm ?: null,
+                        'no_rekening' => $nr ?: null,
+                        'bank' => $bk ?: null,
+                        'no_req' => $req ?: null,
+                    ];
+                }
+                $user->rekening_list = count($clean) > 0 ? $clean : null;
+            } else {
+                $user->rekening_list = null;
+            }
+        } elseif ($request->has('rekening_list')) {
+            $user->rekening_list = null;
+        }
+
+        $user->no_rekening = $request->no_rekening;
+        $user->bank = $request->bank;
 
         if ($request->hasFile('foto_profil')) {
             try {

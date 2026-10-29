@@ -1269,3 +1269,10 @@ fitur sensei buat gini mereka pengajuan penggajian dari absensi mereka di fitur 
 
   <!-- bugs -->
   - redirect admin mutasi ke dashboard karyawan 
+
+
+
+  <!-- pengajuan gaji  -->
+  -tambahkan di profil input no rekening 
+  -di inputan pengajuan gaji jadi bisa pilih rekening nya yang mana dan bisa tambah manual saja 
+  -di izin sensei tambahkan keterangan orang pengganti 

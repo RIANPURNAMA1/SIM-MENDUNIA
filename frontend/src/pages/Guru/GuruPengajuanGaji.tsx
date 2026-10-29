@@ -1,17 +1,18 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Banknote, Plus, X, CalendarCheck, ChevronLeft } from 'lucide-react'
-import api, { gajiApi, izinSenseiApi } from '../../services/api'
+import api, { gajiApi, guruProfileApi, izinSenseiApi } from '../../services/api'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
 
-interface PengajuanGajiItem {
+  interface PengajuanGajiItem {
   id: number
   user: { id: number; name: string; email: string }
   bulan: string | null
   tahun: number | null
   jumlah: number | null
   keterangan: string | null
+  no_req_list?: string[] | null
   status: string
   catatan: string | null
   ringkasan_kehadiran?: {
@@ -135,12 +136,16 @@ export default function GuruPengajuanGaji() {
   const [showModal, setShowModal] = useState(false)
   const [gajiForm, setGajiForm] = useState({ keterangan: '' })
   const [gajiSaving, setGajiSaving] = useState(false)
+  const [noReqInputs, setNoReqInputs] = useState<string[]>([''])
+  const [rekeningOptions, setRekeningOptions] = useState<any[]>([])
+  const [selectedRekeningIdx, setSelectedRekeningIdx] = useState<number>(-1)
   const [ringkasan, setRingkasan] = useState<DashboardRingkasan | null>(null)
   const [ringkasanLoading, setRingkasanLoading] = useState(false)
   const [riwayatAll, setRiwayatAll] = useState<RiwayatAbsensiRow[]>([])
   const [riwayatIzin, setRiwayatIzin] = useState<RiwayatIzinItem[]>([])
   const [selectedKelasId, setSelectedKelasId] = useState<number | null>(null)
   const [selectedKelasName, setSelectedKelasName] = useState<string | null>(null)
+  const [currentUserRekening, setCurrentUserRekening] = useState<any[]>([])
 
   useEffect(() => {
     if (!showModal) return
@@ -149,6 +154,16 @@ export default function GuruPengajuanGaji() {
     setRiwayatIzin([])
     setSelectedKelasId(null)
     setSelectedKelasName(null)
+    setGajiForm({ keterangan: '' })
+    setNoReqInputs([''])
+    setSelectedRekeningIdx(-1)
+    setRekeningOptions([])
+    guruProfileApi.profile().then(res => {
+      const u = res.data?.user || res.data
+      const rl = Array.isArray(u?.rekening_list) ? u.rekening_list : []
+      setRekeningOptions(rl)
+      setCurrentUserRekening(rl)
+    }).catch(() => {})
     setRingkasanLoading(true)
     izinSenseiApi.list({ my: true, per_page: 10 })
       .then(res => setRiwayatIzin(res.data?.data ?? []))
@@ -231,11 +246,22 @@ export default function GuruPengajuanGaji() {
         <span class="text-sm font-semibold text-gray-900">${value}</span>
       </div>`
 
+    const filteredNoReq = noReqInputs.map(v => v.trim()).filter(v => v !== '')
+    const selectedRek = selectedRekeningIdx >= 0 ? rekeningOptions[selectedRekeningIdx] : null
+    const noReqHtml = filteredNoReq.length > 0 || selectedRek
+      ? `<div class="border border-gray-200 rounded-lg overflow-hidden text-left mb-3">
+           <div class="px-3 py-2 bg-gray-50 text-[11px] font-bold text-gray-600 uppercase">Data Rekening</div>
+           ${selectedRek ? `<div class="px-3 py-2 text-xs text-gray-700 border-t border-gray-100">${[selectedRek.nama_rekening, selectedRek.no_rekening, selectedRek.bank].filter(Boolean).join(' - ')}</div>` : ''}
+           ${filteredNoReq.length > 0 && !selectedRek ? filteredNoReq.map(n => `<div class="px-3 py-2 text-xs text-gray-700 border-t border-gray-100">${n}</div>`).join('') : ''}
+         </div>`
+      : ''
+
     const confirm = await Swal.fire({
       icon: 'question',
       title: 'Ajukan Pengajuan Gaji?',
       html: `
         <p class="text-sm text-gray-600 mb-3">Yakin ingin mengajukan gaji? Berikut ringkasan absensi Anda yang akan ikut terkirim:</p>
+        ${noReqHtml}
         <div class="border border-gray-200 rounded-lg overflow-hidden text-left">
           ${statRow('Hadir', s.hadir)}
           ${statRow('Terlambat', s.terlambat)}
@@ -260,6 +286,12 @@ setGajiSaving(true)
       if (gajiForm.keterangan) fd.append('keterangan', gajiForm.keterangan)
       if (selectedKelasId) fd.append('selected_kelas_id', String(selectedKelasId))
       if (selectedKelasName) fd.append('selected_kelas_name', selectedKelasName)
+      const noReqToSend = selectedRekeningIdx >= 0 && rekeningOptions[selectedRekeningIdx]
+        ? [`${rekeningOptions[selectedRekeningIdx].nama_rekening || ''} ${rekeningOptions[selectedRekeningIdx].no_rekening || ''} ${rekeningOptions[selectedRekeningIdx].bank || ''}`.trim()]
+        : noReqInputs.map(v => v.trim()).filter(v => v !== '')
+      if (noReqToSend.length > 0) {
+        fd.append('no_req_list', JSON.stringify(noReqToSend))
+      }
       if (ringkasan) {
         fd.append('ringkasan_kehadiran', JSON.stringify({
           total_kelas: ringkasan.total_kelas,
@@ -290,14 +322,15 @@ setGajiSaving(true)
             tgl_selesai: i.tgl_selesai,
             status: i.status,
             alasan: i.alasan,
-            kelas: i.kelas ? (i.kelas.batch_relasi?.nama_batch || i.kelas?.nama_kelass) : null,
+            kelas: i.kelas ? (i.kelas.batch_relasi?.nama_batch || i.kelas?.nama_kelas) : null,
             pengganti: i.nama_pengganti || i.pengganti?.name || null,
           })),
         }))
       }
       await gajiApi.store(fd)
-      setGajiForm({ keterangan: '' })
-      setShowModal(false)
+              setGajiForm({ keterangan: '' })
+              setNoReqInputs([''])
+              setSelectedRekeningIdx(-1)
       await Swal.fire({
         icon: 'success',
         title: 'Pengajuan Gaji Terkirim!',
@@ -379,6 +412,7 @@ setGajiSaving(true)
                 <tr>
                   <th className="text-xs font-medium text-[#8B90A0] px-4 py-3">Bulan / Tahun</th>
                   <th className="text-xs font-medium text-[#8B90A0] px-4 py-3">Keterangan</th>
+                       <th className="text-xs font-medium text-[#8B90A0] px-4 py-3">Data Rekening</th>
                   <th className="text-xs font-medium text-[#8B90A0] px-4 py-3">Status</th>
                   <th className="text-xs font-medium text-[#8B90A0] px-4 py-3">Tanggal</th>
                 </tr>
@@ -387,14 +421,14 @@ setGajiSaving(true)
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i}>
-                      <td colSpan={4} className="px-6 py-12 text-center">
+                      <td colSpan={5} className="px-6 py-12 text-center">
                         <div className="h-3 bg-[#E5E7EF] w-full animate-pulse" />
                       </td>
                     </tr>
                   ))
                 ) : data.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="px-6 py-12 text-center">
+                    <td colSpan={5} className="px-6 py-12 text-center">
                       <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#F4F5F8] text-[#8B90A0]">
                         <Banknote size={24} />
                       </div>
@@ -410,12 +444,22 @@ setGajiSaving(true)
                         <p className="text-xs font-medium text-[#14182B]">
                           {item.bulan ?? '-'} {item.tahun ?? ''}
                         </p>
-                        <p className="text-[10px] text-[#8B90A0]">
-                          {new Date(item.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
-                        </p>
                       </td>
                       <td className="border-t border-[#E5E7EF] px-4 py-3 text-sm max-w-[200px] truncate">
                         {item.keterangan || '-'}
+                      </td>
+                      <td className="border-t border-[#E5E7EF] px-4 py-3 text-sm">
+                        {(() => {
+                          const nr = Array.isArray((item as any).no_req_list) ? (item as any).no_req_list.filter(Boolean) : []
+                          if (nr.length > 0) return nr.join(', ')
+                          const rl = (item as any).user?.rekening_list || currentUserRekening
+                          if (Array.isArray(rl) && rl.length > 0) {
+                            const r = rl[0]
+                            const s = [r?.nama_rekening, r?.no_rekening, r?.bank].filter(Boolean).join(' - ')
+                            if (s) return s
+                          }
+                          return '-'
+                        })()}
                       </td>
                       <td className="border-t border-[#E5E7EF] px-4 py-3 text-center">
                         <span
@@ -626,6 +670,92 @@ setGajiSaving(true)
                 ) : (
                   <p className="px-4 pb-3.5 text-xs text-[#8B90A0]">Data kehadiran tidak tersedia</p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Data Rekening <span className="text-gray-400">(Opsional)</span></label>
+                {rekeningOptions.length > 0 ? (
+                  <select
+                    value={selectedRekeningIdx}
+                    onChange={e => setSelectedRekeningIdx(Number(e.target.value))}
+                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
+                  >
+                    <option value={-1}>Pilih Rekening</option>
+                    {rekeningOptions.map((r, idx) => {
+                      const label = [r.nama_rekening, r.no_rekening, r.bank].filter(Boolean).join(' - ')
+                      return <option key={idx} value={idx}>{label || `Rekening ${idx + 1}`}</option>
+                    })}
+                  </select>
+                ) : (
+                  <div className="space-y-2">
+                    {noReqInputs.map((val, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <input
+                          value={val}
+                          onChange={e => {
+                            const next = [...noReqInputs]
+                            next[idx] = e.target.value
+                            setNoReqInputs(next)
+                          }}
+                          placeholder="Masukkan Data Rekening"
+                          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
+                        />
+                        {noReqInputs.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => setNoReqInputs(noReqInputs.filter((_, i) => i !== idx))}
+                            className="rounded-lg border border-gray-300 px-2 py-2 text-gray-500 hover:bg-gray-50"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setNoReqInputs([...noReqInputs, ''])}
+                      className="text-xs font-semibold text-[#0069b0] hover:text-[#004d7a]"
+                    >
+                      + Tambah Rekening
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Data Rekening <span className="text-gray-400">(Opsional)</span></label>
+                <div className="space-y-2">
+                  {noReqInputs.map((val, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        value={val}
+                        onChange={e => {
+                          const next = [...noReqInputs]
+                          next[idx] = e.target.value
+                          setNoReqInputs(next)
+                        }}
+                        placeholder="Masukkan No. Req"
+                        className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
+                      />
+                      {noReqInputs.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setNoReqInputs(noReqInputs.filter((_, i) => i !== idx))}
+                          className="rounded-lg border border-gray-300 px-2 py-2 text-gray-500 hover:bg-gray-50"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => setNoReqInputs([...noReqInputs, ''])}
+                    className="text-xs font-semibold text-[#0069b0] hover:text-[#004d7a]"
+                  >
+                    + Tambah No. Req
+                  </button>
+                </div>
               </div>
 
               <div>

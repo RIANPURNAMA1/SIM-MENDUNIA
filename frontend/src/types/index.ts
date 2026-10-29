@@ -304,11 +304,14 @@ export interface RekapKehadiranSenseiDayEntry {
   status: string
   color: string
   text_color: string
-  absensi_id: number
+  absensi_id: number | null
   jam_masuk?: string | null
   jam_pulang?: string | null
   foto_masuk?: string | null
   foto_pulang?: string | null
+  pengganti?: string | null
+  jenis_izin?: string | null
+  keterangan_izin?: string | null
 }
 
 export interface RekapKehadiranSenseiDay {

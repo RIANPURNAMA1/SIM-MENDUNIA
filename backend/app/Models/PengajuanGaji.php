@@ -14,6 +14,7 @@ class PengajuanGaji extends Model
         'tahun',
         'jumlah',
         'keterangan',
+        'no_req_list',
         'status',
         'catatan',
         'ringkasan_kehadiran',
@@ -21,6 +22,7 @@ class PengajuanGaji extends Model
 
     protected $casts = [
         'ringkasan_kehadiran' => 'array',
+        'no_req_list' => 'array',
     ];
 
     public function user()

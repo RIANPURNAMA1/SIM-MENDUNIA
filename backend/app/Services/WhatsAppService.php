@@ -1048,7 +1048,7 @@ class WhatsAppService
             return false;
         }
 
-        $adminPhones = $this->getAdminPhones('wa_pendaftaran_admin_phones');
+        $adminPhones = $this->getAdminPhones('wa_mutasi_admin_phones') ?: $this->getAdminPhones('wa_pendaftaran_admin_phones');
         if (empty($adminPhones)) {
             Log::warning('Tidak ada nomor admin follow up untuk notifikasi pengajuan gaji.');
             return false;

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../../contexts/AuthContext'
 import { guruProfileApi, profileApi, APP_URL } from '../../services/api'
-import { User, Camera, ChevronLeft, Save, Lock, LogOut } from 'lucide-react'
+import { User, Camera, ChevronLeft, Save, Lock, LogOut, X } from 'lucide-react'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
+import api from '../../services/api'
 
 const jenisKelaminOptions = [
   { value: 'L', label: 'Laki-laki' },
@@ -14,14 +15,23 @@ const agamaOptions = ['ISLAM', 'KRISTEN', 'KATOLIK', 'HINDU', 'BUDDHA', 'KONGHUC
 
 const statusPernikahanOptions = ['BELUM MENIKAH', 'MENIKAH', 'CERAI']
 
+type RekeningItem = {
+  nama_rekening: string
+  no_rekening: string
+  bank: string
+  no_req: string
+}
+
 export default function GuruProfil() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
   const [guru, setGuru] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [bankList, setBankList] = useState<{ kode: string; nama: string }[]>([])
+  const [ewalletList, setEwalletList] = useState<{ kode: string; nama: string }[]>([])
 
   const [form, setForm] = useState({
     name: '',
@@ -33,6 +43,9 @@ export default function GuruProfil() {
     agama: '',
     status_pernikahan: '',
     pendidikan_terakhir: '',
+    nama_rekening: '',
+    no_rekening: '',
+    bank: '',
   })
 
   const [passwordForm, setPasswordForm] = useState({
@@ -43,11 +56,19 @@ export default function GuruProfil() {
 
   const [fotoPreview, setFotoPreview] = useState<string | null>(null)
   const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [rekeningList, setRekeningList] = useState<RekeningItem[]>([{ nama_rekening: '', no_rekening: '', bank: '', no_req: '' }])
 
   useEffect(() => {
     if (!user?.id) return
     loadData()
   }, [user?.id])
+
+  useEffect(() => {
+    api.get('/banks').then(res => {
+      setBankList(res.data?.banks || [])
+      setEwalletList(res.data?.ewallets || [])
+    }).catch(() => {})
+  }, [])
 
   async function loadData() {
     setLoading(true)
@@ -67,7 +88,21 @@ export default function GuruProfil() {
         agama: userData.agama || '',
         status_pernikahan: userData.status_pernikahan || '',
         pendidikan_terakhir: userData.pendidikan_terakhir || '',
+        nama_rekening: userData.nama_rekening || '',
+        no_rekening: userData.no_rekening || '',
+        bank: userData.bank || '',
       })
+      const rl = Array.isArray(userData.rekening_list) ? userData.rekening_list : []
+      if (rl.length > 0) {
+        setRekeningList(rl.map((r: any) => ({
+          nama_rekening: r.nama_rekening || '',
+          no_rekening: r.no_rekening || '',
+          bank: r.bank || '',
+          no_req: r.no_req || '',
+        })))
+      } else {
+        setRekeningList([{ nama_rekening: userData.nama_rekening || '', no_rekening: userData.no_rekening || '', bank: userData.bank || '', no_req: '' }])
+      }
     } catch {
     } finally {
       setLoading(false)
@@ -78,15 +113,22 @@ export default function GuruProfil() {
     setSaving(true)
     try {
       const fd = new FormData()
-      Object.entries(form).forEach(([key, val]) => fd.append(key, val))
+      Object.entries(form).forEach(([key, val]) => fd.append(key, val as string))
       if (fotoFile) fd.append('foto_profil', fotoFile)
+      const clean = rekeningList.map(r => ({
+        nama_rekening: r.nama_rekening.trim(),
+        no_rekening: r.no_rekening.trim(),
+        bank: r.bank.trim(),
+        no_req: r.no_req.trim(),
+      })).filter(r => r.nama_rekening || r.no_rekening || r.bank || r.no_req)
+      fd.append('rekening_list', JSON.stringify(clean))
       await profileApi.update(fd)
       setEditing(false)
       setFotoFile(null)
       setFotoPreview(null)
       Swal.fire({ icon: 'success', title: 'Profil diperbarui', timer: 1500, showConfirmButton: false })
       loadData()
-    } catch (e) {
+    } catch (e: any) {
       const msg = e instanceof Error ? e.message : 'Gagal memperbarui profil'
       Swal.fire({ icon: 'error', title: 'Gagal', text: msg })
     } finally {
@@ -109,7 +151,7 @@ export default function GuruProfil() {
       setShowPasswordForm(false)
       setPasswordForm({ current_password: '', new_password: '', new_password_confirmation: '' })
       Swal.fire({ icon: 'success', title: 'Password berhasil diubah', timer: 1500, showConfirmButton: false })
-    } catch (e) {
+    } catch (e: any) {
       const msg = e instanceof Error ? e.message : 'Gagal mengubah password'
       Swal.fire({ icon: 'error', title: 'Gagal', text: msg })
     } finally {
@@ -124,12 +166,8 @@ export default function GuruProfil() {
     }
   }
 
-  const fotoUrl = user?.foto_profil
-    ? `${APP_URL}/uploads/foto_profil/${user.foto_profil}`
-    : null
-
+  const fotoUrl = user?.foto_profil ? `${APP_URL}/uploads/foto_profil/${user.foto_profil}` : null
   const previewUrl = fotoPreview || fotoUrl
-
   const guruUser = user
 
   const infoRow = (label: string, value: string | null | undefined) => (
@@ -150,11 +188,12 @@ export default function GuruProfil() {
     )
   }
 
+  const displayRekening = Array.isArray(guruUser?.rekening_list) && guruUser.rekening_list.length > 0 ? guruUser.rekening_list : []
+
   return (
     <div className="min-h-screen bg-[#F4F5F8] pb-24">
       <div className="h-[3px] bg-gradient-to-r from-[#0069b0] via-[#0069b0] to-[#0069b0]" />
 
-      {/* Header */}
       <div className="bg-white px-5 py-3.5 border-b border-[#E5E7EF] flex items-center justify-between">
         <div className="flex items-center gap-3">
           <a href="/guru-data-siswa" className="text-[#8B90A0] hover:text-[#14182B] transition-colors">
@@ -175,7 +214,6 @@ export default function GuruProfil() {
       </div>
 
       <div className="px-4 pt-4 pb-4 space-y-4 max-w-lg mx-auto">
-        {/* Photo */}
         <div className="flex flex-col items-center">
           <div className="relative">
             <div className="w-24 h-24 rounded-full bg-[#0069b0]/[0.08] flex items-center justify-center overflow-hidden border-4 border-white shadow-md">
@@ -202,7 +240,6 @@ export default function GuruProfil() {
           <p className="text-[11px] text-[#8B90A0] font-medium">{guru?.mata_pelajaran ? `Sensei · ${guru.mata_pelajaran}` : 'Sensei'}</p>
         </div>
 
-        {/* Edit Form */}
         {editing ? (
           <div className="bg-white rounded-xl border border-[#E5E7EF] p-5 space-y-4">
             <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Edit Profil</h3>
@@ -236,9 +273,7 @@ export default function GuruProfil() {
               <div className="flex gap-2">
                 {jenisKelaminOptions.map(o => (
                   <button key={o.value} type="button" onClick={() => setForm(p => ({ ...p, jenis_kelamin: o.value }))}
-                    className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${
-                      form.jenis_kelamin === o.value ? 'border-[#0069b0] bg-[#0069b0]/[0.04] text-[#0069b0]' : 'border-[#E5E7EF] text-[#8B90A0]'
-                    }`}>
+                    className={`flex-1 py-2 rounded-lg text-sm font-semibold border transition-colors ${form.jenis_kelamin === o.value ? 'border-[#0069b0] bg-[#0069b0]/[0.04] text-[#0069b0]' : 'border-[#E5E7EF] text-[#8B90A0]'}`}>
                     {o.label}
                   </button>
                 ))}
@@ -275,8 +310,62 @@ export default function GuruProfil() {
                 className="w-full px-3 py-2 rounded-lg border border-[#E5E7EF] text-sm text-[#14182B] focus:outline-none focus:ring-2 focus:ring-[#0069b0]/20 focus:border-[#0069b0] resize-none" />
             </div>
 
+            <div className="pt-2">
+              <h4 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase mb-3">Data Rekening</h4>
+              <div className="space-y-4">
+                {rekeningList.map((item, idx) => (
+                  <div key={idx} className="rounded-lg border border-[#E5E7EF] p-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-[#8B90A0] uppercase">Entri {idx + 1}</span>
+                      {rekeningList.length > 1 && (
+                        <button type="button" onClick={() => setRekeningList(rekeningList.filter((_, i) => i !== idx))}
+                          className="text-[10px] font-bold text-red-500">Hapus</button>
+                      )}
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#4B5063] mb-1">Nama Rekening</label>
+                      <input value={item.nama_rekening} onChange={e => {
+                        const next = [...rekeningList]
+                        next[idx] = { ...next[idx], nama_rekening: e.target.value }
+                        setRekeningList(next)
+                      }}
+                        className="w-full px-3 py-2 rounded-lg border border-[#E5E7EF] text-sm text-[#14182B] focus:outline-none focus:ring-2 focus:ring-[#0069b0]/20 focus:border-[#0069b0]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#4B5063] mb-1">No. Rekening</label>
+                      <input value={item.no_rekening} onChange={e => {
+                        const next = [...rekeningList]
+                        next[idx] = { ...next[idx], no_rekening: e.target.value }
+                        setRekeningList(next)
+                      }}
+                        className="w-full px-3 py-2 rounded-lg border border-[#E5E7EF] text-sm text-[#14182B] focus:outline-none focus:ring-2 focus:ring-[#0069b0]/20 focus:border-[#0069b0]" />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#4B5063] mb-1">Bank</label>
+                      <select value={item.bank} onChange={e => {
+                        const next = [...rekeningList]
+                        next[idx] = { ...next[idx], bank: e.target.value }
+                        setRekeningList(next)
+                      }}
+                        className="w-full px-3 py-2 rounded-lg border border-[#E5E7EF] text-sm text-[#14182B] focus:outline-none focus:ring-2 focus:ring-[#0069b0]/20 focus:border-[#0069b0]">
+                        <option value="">— Pilih Bank / E-Wallet —</option>
+                        <optgroup label="Bank">
+                          {bankList.map(b => <option key={b.kode} value={b.nama || b.kode}>{b.nama || b.kode}</option>)}
+                        </optgroup>
+                        <optgroup label="E-Wallet">
+                          {ewalletList.map(e => <option key={e.kode} value={e.nama || e.kode}>{e.nama || e.kode}</option>)}
+                        </optgroup>
+                      </select>
+                    </div>
+                  </div>
+                ))}
+                <button type="button" onClick={() => setRekeningList([...rekeningList, { nama_rekening: '', no_rekening: '', bank: '', no_req: '' }])}
+                  className="text-xs font-bold text-[#0069b0]">+ Tambah</button>
+              </div>
+            </div>
+
             <div className="flex gap-2 pt-2">
-              <button onClick={() => { setEditing(false); setFotoFile(null); setFotoPreview(null) }}
+              <button onClick={() => { setEditing(false); setFotoFile(null); setFotoPreview(null); loadData() }}
                 className="flex-1 py-2.5 rounded-xl border border-[#E5E7EF] text-sm font-bold text-[#4B5063] hover:bg-[#F4F5F8] transition-colors">
                 Batal
               </button>
@@ -287,7 +376,6 @@ export default function GuruProfil() {
             </div>
           </div>
         ) : showPasswordForm ? (
-          /* Change Password */
           <div className="bg-white rounded-xl border border-[#E5E7EF] p-5 space-y-4">
             <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Ubah Password</h3>
             <div>
@@ -317,7 +405,6 @@ export default function GuruProfil() {
             </div>
           </div>
         ) : (
-          /* Info Display */
           <>
             <div className="bg-white rounded-xl border border-[#E5E7EF] overflow-hidden">
               <div className="px-5 pt-4 pb-2">
@@ -338,7 +425,22 @@ export default function GuruProfil() {
               </div>
             </div>
 
-            {/* Logout */}
+            <div className="bg-white rounded-xl border border-[#E5E7EF] overflow-hidden">
+              <div className="px-5 pt-4 pb-2">
+                <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Data Rekening</h3>
+              </div>
+              <div className="px-5 pb-4 space-y-3">
+                {displayRekening.length > 0 ? displayRekening.map((r: any, i: number) => (
+                  <div key={i} className="border border-[#F0F1F5] rounded-lg p-3">
+                    {r.nama_rekening && <p className="text-xs text-[#14182B]"><span className="text-[#8B90A0]">Nama Rekening:</span> {r.nama_rekening}</p>}
+                    {r.no_rekening && <p className="text-xs text-[#14182B]"><span className="text-[#8B90A0]">No. Rekening:</span> {r.no_rekening}</p>}
+                    {r.bank && <p className="text-xs text-[#14182B]"><span className="text-[#8B90A0]">Bank:</span> {r.bank}</p>}
+                    {r.no_req && <p className="text-xs text-[#14182B]"><span className="text-[#8B90A0]">No. Req:</span> {r.no_req}</p>}
+                  </div>
+                )) : <p className="text-xs text-[#8B90A0]">Belum ada</p>}
+              </div>
+            </div>
+
             <button onClick={handleLogout}
               className="w-full py-3 rounded-xl border border-red-200 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors flex items-center justify-center gap-2">
               <LogOut size={16} /> Logout

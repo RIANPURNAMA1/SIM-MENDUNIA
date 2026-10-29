@@ -17,7 +17,7 @@ class PengajuanGajiController extends Controller
     {
         $user = Auth::user();
 
-        $query = PengajuanGaji::with('user:id,name,email')
+        $query = PengajuanGaji::with('user:id,name,email,nama_rekening,no_rekening,bank,rekening_list')
             ->orderBy('created_at', 'desc');
 
         if ($request->boolean('my')) {
@@ -50,6 +50,9 @@ class PengajuanGajiController extends Controller
             'jumlah' => 'nullable|numeric|min:0',
             'keterangan' => 'nullable|string|max:1000',
             'ringkasan_kehadiran' => 'nullable',
+            'no_req_list' => 'nullable',
+            'selected_kelas_id' => 'nullable',
+            'selected_kelas_name' => 'nullable',
         ]);
 
         $ringkasan = null;
@@ -60,12 +63,23 @@ class PengajuanGajiController extends Controller
             $ringkasan = is_array($decoded) ? $decoded : null;
         }
 
+        $noReqList = null;
+        if ($request->filled('no_req_list')) {
+            $decoded = is_array($request->input('no_req_list'))
+                ? $request->input('no_req_list')
+                : json_decode($request->input('no_req_list'), true);
+            if (is_array($decoded)) {
+                $noReqList = array_values(array_filter($decoded, fn($v) => is_string($v) && trim($v) !== ''));
+            }
+        }
+
         $pengajuan = PengajuanGaji::create([
             'user_id' => Auth::id(),
             'bulan' => $validated['bulan'] ?? self::BULAN[(int) now()->format('n')],
             'tahun' => $validated['tahun'] ?? (int) now()->format('Y'),
             'jumlah' => $validated['jumlah'] ?? null,
             'keterangan' => $validated['keterangan'] ?? null,
+            'no_req_list' => $noReqList,
             'status' => 'pending',
             'ringkasan_kehadiran' => $ringkasan,
         ]);

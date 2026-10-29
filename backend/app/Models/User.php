@@ -49,6 +49,7 @@ class User extends Authenticatable
         'nama_rekening',
         'no_rekening',
         'bank',
+        'rekening_list',
     ];
 
     protected $hidden = [
@@ -60,6 +61,7 @@ class User extends Authenticatable
         'shift_ids' => 'array',
         'last_login' => 'datetime',
         'can_access_khusus' => 'boolean',
+        'rekening_list' => 'array',
     ];
 
     // Ganti relasi lama dengan Accessor ini

@@ -8,11 +8,12 @@ import Swal from 'sweetalert2'
 
 interface PengajuanGajiItem {
   id: number
-  user: { id: number; name: string; email: string }
+  user: { id: number; name: string; email: string; nama_rekening?: string | null; no_rekening?: string | null; bank?: string | null; rekening_list?: any[] | null }
   bulan: string | null
   tahun: number | null
   jumlah: number | null
   keterangan: string | null
+  no_req_list?: string[] | null
   status: string
   catatan: string | null
   ringkasan_kehadiran?: {
@@ -109,12 +110,33 @@ export default function DataPengajuanGaji() {
   const safePage = Math.min(Math.max(1, page), totalPages || 1)
 
   const handleSetStatus = async (id: number, status: string) => {
+    let title = ''
+    let text = ''
+    let confirmText = 'Ya'
+    let successTitle = statusLabel[status] || status
+    if (status === 'disetujui') {
+      title = 'Setujui pengajuan gaji ini?'
+      text = 'Data akan ditandai sebagai disetujui.'
+      confirmText = 'Ya, setujui'
+    } else if (status === 'ditolak') {
+      title = 'Tolak pengajuan gaji ini?'
+      text = 'Data akan ditandai sebagai ditolak.'
+      confirmText = 'Ya, tolak'
+    } else if (status === 'diproses') {
+      title = 'Ubah status menjadi Diproses?'
+      text = 'Data akan ditandai sebagai diproses.'
+      confirmText = 'Ya, ubah'
+    } else if (status === 'pending') {
+      title = 'Kembalikan ke Menunggu?'
+      text = 'Data akan ditandai sebagai menunggu.'
+      confirmText = 'Ya, ubah'
+    }
     const confirm = await Swal.fire({
-      title: status === 'disetujui' ? 'Setujui pengajuan gaji ini?' : 'Tolak pengajuan gaji ini?',
-      text: status === 'disetujui' ? 'Data akan ditandai sebagai disetujui.' : 'Data akan ditandai sebagai ditolak.',
+      title,
+      text,
       icon: 'question',
       showCancelButton: true,
-      confirmButtonText: status === 'disetujui' ? 'Ya, setujui' : 'Ya, tolak',
+      confirmButtonText: confirmText,
       cancelButtonText: 'Batal',
     })
     if (!confirm.isConfirmed) return
@@ -127,7 +149,7 @@ export default function DataPengajuanGaji() {
       ))
       Swal.fire({
         icon: 'success',
-        title: status === 'disetujui' ? 'Disetujui' : 'Ditolak',
+        title: successTitle,
         timer: 1500,
         showConfirmButton: false,
       })
@@ -273,6 +295,16 @@ export default function DataPengajuanGaji() {
                     </td>
                     <td className="border-b border-[#e8eaed] px-3 py-3 text-xs text-black max-w-[220px]">
                       <div className="truncate" title={item.keterangan || ''}>{item.keterangan || '-'}</div>
+                      {(Array.isArray((item.user as any)?.rekening_list) && (item.user as any).rekening_list.some((r:any)=>r?.no_req)) && (
+                        <div className="mt-1 text-[10px] text-[#5f6368]">
+                          <span className="font-medium">No. Req:</span> {(item.user as any).rekening_list.map((r:any)=>r.no_req).filter(Boolean).join(', ')}
+                        </div>
+                      )}
+                      {!((Array.isArray((item.user as any)?.rekening_list) && (item.user as any).rekening_list.some((r:any)=>r?.no_req))) && Array.isArray((item as any).no_req_list) && (item as any).no_req_list.filter(Boolean).length > 0 && (
+                        <div className="mt-1 text-[10px] text-[#5f6368]">
+                          <span className="font-medium">No. Req:</span> {(item as any).no_req_list.filter(Boolean).join(', ')}
+                        </div>
+                      )}
                       {item.ringkasan_kehadiran && (
                         <div className="mt-1 text-[10px] text-[#80868b]">
                           <span className="font-medium text-[#5f6368]">Hadir {item.ringkasan_kehadiran.kehadiran_bulan_ini ?? 0} hari bulan ini</span>
@@ -300,36 +332,21 @@ export default function DataPengajuanGaji() {
                         >
                           <Eye size={15} />
                         </button>
-                        {item.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => handleSetStatus(item.id, 'disetujui')}
-                              disabled={savingId === item.id}
-                              className="p-1.5 text-emerald-600 hover:bg-emerald-50 hover:text-emerald-700 transition-colors"
-                              title="Setujui"
-                            >
-                              <CheckCircle2 size={15} />
-                            </button>
-                            <button
-                              onClick={() => handleSetStatus(item.id, 'ditolak')}
-                              disabled={savingId === item.id}
-                              className="p-1.5 text-red-600 hover:bg-red-50 hover:text-red-700 transition-colors"
-                              title="Tolak"
-                            >
-                              <X size={15} />
-                            </button>
-                          </>
-                        )}
-                        {item.status !== 'pending' && (
-                          <button
-                            onClick={() => handleSetStatus(item.id, 'pending')}
-                            disabled={savingId === item.id}
-                            className="p-1.5 text-[#80868b] hover:text-[#1a73e8] hover:bg-[#e8f0fe] transition-colors"
-                            title="Kembalikan ke menunggu"
-                          >
-                            <Clock size={15} />
-                          </button>
-                        )}
+                        <select
+                          value={item.status}
+                          disabled={savingId === item.id}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            if (val === item.status) return
+                            handleSetStatus(item.id, val)
+                          }}
+                          className="ml-1 text-[11px] border border-[#dadce0] rounded px-2 py-1 bg-white text-[#3c4043] outline-none focus:border-[#1a73e8] disabled:opacity-50"
+                        >
+                          <option value="pending">Menunggu</option>
+                          <option value="diproses">Diproses</option>
+                          <option value="disetujui">Disetujui</option>
+                          <option value="ditolak">Ditolak</option>
+                        </select>
                       </div>
                     </td>
                   </tr>
@@ -446,8 +463,14 @@ export default function DataPengajuanGaji() {
               <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
                 <InfoItem label="Guru" value={detailItem.user?.name} />
                 <InfoItem label="Email" value={detailItem.user?.email} />
-                <InfoItem label="Bulan / Tahun" value={`${detailItem.bulan ?? '-'} ${detailItem.tahun ?? ''}`.trim()} />
-                <InfoItem label="Keterangan" value={detailItem.keterangan} />
+                <InfoItem label="No. Req" value={(Array.isArray((detailItem.user as any)?.rekening_list) && (detailItem.user as any).rekening_list.some((r:any)=>r?.no_req)) ? (detailItem.user as any).rekening_list.map((r:any)=>r.no_req).filter(Boolean).join(', ') : (Array.isArray((detailItem as any).no_req_list) ? (detailItem as any).no_req_list.filter(Boolean).join(', ') : null)} />
+                <InfoItem label="Bank" value={detailItem.user?.bank || (Array.isArray((detailItem.user as any)?.rekening_list) ? (detailItem.user as any).rekening_list.map((r:any)=>r.bank).filter(Boolean).join(', ') : null)} />
+                <InfoItem label="No. Rekening" value={detailItem.user?.no_rekening || (Array.isArray((detailItem.user as any)?.rekening_list) ? (detailItem.user as any).rekening_list.map((r:any)=>r.no_rekening).filter(Boolean).join(', ') : null)} />
+                <InfoItem label="Nama Rekening" value={detailItem.user?.nama_rekening || (Array.isArray((detailItem.user as any)?.rekening_list) ? (detailItem.user as any).rekening_list.map((r:any)=>r.nama_rekening).filter(Boolean).join(', ') : null)} />
+                <InfoItem label="No. Req" value={(Array.isArray((detailItem.user as any)?.rekening_list) && (detailItem.user as any).rekening_list.some((r:any)=>r?.no_req)) ? (detailItem.user as any).rekening_list.map((r:any)=>r.no_req).filter(Boolean).join(', ') : (Array.isArray((detailItem as any).no_req_list) ? (detailItem as any).no_req_list.filter(Boolean).join(', ') : null)} />
+                <InfoItem label="Bank" value={detailItem.user?.bank || (Array.isArray((detailItem.user as any)?.rekening_list) ? (detailItem.user as any).rekening_list.map((r:any)=>r.bank).filter(Boolean).join(', ') : null)} />
+                <InfoItem label="No. Rekening" value={detailItem.user?.no_rekening || (Array.isArray((detailItem.user as any)?.rekening_list) ? (detailItem.user as any).rekening_list.map((r:any)=>r.no_rekening).filter(Boolean).join(', ') : null)} />
+                <InfoItem label="Nama Rekening" value={detailItem.user?.nama_rekening || (Array.isArray((detailItem.user as any)?.rekening_list) ? (detailItem.user as any).rekening_list.map((r:any)=>r.nama_rekening).filter(Boolean).join(', ') : null)} />
               </div>
 
               {/* Riwayat Kehadiran */}

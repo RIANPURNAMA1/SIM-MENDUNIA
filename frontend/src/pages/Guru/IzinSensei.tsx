@@ -622,14 +622,14 @@ export default function IzinSensei() {
                       type="text"
                       value={form.nama_pengganti}
                       onChange={event => setForm(prev => ({ ...prev, nama_pengganti: event.target.value }))}
-                      placeholder="Ketik nama sensei pengganti..."
+                      placeholder="Tulis nama lengkap pengganti (ex: Alumni Mendunia / Nama lengkap)"
                       maxLength={255}
                       className="w-full rounded-lg border border-[#E5E7EF] bg-white py-2.5 pl-9 pr-3 text-sm font-medium text-[#14182B] outline-none transition placeholder:text-[#C5C8D4] focus:border-[#0069b0] focus:ring-2 focus:ring-[#0069b0]/20"
                     />
                   </div>
                   <p className="mt-1.5 flex items-start gap-1.5 text-[10px] font-medium text-[#8B90A0]">
                     <AlertCircle size={12} className="mt-0.5 flex-none" />
-                    Tulis nama sensei pengganti secara manual. Admin / koordinator akan memverifikasi jadwalnya.
+                    Wajib isi identitas pengganti secara jelas (Nama lengkap + keterangan asal, mis. Alumni Mendunia / tenaga pengganti). Admin/koordinator akan memverifikasi jadwalnya.
                   </p>
                 </div>
 

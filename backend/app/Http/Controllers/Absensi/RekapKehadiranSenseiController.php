@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Absensi;
 
 use App\Models\AbsensiSensei;
+use App\Models\IzinSensei;
 use App\Models\KelasSensei;
 use App\Models\User;
 use App\Http\Controllers\Controller;
@@ -11,6 +12,39 @@ use Carbon\Carbon;
 
 class RekapKehadiranSenseiController extends Controller
 {
+    /**
+     * Daftar tanggal yang terdampak izin sensei. Data tersimpan pada kolom
+     * jadwal_tertentu; kalau kosong, hitung ulang hari kerja pada rentang izin.
+     */
+    private function tanggalIzin(IzinSensei $izin): array
+    {
+        $dates = is_array($izin->jadwal_tertentu) ? $izin->jadwal_tertentu : [];
+        $dates = array_values(array_filter($dates, fn ($tanggal) => is_string($tanggal) && $tanggal !== ''));
+
+        if (count($dates) === 0) {
+            $cursor = Carbon::parse($izin->tgl_mulai)->startOfDay();
+            $akhir = Carbon::parse($izin->tgl_selesai)->startOfDay();
+
+            while ($cursor->lte($akhir)) {
+                if ($cursor->dayOfWeek !== Carbon::SATURDAY
+                    && $cursor->dayOfWeek !== Carbon::SUNDAY
+                    && !\App\Models\HariLibur::apakahLibur($cursor->toDateString())) {
+                    $dates[] = $cursor->toDateString();
+                }
+                $cursor->addDay();
+            }
+        }
+
+        return array_values(array_unique($dates));
+    }
+
+    private function namaPengganti(IzinSensei $izin): ?string
+    {
+        $nama = $izin->pengganti?->name ?: $izin->nama_pengganti;
+
+        return $nama ?: null;
+    }
+
     public function index()
     {
         $sensei = User::whereIn('role', ['KARYAWAN', 'GURU'])
@@ -91,6 +125,31 @@ class RekapKehadiranSenseiController extends Controller
                 return $item->tanggal->toDateString();
             });
 
+        $awalBulan = Carbon::create($tahun, $bulan, 1)->toDateString();
+        $akhirBulan = Carbon::create($tahun, $bulan, 1)->endOfMonth()->toDateString();
+
+        $izinMap = [];
+        $izinList = IzinSensei::with('pengganti:id,name')
+            ->where('user_id', $userId)
+            ->where('status', 'APPROVED')
+            ->whereDate('tgl_mulai', '<=', $akhirBulan)
+            ->whereDate('tgl_selesai', '>=', $awalBulan)
+            ->get();
+
+        foreach ($izinList as $izin) {
+            if (!$izin->kelas_sensei_id) continue;
+
+            $info = [
+                'pengganti' => $this->namaPengganti($izin),
+                'jenis_izin' => $izin->jenis_izin,
+                'alasan' => $izin->alasan,
+            ];
+
+            foreach ($this->tanggalIzin($izin) as $tanggal) {
+                $izinMap[$tanggal][(int) $izin->kelas_sensei_id] = $info;
+            }
+        }
+
         $data = [];
         for ($day = 1; $day <= $daysInMonth; $day++) {
             $dateStr = sprintf('%s-%02s-%02s', $tahun, $bulan, $day);
@@ -113,17 +172,25 @@ class RekapKehadiranSenseiController extends Controller
                     if (!$kelas) continue;
 
                     $status = $absen->status ?: 'BELUM ABSEN';
+                    $izinInfo = $izinMap[$dateStr][(int) $kelas->id] ?? null;
+
+                    // Izin yang sudah disetujui menjadi acuan saat absensi masih
+                    // kosong atau terlanjur ditandai ALPA oleh generate otomatis.
+                    if ($izinInfo && in_array($status, ['ALPA', 'BELUM ABSEN'], true)) {
+                        $status = 'IZIN';
+                    }
+
                     $initial = strtoupper(substr($status, 0, 1));
 
                     $color = match ($status) {
                         'HADIR' => 'bg-success',
                         'TERLAMBAT' => 'bg-warning',
                         'ALPA', 'TIDAK ABSEN PULANG' => 'bg-danger',
-                        'PULANG LEBIH AWAL' => 'bg-info',
+                        'PULANG LEBIH AWAL', 'IZIN' => 'bg-info',
                         'LIBUR' => 'bg-secondary',
                         default => 'bg-light border',
                     };
-                    $textColor = in_array($status, ['HADIR', 'TERLAMBAT', 'ALPA', 'TIDAK ABSEN PULANG', 'PULANG LEBIH AWAL', 'LIBUR']) ? 'text-white' : 'text-dark';
+                    $textColor = in_array($status, ['HADIR', 'TERLAMBAT', 'ALPA', 'TIDAK ABSEN PULANG', 'PULANG LEBIH AWAL', 'LIBUR', 'IZIN']) ? 'text-white' : 'text-dark';
 
                     $rowData[] = [
                         'initial' => $initial,
@@ -137,8 +204,36 @@ class RekapKehadiranSenseiController extends Controller
                         'jam_pulang' => $absen->jam_keluar,
                         'foto_masuk' => $absen->foto_masuk,
                         'foto_pulang' => $absen->foto_pulang,
+                        'pengganti' => $status === 'IZIN' ? ($izinInfo['pengganti'] ?? null) : null,
+                        'jenis_izin' => $status === 'IZIN' ? ($izinInfo['jenis_izin'] ?? null) : null,
+                        'keterangan_izin' => $status === 'IZIN' ? ($izinInfo['alasan'] ?? null) : null,
                     ];
                 }
+            }
+
+            // Pastikan izin yang sudah disetujui tetap tampil walau baris absensinya belum dibuat.
+            $kelasSudahAda = array_map(fn ($row) => (int) $row['kelas_id'], $rowData);
+            foreach ($kelasList as $kelas) {
+                $kelasId = (int) $kelas['id'];
+                $izinInfo = $izinMap[$dateStr][$kelasId] ?? null;
+                if (!$izinInfo || in_array($kelasId, $kelasSudahAda, true)) continue;
+
+                $rowData[] = [
+                    'initial' => 'I',
+                    'kelas_nama' => $kelas['nama_kelas'],
+                    'kelas_id' => $kelasId,
+                    'status' => 'IZIN',
+                    'color' => 'bg-info',
+                    'text_color' => 'text-white',
+                    'absensi_id' => null,
+                    'jam_masuk' => null,
+                    'jam_pulang' => null,
+                    'foto_masuk' => null,
+                    'foto_pulang' => null,
+                    'pengganti' => $izinInfo['pengganti'],
+                    'jenis_izin' => $izinInfo['jenis_izin'],
+                    'keterangan_izin' => $izinInfo['alasan'],
+                ];
             }
 
             if (empty($rowData) && !$inClassRange) {
@@ -168,7 +263,7 @@ class RekapKehadiranSenseiController extends Controller
             'kelas_sensei_id' => 'required|exists:kelas_sensei,id',
             'user_id' => 'required|exists:users,id',
             'tanggal' => 'required|date',
-            'status' => 'required|in:HADIR,TERLAMBAT,PULANG LEBIH AWAL,TIDAK ABSEN PULANG,ALPA,LIBUR',
+            'status' => 'required|in:HADIR,TERLAMBAT,PULANG LEBIH AWAL,TIDAK ABSEN PULANG,ALPA,IZIN,LIBUR',
             'jam_masuk' => 'nullable|date_format:H:i',
             'jam_pulang' => 'nullable|date_format:H:i',
             'foto_masuk' => 'nullable|image|max:5120',
@@ -290,28 +385,57 @@ class RekapKehadiranSenseiController extends Controller
 
     public function tableData(Request $request)
     {
-        $kelasList = KelasSensei::with('batchRelasi', 'user')
+        $kelasCollection = KelasSensei::with('batchRelasi', 'user')
             ->where('status', 'aktif')
             ->orderBy('created_at', 'desc')
+            ->get();
+
+        $izinByKelas = IzinSensei::with('pengganti:id,name')
+            ->whereIn('kelas_sensei_id', $kelasCollection->pluck('id'))
+            ->where('status', 'APPROVED')
             ->get()
-            ->map(function ($kelas) {
+            ->groupBy('kelas_sensei_id');
+
+        $kelasList = $kelasCollection
+            ->map(function ($kelas) use ($izinByKelas) {
                 $tglMulai = Carbon::parse($kelas->tanggal_mulai);
                 $tglSelesai = Carbon::parse($kelas->tanggal_selesai);
+                $tglMulaiStr = $tglMulai->toDateString();
+                $tglSelesaiStr = $tglSelesai->toDateString();
                 $totalPertemuan = $tglMulai->copy()->diffInDaysFiltered(function ($date) {
                     if ($date->dayOfWeek === 0 || $date->dayOfWeek === 6) return false;
                     if (\App\Models\HariLibur::apakahLibur($date->toDateString())) return false;
                     return true;
                 }, $tglSelesai->copy()->addSecond());
 
+                $tanggalIzin = [];
+                $pengganti = [];
+                foreach ($izinByKelas->get($kelas->id, collect()) as $izin) {
+                    foreach ($this->tanggalIzin($izin) as $tanggal) {
+                        if ($tanggal >= $tglMulaiStr && $tanggal <= $tglSelesaiStr) {
+                            $tanggalIzin[$tanggal] = true;
+                        }
+                    }
+
+                    $namaPengganti = $this->namaPengganti($izin);
+                    if ($namaPengganti) {
+                        $pengganti[$namaPengganti] = true;
+                    }
+                }
+
                 $absensi = AbsensiSensei::where('kelas_sensei_id', $kelas->id)->get();
                 $hadir = $absensi->where('status', 'HADIR')->count();
                 $terlambat = $absensi->where('status', 'TERLAMBAT')->count();
-                $alpa = $absensi->where('status', 'ALPA')->count();
+                $alpa = $absensi->where('status', 'ALPA')
+                    ->reject(fn ($absen) => isset($tanggalIzin[$absen->tanggal->toDateString()]))
+                    ->count();
                 $libur = $absensi->where('status', 'LIBUR')->count();
                 $tidakAbsenPulang = $absensi->where('status', 'TIDAK ABSEN PULANG')->count();
                 $pulangLebihAwal = $absensi->where('status', 'PULANG LEBIH AWAL')->count();
                 $absenTerisi = $hadir + $terlambat + $alpa + $pulangLebihAwal + $tidakAbsenPulang;
-                $belumAbsen = max(0, $totalPertemuan - $absenTerisi - $libur);
+
+                $jumlahIzin = count($tanggalIzin);
+                $belumAbsen = max(0, $totalPertemuan - $absenTerisi - $libur - $jumlahIzin);
 
                 return [
                     'id' => $kelas->id,
@@ -319,8 +443,8 @@ class RekapKehadiranSenseiController extends Controller
                     'level' => $kelas->level,
                     'batch_id' => $kelas->batch_id,
                     'sensei_id' => $kelas->user_id,
-                    'tanggal_mulai' => $tglMulai->toDateString(),
-                    'tanggal_selesai' => $tglSelesai->toDateString(),
+                    'tanggal_mulai' => $tglMulaiStr,
+                    'tanggal_selesai' => $tglSelesaiStr,
                     'total_pertemuan' => $totalPertemuan,
                     'absen_terisi' => $absenTerisi,
                     'hadir' => $hadir,
@@ -329,11 +453,13 @@ class RekapKehadiranSenseiController extends Controller
                     'pulang_lebih_awal' => $pulangLebihAwal,
                     'tidak_absen_pulang' => $tidakAbsenPulang,
                     'libur' => $libur,
-                    'izin' => $libur,
+                    'izin' => $jumlahIzin,
+                    'pengganti' => count($pengganti) ? implode(', ', array_keys($pengganti)) : null,
+                    'pengganti_list' => array_keys($pengganti),
                     'belum_absen' => $belumAbsen,
                     'sensei' => $kelas->user->name ?? '-',
                     'batch_nama' => $kelas->batchRelasi->nama_batch ?? '-',
-                    'status' => Carbon::now()->toDateString() > $tglSelesai->toDateString() ? 'selesai' : $kelas->status,
+                    'status' => Carbon::now()->toDateString() > $tglSelesaiStr ? 'selesai' : $kelas->status,
                 ];
             });
 
