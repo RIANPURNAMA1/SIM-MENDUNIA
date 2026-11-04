@@ -42,6 +42,7 @@ export default function DaftarAffiliate() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [touched, setTouched] = useState<Record<string, boolean>>({})
+  const [email, setEmail] = useState('')
   const emailAvailabilityError = useEmailAvailability(email)
 
   useEffect(() => {
@@ -60,7 +61,6 @@ export default function DaftarAffiliate() {
   }, [emailAvailabilityError])
 
   const [nama, setNama] = useState('')
-  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
 const [showPassword, setShowPassword] = useState(false)
   const [telepon, setTelepon] = useState('')
