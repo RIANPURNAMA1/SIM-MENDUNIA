@@ -721,8 +721,32 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum', 'role:ADMIN_CABANG,MA
     Route::get('/evaluasi-instruktur', [AdminCabangController::class, 'evaluasiInstruktur']);
     Route::get('/lms', [AdminCabangController::class, 'lms']);
 
-    // Quiz
-    Route::prefix('quiz')->group(function () {
+    // Reuse existing endpoints for payment operations
+    Route::get('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemIndex']);
+    Route::post('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemStore']);
+    Route::post('/pembayaran-item/{pendaftarId}/set-lunas', [BiayaController::class, 'setLunas']);
+    Route::post('/pembayaran-item/{pendaftarId}/batal-lunas', [BiayaController::class, 'setBatalLunas']);
+    Route::post('/pendaftar/{id}/verify-payment', [PendaftaranController::class, 'verifyPayment']);
+    Route::post('/pendaftar/pembayaran/{pembayaranId}/reject-payment', [PendaftaranController::class, 'rejectPayment']);
+    Route::get('/pendaftar/{id}/invoice', [PendaftaranController::class, 'invoice']);
+    Route::get('/pendaftar/{id}/riwayat-pembayaran', [PendaftaranController::class, 'riwayatPembayaran']);
+    Route::post('/pendaftar/{id}/bayar-manual', [PendaftaranController::class, 'bayarManual']);
+    Route::post('/pendaftar/{id}/bayar-all', [PendaftaranController::class, 'bayarAll']);
+    Route::post('/pendaftar/{id}/update-status', [PendaftaranController::class, 'updateStatus']);
+    Route::post('/pendaftar/{id}/update-kandidat', [PendaftaranController::class, 'updateKandidat']);
+
+    // Biaya & Batch Biaya
+    Route::get('/biaya-kategori', [BiayaController::class, 'kategoriIndexFlat']);
+    Route::get('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaIndex']);
+});
+
+// ========== Quiz / Bank Paket Soal (Admin Pusat & Admin Cabang) ==========
+// Prefix tetap /admin-cabang/quiz karena dipakai bersama oleh halaman LMS pusat (/lms/*)
+// dan halaman LMS admin cabang (/admin-cabang/lms/*). Scoping per cabang ditangani di
+// AdminQuizController (isGlobal/getBranchBatchIds), jadi role pusat juga harus bisa masuk.
+Route::prefix('admin-cabang/quiz')
+    ->middleware(['auth:sanctum', 'role:HR,MANAGER,ADMIN,ADMIN_PUSAT,ADMIN_CABANG,MANAGER_CABANG'])
+    ->group(function () {
         Route::get('/meta', [AdminQuizController::class, 'meta']);
         Route::get('/pakets', [AdminQuizController::class, 'index']);
         Route::post('/pakets', [AdminQuizController::class, 'store']);
@@ -755,25 +779,6 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum', 'role:ADMIN_CABANG,MA
         Route::post('/categories/{id}', [AdminQuizController::class, 'updateCategory']);
         Route::delete('/categories/{id}', [AdminQuizController::class, 'destroyCategory']);
     });
-
-    // Reuse existing endpoints for payment operations
-    Route::get('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemIndex']);
-    Route::post('/pembayaran-item/{pendaftarId}', [BiayaController::class, 'pembayaranItemStore']);
-    Route::post('/pembayaran-item/{pendaftarId}/set-lunas', [BiayaController::class, 'setLunas']);
-    Route::post('/pembayaran-item/{pendaftarId}/batal-lunas', [BiayaController::class, 'setBatalLunas']);
-    Route::post('/pendaftar/{id}/verify-payment', [PendaftaranController::class, 'verifyPayment']);
-    Route::post('/pendaftar/pembayaran/{pembayaranId}/reject-payment', [PendaftaranController::class, 'rejectPayment']);
-    Route::get('/pendaftar/{id}/invoice', [PendaftaranController::class, 'invoice']);
-    Route::get('/pendaftar/{id}/riwayat-pembayaran', [PendaftaranController::class, 'riwayatPembayaran']);
-    Route::post('/pendaftar/{id}/bayar-manual', [PendaftaranController::class, 'bayarManual']);
-    Route::post('/pendaftar/{id}/bayar-all', [PendaftaranController::class, 'bayarAll']);
-    Route::post('/pendaftar/{id}/update-status', [PendaftaranController::class, 'updateStatus']);
-    Route::post('/pendaftar/{id}/update-kandidat', [PendaftaranController::class, 'updateKandidat']);
-
-    // Biaya & Batch Biaya
-    Route::get('/biaya-kategori', [BiayaController::class, 'kategoriIndexFlat']);
-    Route::get('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaIndex']);
-});
 
 // ========== Manager Cabang Routes ==========
 // Manager cabang berfokus pada monitoring data & operasional lingkup cabang.
