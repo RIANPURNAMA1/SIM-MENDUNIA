@@ -329,8 +329,18 @@ class KehadiranSenseiController extends Controller
         $level = $request->level;
         $status = $request->status;
 
+        // Manager cabang hanya melihat kehadiran pada cabang yang ditugaskan.
+        $cabangIds = null;
+        if ($request->user()?->role === 'MANAGER_CABANG') {
+            $cabangIds = $request->user()->cabang_ids ?? [];
+        }
+
         $query = AbsensiSensei::with(['user', 'kelasSensei.user', 'kelasSensei.batchRelasi'])
             ->whereBetween('tanggal', [$start_date, $end_date]);
+
+        if ($cabangIds !== null) {
+            $query->whereHas('kelasSensei.batchRelasi', fn($q) => $q->whereIn('cabang_id', $cabangIds));
+        }
 
         if ($user_id) $query->where('user_id', $user_id);
         if ($kelas_id) $query->where('kelas_sensei_id', $kelas_id);
@@ -396,12 +406,18 @@ class KehadiranSenseiController extends Controller
         ];
 
         $list_sensei = User::whereIn('role', ['KARYAWAN', 'GURU'])
-            ->whereHas('kelasSensei')
+            ->whereHas('kelasSensei', function ($q) use ($cabangIds) {
+                if ($cabangIds !== null) {
+                    $q->whereHas('batchRelasi', fn($batch) => $batch->whereIn('cabang_id', $cabangIds));
+                }
+            })
             ->with(['kelasSensei' => fn($q) => $q->orderBy('nama_kelas', 'asc')])
             ->orderBy('name', 'asc')
             ->get();
 
-        $list_batch = \App\Models\Batch::orderBy('nama_batch', 'asc')->get();
+        $list_batch = \App\Models\Batch::when($cabangIds !== null, fn($q) => $q->whereIn('cabang_id', $cabangIds))
+            ->orderBy('nama_batch', 'asc')
+            ->get();
 
         return response()->json([
             'success' => true,

@@ -45,6 +45,21 @@ class RekapKehadiranSenseiController extends Controller
         return $nama ?: null;
     }
 
+    /**
+     * Batasi data ke cabang milik manager cabang yang sedang login.
+     * Mengembalikan null untuk role lain (tanpa pembatasan).
+     */
+    private function managerCabangIds(?Request $request = null): ?array
+    {
+        $user = $request?->user() ?? request()->user();
+
+        if ($user?->role === 'MANAGER_CABANG') {
+            return $user->cabang_ids ?? [];
+        }
+
+        return null;
+    }
+
     public function index()
     {
         $sensei = User::whereIn('role', ['KARYAWAN', 'GURU'])
@@ -55,10 +70,16 @@ class RekapKehadiranSenseiController extends Controller
         return view('admin.rekap-kehadiran-sensei', compact('sensei'));
     }
 
-    public function apiIndex()
+    public function apiIndex(Request $request)
     {
+        $cabangIds = $this->managerCabangIds($request);
+
         $sensei = User::whereIn('role', ['KARYAWAN', 'GURU'])
-            ->whereHas('kelasSensei')
+            ->whereHas('kelasSensei', function ($q) use ($cabangIds) {
+                if ($cabangIds !== null) {
+                    $q->whereHas('batchRelasi', fn($batch) => $batch->whereIn('cabang_id', $cabangIds));
+                }
+            })
             ->with('divisi')
             ->orderBy('name', 'asc')
             ->get();
@@ -77,8 +98,10 @@ class RekapKehadiranSenseiController extends Controller
         $daysInMonth = Carbon::create($tahun, $bulan, 1)->daysInMonth;
 
         $user = User::findOrFail($userId);
+        $cabangIds = $this->managerCabangIds($request);
 
         $kelasList = KelasSensei::with('batchRelasi.cabang')->where('user_id', $userId)
+            ->when($cabangIds !== null, fn($q) => $q->whereHas('batchRelasi', fn($batch) => $batch->whereIn('cabang_id', $cabangIds)))
             ->where('status', 'aktif')
             ->orderBy('nama_kelas', 'asc')
             ->get()
@@ -117,6 +140,7 @@ class RekapKehadiranSenseiController extends Controller
             ->map(fn($k) => ['id' => $k['batch_cabang_id'], 'nama_cabang' => $k['batch_cabang_nama']])->values();
 
         $absensis = AbsensiSensei::where('user_id', $userId)
+            ->when($cabangIds !== null, fn($q) => $q->whereIn('kelas_sensei_id', $kelasList->pluck('id')))
             ->whereMonth('tanggal', $bulan)
             ->whereYear('tanggal', $tahun)
             ->with('kelasSensei')
@@ -131,6 +155,7 @@ class RekapKehadiranSenseiController extends Controller
         $izinMap = [];
         $izinList = IzinSensei::with('pengganti:id,name')
             ->where('user_id', $userId)
+            ->when($cabangIds !== null, fn($q) => $q->whereIn('kelas_sensei_id', $kelasList->pluck('id')))
             ->where('status', 'APPROVED')
             ->whereDate('tgl_mulai', '<=', $akhirBulan)
             ->whereDate('tgl_selesai', '>=', $awalBulan)
@@ -325,9 +350,11 @@ class RekapKehadiranSenseiController extends Controller
     {
         $user = User::findOrFail($userId);
         $today = Carbon::now()->toDateString();
+        $cabangIds = $this->managerCabangIds();
 
         $riwayat = KelasSensei::with('batchRelasi.cabang')
             ->where('user_id', $userId)
+            ->when($cabangIds !== null, fn($q) => $q->whereHas('batchRelasi', fn($batch) => $batch->whereIn('cabang_id', $cabangIds)))
             ->orderBy('tanggal_mulai', 'desc')
             ->get()
             ->map(function ($kelas) use ($today) {
@@ -385,7 +412,10 @@ class RekapKehadiranSenseiController extends Controller
 
     public function tableData(Request $request)
     {
+        $cabangIds = $this->managerCabangIds($request);
+
         $kelasCollection = KelasSensei::with('batchRelasi', 'user')
+            ->when($cabangIds !== null, fn($q) => $q->whereHas('batchRelasi', fn($batch) => $batch->whereIn('cabang_id', $cabangIds)))
             ->where('status', 'aktif')
             ->orderBy('created_at', 'desc')
             ->get();

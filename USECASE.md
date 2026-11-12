@@ -14,6 +14,7 @@ Dibuat berdasarkan implementasi aktual pada `routes/web.php`, `routes/api.php`, 
 | `HR` | Human Resource | Semua fitur admin (kecuali Affiliate Dashboard) |
 | `ACCOUNTING` | Bagian Keuangan | Khusus dashboard & data keuangan |
 | `ADMIN_CABANG` | Admin Cabang | Data & operasional lingkup cabang tertentu |
+| `MANAGER_CABANG` | Manager Cabang | Monitoring data, akademik, kehadiran & keuangan lingkup cabang tertentu |
 | `KARYAWAN` | Karyawan | Mobile: absensi, izin, lembur, jadwal, profil |
 | `GURU` | Guru / Sensei | Mobile guru: kelas, absensi, penilaian, LMS |
 | `KANDIDAT` | Siswa / Kandidat | Dashboard siswa: profil, absensi, pembayaran, LMS, nilai |
@@ -29,7 +30,7 @@ Dibuat berdasarkan implementasi aktual pada `routes/web.php`, `routes/api.php`, 
   1. User membuka halaman login
   2. User mengisi email & password
   3. Sistem memverifikasi kredensial & mencatat login ke `login_logs`
-  4. Sistem mengarahkan ke dashboard sesuai role (Manager/HR → `/`, Karyawan → `/dashboard-karyawan`, Guru → `/guru-dashboard`, Siswa → `/siswa-dashboard`, Affiliate → `/affiliate-dashboard`, Admin Cabang → `/admin-cabang`)
+  4. Sistem mengarahkan ke dashboard sesuai role (Manager/HR → `/`, Karyawan → `/dashboard-karyawan`, Guru → `/guru-dashboard`, Siswa → `/siswa-dashboard`, Affiliate → `/affiliate-dashboard`, Admin Cabang → `/admin-cabang`, Manager Cabang → `/manager-cabang`)
 - **Alur Alternatif:**
   - Kredensial salah → sistem menampilkan pesan error, user mengulang
   - Akun nonaktif → sistem menolak login
@@ -540,15 +541,74 @@ Menggunakan dashboard affiliate (`/affiliate-dashboard`).
 
 ---
 
+## 10. Use Case Role MANAGER_CABANG
+
+Role monitoring dengan cakupan terbatas pada cabang yang ditugaskan (`cabang_ids`). Manager Cabang tidak dapat mengubah data di luar cabangnya dan tidak memiliki akses ke dashboard admin pusat.
+
+### 10.1 UC047 — Dashboard Manager Cabang
+
+- **Aktor:** MANAGER_CABANG
+- **Alur Normal:**
+  1. Login → masuk `/manager-cabang`
+  2. Lihat statistik kandidat, siswa aktif, sensei, kelas, evaluasi, dan persentase kehadiran
+  3. Lihat ringkasan keuangan cabang (tagihan, terkumpul, outstanding, pendapatan, pengeluaran)
+  4. Lihat grafik 6 bulan terakhir, daftar batch, pembayaran/pengeluaran/evaluasi terbaru
+- **Postcondition:** Kondisi cabang terpantau
+
+### 10.2 UC048 — Data Kandidat Cabang
+
+- **Aktor:** MANAGER_CABANG
+- **Alur Normal:**
+  1. Buka **Data Kandidat Cabang** (`/manager-cabang/kandidat`)
+  2. Cari/filter kandidat, lihat detail, job matching, dan invoice kandidat cabang
+- **Postcondition:** Data kandidat cabang terpantau
+
+### 10.3 UC049 — Data Akademik Cabang
+
+- **Aktor:** MANAGER_CABANG
+- **Alur Normal:**
+  1. **Evaluasi Instruktur** (`/manager-cabang/evaluasi-instruktur`)
+  2. **Kelas Sensei** (`/manager-cabang/kelas-sensei`)
+- **Postcondition:** Data akademik cabang terpantau
+
+### 10.4 UC050 — Kelola Data Guru / Sensei Cabang
+
+- **Aktor:** MANAGER_CABANG
+- **Alur Normal:**
+  1. Buka **Data Guru / Sensei** (`/manager-cabang/guru`)
+  2. Lihat daftar sensei cabang, tambah/atur sensei sesuai kebutuhan cabang
+- **Postcondition:** Data sensei cabang terkelola
+
+### 10.5 UC051 — Kelola Kehadiran Sensei & Kandidat
+
+- **Aktor:** MANAGER_CABANG
+- **Alur Normal:**
+  1. **Kehadiran Sensei** (`/manager-cabang/kehadiran-sensei`)
+  2. **Rekap Kehadiran Sensei** (`/manager-cabang/rekap-kehadiran-sensei`)
+  3. **Kehadiran Kandidat** (`/manager-cabang/kehadiran-kandidat`)
+  4. Data otomatis dibatasi pada cabang yang ditugaskan
+- **Postcondition:** Kehadiran cabang terpantau
+
+### 10.6 UC052 — Monitoring Keuangan Cabang
+
+- **Aktor:** MANAGER_CABANG
+- **Alur Normal:**
+  1. Buka **Monitoring Keuangan** (`/manager-cabang/keuangan`)
+  2. Lihat ringkasan tagihan, pendapatan, pengeluaran, dan laba
+  3. Lihat rekap bulanan, keuangan per batch, pengeluaran per kategori, serta transaksi terbaru
+- **Postcondition:** Kondisi keuangan cabang terpantau
+
+---
+
 ## Lampiran: Matriks Role vs Fitur Absensi
 
-| Modul | ADMIN/MANAGER/HR | ACCOUNTING | ADMIN_CABANG | KARYAWAN | GURU | KANDIDAT | AFFILIATE |
-|-------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| Absen Masuk/Pulang Karyawan | Monitor + edit status | – | – | ✔ | – | – | – |
-| Absen Sensei | Monitor + riwayat | – | – | – | ✔ | – | – |
-| Absen Siswa | Kelola/mass | – | ✔ | – | ✔ | Scan QR | – |
-| Absen Khusus (timer) | Monitor | – | – | ✔ | – | – | – |
-| Izin/Cuti | Approve | – | – | Ajukan | Ajukan | – | – |
-| Lembur | Approve | – | – | Ajukan | – | – | – |
-| Jadwal Shift | Kelola | – | – | Lihat | – | – | – |
-| Monitoring Lokasi | ✔ | – | – | – | – | – | – |
+| Modul | ADMIN/MANAGER/HR | ACCOUNTING | ADMIN_CABANG | MANAGER_CABANG | KARYAWAN | GURU | KANDIDAT | AFFILIATE |
+|-------|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| Absen Masuk/Pulang Karyawan | Monitor + edit status | – | – | – | ✔ | – | – | – |
+| Absen Sensei | Monitor + riwayat | – | – | Monitor (cabang) | – | ✔ | – | – |
+| Absen Siswa | Kelola/mass | – | ✔ | Monitor (cabang) | – | ✔ | Scan QR | – |
+| Absen Khusus (timer) | Monitor | – | – | – | ✔ | – | – | – |
+| Izin/Cuti | Approve | – | – | – | Ajukan | Ajukan | – | – |
+| Lembur | Approve | – | – | – | Ajukan | – | – | – |
+| Jadwal Shift | Kelola | – | – | – | Lihat | – | – | – |
+| Monitoring Lokasi | ✔ | – | – | – | – | – | – | – |

@@ -141,8 +141,9 @@ function StatusKandidatBadge({ status, className = '' }: { status?: string | nul
   )
 }
 
-export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'cabang' } = {}) {
+export default function DataKandidat({ variant = 'all', basePath }: { variant?: 'all' | 'cabang'; basePath?: string } = {}) {
   const isCabang = variant === 'cabang'
+  const cabangBasePath = basePath || '/admin-cabang'
   const navigate = useNavigate()
   const batchColors = [
     { bg: 'bg-[#e8f0fe]', border: 'border-[#aecbfa]', text: 'text-[#1967d2]', badge: 'bg-[#d2e3fc] text-[#1967d2] border-[#aecbfa]' },
@@ -1563,7 +1564,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
           <span>Beranda</span>
         </Link>
         <ChevronRight size={12} className="text-[#9aa0a6]" />
-        <Link to={isCabang ? '/admin-cabang/pendaftar' : '/pendaftar'} className="transition-colors hover:text-[#1a73e8]">
+        <Link to={isCabang ? `${cabangBasePath}/pendaftar` : '/pendaftar'} className="transition-colors hover:text-[#1a73e8]">
           Pendaftaran
         </Link>
         <ChevronRight size={12} className="text-[#9aa0a6]" />
@@ -2062,7 +2063,7 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                                       <span>Merge Job Matching</span>
                                     </button>
                                     )}
-                                    <Link to={isCabang ? `/admin-cabang/pendaftar/${k.id}/invoice` : `/pendaftar/${k.id}/invoice`} onClick={() => setOpenActionId(null)}
+                                    <Link to={isCabang ? `${cabangBasePath}/pendaftar/${k.id}/invoice` : `/pendaftar/${k.id}/invoice`} onClick={() => setOpenActionId(null)}
                                       className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm text-[#3c4043] hover:bg-[#f8f9fa] transition-colors">
                                       <Receipt size={14} className="text-[#80868b]" />
                                       <span>Lihat Invoice</span>
@@ -2495,11 +2496,11 @@ export default function DataKandidat({ variant = 'all' }: { variant?: 'all' | 'c
                 className="flex w-full items-center justify-center gap-2 bg-[#0E6187] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1a3a5c] sm:w-auto">
                 <Edit3 size={14} /> Edit Data
               </button>
-              <button onClick={() => navigate(isCabang ? `/admin-cabang/kandidat/job-matching/${detailKandidat.id}` : `/data-kandidat/job-matching/${detailKandidat.id}`)}
+              <button onClick={() => navigate(isCabang ? `${cabangBasePath}/kandidat/job-matching/${detailKandidat.id}` : `/data-kandidat/job-matching/${detailKandidat.id}`)}
                 className="flex w-full items-center justify-center gap-2 border border-[#1a73e8] bg-white px-4 py-2 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#e8f2f7] sm:w-auto">
                 <ClipboardPaste size={14} /> Lengkapi Data Job Matching
               </button>
-              <Link to={isCabang ? `/admin-cabang/pendaftar/${detailKandidat.id}/invoice` : `/pendaftar/${detailKandidat.id}/invoice`}
+              <Link to={isCabang ? `${cabangBasePath}/pendaftar/${detailKandidat.id}/invoice` : `/pendaftar/${detailKandidat.id}/invoice`}
                 className="flex w-full items-center justify-center gap-2 border border-[#dadce0] bg-white px-4 py-2 text-sm font-semibold text-[#3c4043] transition hover:bg-[#f8f9fa] sm:w-auto">
                 <Receipt size={14} /> Lihat Invoice
               </Link>

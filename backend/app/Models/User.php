@@ -115,6 +115,11 @@ class User extends Authenticatable
         return $this->role === 'ADMIN_CABANG';
     }
 
+    public function isManagerCabang()
+    {
+        return $this->role === 'MANAGER_CABANG';
+    }
+
     public function isAccounting()
     {
         return $this->role === 'ACCOUNTING';

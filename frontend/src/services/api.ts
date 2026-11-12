@@ -490,6 +490,17 @@ export const adminCabangApi = {
     api.get('/admin-cabang/lms', { params }),
 }
 
+export const managerCabangApi = {
+  dashboard: () => api.get('/manager-cabang/dashboard'),
+  keuangan: () => api.get('/manager-cabang/keuangan'),
+  pengeluaran: (params?: Record<string, string | number | undefined>) =>
+    api.get('/manager-cabang/pengeluaran', { params }),
+  pengeluaranDashboard: () => api.get('/manager-cabang/pengeluaran/dashboard'),
+  pengeluaranRekap: (params?: Record<string, string | number | undefined>) =>
+    api.get('/manager-cabang/pengeluaran/rekap', { params }),
+  kategoriPengeluaran: () => api.get('/manager-cabang/kategori-pengeluaran'),
+}
+
 export const adminMutasiApi = {
   dashboard: () => api.get('/admin-mutasi/dashboard'),
 }

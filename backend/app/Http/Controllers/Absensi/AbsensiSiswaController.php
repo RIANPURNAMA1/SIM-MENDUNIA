@@ -389,7 +389,13 @@ class AbsensiSiswaController extends Controller
 
     public function apiIndex(Request $request)
     {
+        $cabangIds = null;
+        if ($request->user()?->role === 'MANAGER_CABANG') {
+            $cabangIds = $request->user()->cabang_ids ?? [];
+        }
+
         $kelasList = KelasSensei::with('user', 'batchRelasi')
+            ->when($cabangIds !== null, fn($q) => $q->whereHas('batchRelasi', fn($batch) => $batch->whereIn('cabang_id', $cabangIds)))
             ->where('status', 'aktif')
             ->orderBy('nama_kelas')
             ->get(['id', 'nama_kelas', 'batch_id', 'level', 'tanggal_mulai', 'tanggal_selesai']);
@@ -399,6 +405,10 @@ class AbsensiSiswaController extends Controller
             'siswa.batchRelasi',
             'kelasSensei',
         ]);
+
+        if ($cabangIds !== null) {
+            $query->whereHas('siswa', fn($q) => $q->whereIn('batch_id', \App\Models\Batch::whereIn('cabang_id', $cabangIds)->pluck('id')));
+        }
 
         if ($request->filled('tanggal')) {
             $query->where('tanggal', $request->tanggal);

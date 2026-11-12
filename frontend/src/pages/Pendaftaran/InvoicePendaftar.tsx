@@ -73,10 +73,10 @@ const statusBadge = (status: string) => {
   return <span className="font-semibold text-slate-700">{label}</span>
 }
 
-export default function InvoicePendaftar({ variant = 'all' }: { variant?: 'all' | 'cabang' | 'siswa' }) {
+export default function InvoicePendaftar({ variant = 'all', basePath }: { variant?: 'all' | 'cabang' | 'siswa'; basePath?: string }) {
   const isCabang = variant === 'cabang'
   const isSiswa = variant === 'siswa'
-  const backPath = isSiswa ? '/siswa-dashboard/pembayaran' : isCabang ? '/admin-cabang/kandidat' : '/pendaftar'
+  const backPath = isSiswa ? '/siswa-dashboard/pembayaran' : isCabang ? `${basePath || '/admin-cabang'}/kandidat` : '/pendaftar'
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const invoiceRef = useRef<HTMLDivElement>(null)

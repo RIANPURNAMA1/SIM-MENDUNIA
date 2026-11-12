@@ -409,6 +409,7 @@ interface QuizPaket {
   sertifikat_berlaku_hari?: number | null
   batch?: { id: number; nama_batch: string } | null
   course?: { id: number; title: string } | null
+  courses?: { id: number; title: string }[]
 }
 
 interface Question {
@@ -743,6 +744,8 @@ export default function DataCourse() {
   const [showBankPickerModal, setShowBankPickerModal] = useState(false)
   const [bankPickerPakets, setBankPickerPakets] = useState<QuizPaket[]>([])
   const [bankPickerLoading, setBankPickerLoading] = useState(false)
+  const [bankPickerCategory, setBankPickerCategory] = useState('')
+  const [bankPickerSearch, setBankPickerSearch] = useState('')
   const [bankPickedIds, setBankPickedIds] = useState<number[]>([])
   const [assigningPakets, setAssigningPakets] = useState(false)
 
@@ -1258,7 +1261,9 @@ export default function DataCourse() {
     setQuizLoading(true)
     adminQuizApi.pakets().then(res => {
       const all = res.data.pakets || []
-      setQuizPakets(all.filter((p: QuizPaket) => p.course_id === courseId))
+      setQuizPakets(all.filter((p: QuizPaket) => (
+        p.course_id === courseId || (p.courses ?? []).some(c => c.id === courseId)
+      )))
     }).catch(() => setQuizPakets([])).finally(() => setQuizLoading(false))
   }
 
@@ -1331,16 +1336,30 @@ export default function DataCourse() {
   const openBankPicker = () => {
     if (!activeCourse) return
     setBankPickedIds([])
+    setBankPickerCategory('')
+    setBankPickerSearch('')
     setBankPickerLoading(true)
     setShowBankPickerModal(true)
     adminQuizApi.pakets().then(res => {
-      const all = res.data.pakets || []
-      setBankPickerPakets(all.filter((p: QuizPaket) => !p.course_id))
+      setBankPickerPakets(res.data.pakets || [])
     }).catch(() => setBankPickerPakets([])).finally(() => setBankPickerLoading(false))
   }
 
   const toggleBankPick = (id: number) => {
+    const target = bankPickerPakets.find(p => p.id === id)
+    if (target && isPaketInActiveCourse(target)) return
     setBankPickedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
+  }
+
+  const toggleBankPickAll = () => {
+    const selectable = filteredBankPickerPakets
+      .filter(p => !isPaketInActiveCourse(p))
+      .map(p => p.id)
+    if (selectable.length === 0) return
+    const allSelected = selectable.every(id => bankPickedIds.includes(id))
+    setBankPickedIds(prev => allSelected
+      ? prev.filter(id => !selectable.includes(id))
+      : Array.from(new Set([...prev, ...selectable])))
   }
 
   const assignSelectedPakets = async () => {
@@ -1351,10 +1370,16 @@ export default function DataCourse() {
     }
     setAssigningPakets(true)
     try {
-      await adminQuizApi.assignBank({ course_id: activeCourse.id, paket_ids: bankPickedIds })
+      const res = await adminQuizApi.assignBank({ course_id: activeCourse.id, paket_ids: bankPickedIds })
+      const attached = Number(res.data?.attached ?? bankPickedIds.length)
+      const already = Number(res.data?.already_linked ?? 0)
       setShowBankPickerModal(false)
       fetchQuizPakets(activeCourse.id)
-      Swal.fire({ icon: 'success', title: `${bankPickedIds.length} paket ditambahkan`, text: `Berhasil ditambahkan ke kursus "${activeCourse.title}"`, timer: 2000, showConfirmButton: false })
+      const title = attached > 0 ? `${attached} paket ditambahkan` : 'Tidak ada paket baru'
+      const detail = attached > 0
+        ? `Berhasil ditambahkan ke kursus "${activeCourse.title}"${already > 0 ? `. ${already} paket sudah ada di kursus ini.` : ''}`
+        : `${already} paket sudah ada di kursus ini.`
+      Swal.fire({ icon: attached > 0 ? 'success' : 'info', title, text: detail, timer: 2400, showConfirmButton: false })
     } catch {
       Swal.fire({ icon: 'error', title: 'Gagal menambahkan paket' })
     } finally {
@@ -2643,6 +2668,25 @@ const visibleBatches = filterCabang
 
   const filteredQuizPakets = quizPakets.filter(p => !quizSearch || p.title.toLowerCase().includes(quizSearch.toLowerCase()))
 
+  const bankPickerCategoryNames = (() => {
+    const names = new Set<string>(quizCategories.map(c => c.name))
+    bankPickerPakets.forEach(p => { if (p.category) names.add(p.category) })
+    return Array.from(names).sort((a, b) => a.localeCompare(b))
+  })()
+
+  const bankPickerCategoryCount = (name: string) =>
+    name === '' ? bankPickerPakets.length : bankPickerPakets.filter(p => p.category === name).length
+
+  const isPaketInActiveCourse = (p: QuizPaket) =>
+    p.course_id === activeCourse?.id || (p.courses ?? []).some(c => c.id === activeCourse?.id)
+
+  const filteredBankPickerPakets = bankPickerPakets.filter(p => {
+    if (bankPickerCategory && p.category !== bankPickerCategory) return false
+    const q = bankPickerSearch.trim().toLowerCase()
+    if (q && !p.title.toLowerCase().includes(q)) return false
+    return true
+  })
+
   const allBatchLevels: string[] = []
   Object.values(batchLevels).forEach(arr => arr.forEach(l => { if (!allBatchLevels.includes(l)) allBatchLevels.push(l) }))
   const levelOptions = courseForm.batch_id ? [...(batchLevels[Number(courseForm.batch_id)] || [])] : [...allBatchLevels]
@@ -2695,7 +2739,7 @@ const visibleBatches = filterCabang
                     <p className="text-xs text-[#80868b] mt-0.5">
                       {[p.batch?.nama_batch, p.level && `Level ${p.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
                     </p>
-                    {source === 'bank' && p.course_id && (
+                    {source === 'bank' && (p.course_id || (p.courses?.length ?? 0) > 0) && (
                       <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-semibold px-1.5 py-0.5 bg-[#fef7e0] text-[#b06000] shrink-0">
                         <Link2 size={10} /> Terhubung ke kursus
                       </span>
@@ -5055,17 +5099,23 @@ const visibleBatches = filterCabang
       {/* ==================== BANK PICKER MODAL ==================== */}
       {showBankPickerModal && activeCourse && (
         <div className="fixed inset-0 #202124-\[#202124\] z-50 flex items-start justify-center pt-[10vh] pb-8 px-4 overflow-y-auto">
-          <div className="border border-[#dadce0] bg-white -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-2xl overflow-hidden">
-            <div className="px-5 py-4 border-b border-[#dadce0] flex items-center justify-between">
-              <h3 className="font-semibold text-[#202124]">Paket Soal dari Bank</h3>
-              <button onClick={() => setShowBankPickerModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors">
+          <div className="border border-[#dadce0] bg-white -[0_1px_3px_rgba(60,64,67,0.15),0_8px_24px_rgba(60,64,67,0.15)] w-full max-w-4xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#dadce0] flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="font-semibold text-[#202124]">Paket Soal dari Bank</h3>
+                <p className="text-xs text-[#80868b] mt-0.5">
+                  Paket yang sudah dipakai kursus lain tetap bisa dipakai di kursus ini
+                </p>
+              </div>
+              <button onClick={() => setShowBankPickerModal(false)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors shrink-0">
                 <X size={20} className="text-[#80868b]" />
               </button>
             </div>
-            <div className="p-5">
-              <p className="text-sm text-[#5f6368] mb-4">
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-[#5f6368]">
                 Centang paket soal dari bank untuk ditambahkan ke kursus <span className="font-semibold text-[#3c4043]">"{activeCourse.title}"</span>
               </p>
+
               {bankPickerLoading ? (
                 <div className="flex flex-col items-center justify-center py-16 text-[#80868b] text-sm gap-2">
                   <Loader2 size={24} className="animate-spin text-[#1a73e8]" /> Memuat paket soal...
@@ -5079,43 +5129,134 @@ const visibleBatches = filterCabang
                   <p className="text-[#5f6368] text-sm mt-1">Belum ada paket soal di bank paket</p>
                 </div>
               ) : (
-                <div className="divide-y divide-[#e8eaed] border border-[#dadce0] overflow-hidden max-h-[50vh] overflow-y-auto">
-                  {bankPickerPakets.map(p => (
-                    <label key={p.id} className="flex items-center gap-3 px-4 py-3 hover:bg-[#f8f9fa] cursor-pointer transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={bankPickedIds.includes(p.id)}
-                        onChange={() => toggleBankPick(p.id)}
-                        className="w-4 h-4 border-[#dadce0] text-[#1a73e8]"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-semibold text-[#202124] truncate">{p.title}</p>
-                          {p.category && (
-                            <span className="inline-block text-[10px] font-semibold px-2 py-0.5 bg-[#f1f3f4] text-[#1a73e8] shrink-0">{p.category}</span>
-                          )}
-                        </div>
-                        <p className="text-xs text-[#80868b] mt-0.5">
-                          {[p.batch?.nama_batch, p.level && `Level ${p.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 text-xs text-[#5f6368] shrink-0">
-                        <span>{p.questions_count} soal</span>
-                        <span className={`font-semibold ${p.status === 'aktif' ? 'text-[#137333]' : 'text-[#5f6368]'}`}>
-                          {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
+                <>
+                  {/* Kategori paket */}
+                  <div>
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <h4 className="text-xs font-bold text-[#202124] flex items-center gap-1.5">
+                        <LayoutGrid size={13} className="text-[#1a73e8]" /> Kategori Paket
+                      </h4>
+                      <span className="text-[11px] text-[#80868b]">{bankPickerPakets.length} paket di bank</span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                      <button type="button" onClick={() => setBankPickerCategory('')}
+                        className={`flex items-center gap-2 border px-2.5 py-2 text-left transition-all ${bankPickerCategory === '' ? 'bg-[#0E6187] border-[#1a73e8] text-white' : 'bg-white border-[#dadce0] hover:border-[#1a73e8]'}`}>
+                        <span className={`w-7 h-7 shrink-0 flex items-center justify-center ${bankPickerCategory === '' ? 'bg-white/15 text-white' : 'bg-[#f1f3f4] text-[#1a73e8]'}`}>
+                          <LayoutGrid size={13} />
                         </span>
-                      </div>
-                    </label>
-                  ))}
-                </div>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[11px] font-bold truncate">Semua Paket</span>
+                          <span className={`block text-[10px] font-medium ${bankPickerCategory === '' ? 'text-white/75' : 'text-[#80868b]'}`}>{bankPickerCategoryCount('')} paket</span>
+                        </span>
+                      </button>
+                      {bankPickerCategoryNames.map(name => {
+                        const active = bankPickerCategory === name
+                        return (
+                          <button key={name} type="button" onClick={() => setBankPickerCategory(name)}
+                            className={`flex items-center gap-2 border px-2.5 py-2 text-left transition-all ${active ? 'bg-[#0E6187] border-[#1a73e8] text-white' : 'bg-white border-[#dadce0] hover:border-[#1a73e8]'}`}>
+                            <span className={`w-7 h-7 shrink-0 flex items-center justify-center ${active ? 'bg-white/15 text-white' : 'bg-[#f1f3f4] text-[#1a73e8]'}`}>
+                              <LayoutGrid size={13} />
+                            </span>
+                            <span className="flex-1 min-w-0">
+                              <span className="block text-[11px] font-bold truncate" title={name}>{name}</span>
+                              <span className={`block text-[10px] font-medium ${active ? 'text-white/75' : 'text-[#80868b]'}`}>{bankPickerCategoryCount(name)} paket</span>
+                            </span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Pencarian + pilih semua */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    <div className="relative flex-1">
+                      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
+                      <input value={bankPickerSearch} onChange={e => setBankPickerSearch(e.target.value)}
+                        placeholder="Cari paket soal..."
+                        className={`${inputCls} py-2 pl-9`} />
+                    </div>
+                    <button type="button" onClick={toggleBankPickAll}
+                      className="shrink-0 inline-flex items-center justify-center gap-1.5 border border-[#dadce0] bg-white px-3 py-2 text-xs font-semibold text-[#1a73e8] hover:bg-[#f1f3f4] transition-colors">
+                      <ListChecks size={13} /> Pilih semua
+                    </button>
+                  </div>
+
+                  {filteredBankPickerPakets.length === 0 ? (
+                    <div className="border border-[#dadce0] px-6 py-10 text-center">
+                      <p className="text-sm font-semibold text-[#202124]">Tidak ada paket yang cocok</p>
+                      <p className="text-xs text-[#80868b] mt-1">Coba ubah kata kunci pencarian atau ganti kategori.</p>
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-[#e8eaed] border border-[#dadce0] overflow-hidden max-h-[42vh] overflow-y-auto">
+                      {filteredBankPickerPakets.map(p => {
+                        const inCourse = isPaketInActiveCourse(p)
+                        const otherCourses = (p.courses ?? []).filter(c => c.id !== activeCourse.id)
+                        const linkedCourse = p.course && p.course.id !== activeCourse.id ? p.course : null
+                        const courseLabels = [...new Map(
+                          [
+                            ...(linkedCourse ? [linkedCourse] : []),
+                            ...otherCourses,
+                          ].map(c => [c.id, c])
+                        ).values()]
+                        return (
+                          <label key={p.id}
+                            className={`flex items-start gap-3 px-4 py-3 transition-colors ${inCourse ? 'bg-[#f8f9fa] cursor-not-allowed' : 'hover:bg-[#f8f9fa] cursor-pointer'}`}>
+                            <input
+                              type="checkbox"
+                              checked={bankPickedIds.includes(p.id)}
+                              onChange={() => toggleBankPick(p.id)}
+                              disabled={inCourse}
+                              className="mt-0.5 w-4 h-4 border-[#dadce0] text-[#1a73e8] disabled:opacity-40"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className={`text-sm font-semibold truncate max-w-full ${inCourse ? 'text-[#5f6368]' : 'text-[#202124]'}`}>{p.title}</p>
+                                {p.category && (
+                                  <span className="inline-block text-[10px] font-semibold px-2 py-0.5 bg-[#f1f3f4] text-[#1a73e8] shrink-0">{p.category}</span>
+                                )}
+                                {inCourse && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 bg-[#e6f4ea] text-[#137333] shrink-0">
+                                    <CheckCircle2 size={10} /> Sudah di kursus ini
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-[#80868b] mt-0.5">
+                                {[p.batch?.nama_batch, p.level && `Level ${p.level}`].filter(Boolean).join(' · ') || 'Semua kandidat'}
+                              </p>
+                              {!inCourse && courseLabels.length > 0 && (
+                                <p className="flex items-center gap-1 text-[10px] text-[#b06000] mt-1">
+                                  <Link2 size={10} className="shrink-0" />
+                                  <span className="truncate">Juga dipakai: {courseLabels.map(c => c.title).join(', ')}</span>
+                                </p>
+                              )}
+                            </div>
+                            <div className="flex flex-col items-end gap-0.5 text-xs text-[#5f6368] shrink-0">
+                              <span className="font-semibold text-[#202124]">{p.questions_count} soal</span>
+                              <span className={`font-semibold ${p.status === 'aktif' ? 'text-[#137333]' : 'text-[#5f6368]'}`}>
+                                {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
+                              </span>
+                            </div>
+                          </label>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </div>
-            <div className="px-5 py-4 border-t border-[#dadce0] flex justify-end gap-3">
-              <button onClick={() => setShowBankPickerModal(false)} className="px-4 py-2.5 text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] transition-colors">Batal</button>
-              <button onClick={assignSelectedPakets} disabled={assigningPakets || bankPickedIds.length === 0}
-                className="px-4 py-2.5 bg-[#0E6187] text-white text-sm font-semibold hover:bgbg-[#e8f0fe] disabled:opacity-50 transition-colors">
-                {assigningPakets ? 'Menambahkan...' : `Tambahkan ${bankPickedIds.length > 0 ? `(${bankPickedIds.length})` : ''}`}
-              </button>
+            <div className="px-5 py-4 border-t border-[#dadce0] flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-xs text-[#5f6368]">
+                {bankPickedIds.length > 0
+                  ? <><b className="text-[#202124]">{bankPickedIds.length}</b> paket dipilih</>
+                  : 'Belum ada paket dipilih'}
+              </p>
+              <div className="flex items-center gap-2 justify-end">
+                <button onClick={() => setShowBankPickerModal(false)} className="px-4 py-2.5 text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] transition-colors">Batal</button>
+                <button onClick={assignSelectedPakets} disabled={assigningPakets || bankPickedIds.length === 0}
+                  className="px-4 py-2.5 bg-[#0E6187] text-white text-sm font-semibold hover:bgbg-[#e8f0fe] disabled:opacity-50 transition-colors">
+                  {assigningPakets ? 'Menambahkan...' : `Tambahkan ${bankPickedIds.length > 0 ? `(${bankPickedIds.length})` : ''}`}
+                </button>
+              </div>
             </div>
           </div>
         </div>

@@ -28,7 +28,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function KelasSenseiPage() {
   const location = useLocation();
-  const isAdminCabang = location.pathname.startsWith('/admin-cabang');
+  const isAdminCabang = location.pathname.startsWith('/admin-cabang') || location.pathname.startsWith('/manager-cabang');
   const [data, setData] = useState<KelasSenseiData[]>([]);
   const [listSensei, setListSensei] = useState<{ id: number; name: string }[]>([]);
   const [listBatch, setListBatch] = useState<{ id: number; nama_batch: string; warna?: string | null; cabang?: { id: number; nama_cabang: string } | null }[]>([]);

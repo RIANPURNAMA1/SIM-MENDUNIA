@@ -142,7 +142,10 @@ import CourseMonitorDashboard from './pages/Akademik/CourseMonitorDashboard'
 
 import GuruLayout from './layouts/GuruLayout'
 import AdminCabangLayout from './layouts/AdminCabangLayout'
+import ManagerCabangLayout from './layouts/ManagerCabangLayout'
 import AdminCabangDashboard from './pages/AdminCabang/AdminCabangDashboard'
+import ManagerCabangDashboard from './pages/ManagerCabang/ManagerCabangDashboard'
+import ManagerCabangKeuangan from './pages/ManagerCabang/ManagerCabangKeuangan'
 import AdminPusatDashboard from './pages/AdminPusat/AdminPusatDashboard'
 import AdminMutasiDashboard from './pages/AdminMutasi/AdminMutasiDashboard'
 import AdminCabangTagihan from './pages/AdminCabang/AdminCabangTagihan'
@@ -214,6 +217,7 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
       KARYAWAN: '/dashboard-karyawan',
       GURU: '/guru-dashboard',
       ADMIN_CABANG: '/admin-cabang',
+      MANAGER_CABANG: '/manager-cabang',
       ACCOUNTING: '/dashboard-keuangan',
       
       ADMIN_MUTASI: '/admin-mutasi',
@@ -230,6 +234,7 @@ function ProtectedRoute({ children, roleAllowed, roleBlocked }: { children: Reac
       KARYAWAN: '/dashboard-karyawan',
       GURU: '/guru-dashboard',
       ADMIN_CABANG: '/admin-cabang',
+      MANAGER_CABANG: '/manager-cabang',
       ACCOUNTING: '/dashboard-keuangan',
       ADMIN_MUTASI: '/admin-mutasi',
       ADMIN_PUSAT: '/admin-pusat',
@@ -508,7 +513,7 @@ function AppRoutes() {
       <Route
         path="/dashboard-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'MANAGER_CABANG', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
             <KaryawanDashboard />
           </ProtectedRoute>
         }
@@ -887,10 +892,122 @@ function AppRoutes() {
         }
       />
 
+      {/* ===== Manager Cabang ===== */}
+      <Route
+        path="/manager-cabang"
+        element={
+          <ProtectedRoute roleAllowed="MANAGER_CABANG">
+            <ManagerCabangLayout>
+              <ManagerCabangDashboard />
+            </ManagerCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager-cabang/kandidat"
+        element={
+          <ProtectedRoute roleAllowed="MANAGER_CABANG">
+            <ManagerCabangLayout>
+              <DataKandidat variant="cabang" basePath="/manager-cabang" />
+            </ManagerCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager-cabang/kandidat/job-matching/:id"
+        element={
+          <ProtectedRoute roleAllowed="MANAGER_CABANG">
+            <ManagerCabangLayout>
+              <AdminJobMatchingKandidat variant="cabang" basePath="/manager-cabang/kandidat" />
+            </ManagerCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager-cabang/evaluasi-instruktur"
+        element={
+          <ProtectedRoute roleAllowed="MANAGER_CABANG">
+            <ManagerCabangLayout>
+              <EvaluasiInstruktur />
+            </ManagerCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager-cabang/kelas-sensei"
+        element={
+          <ProtectedRoute roleAllowed="MANAGER_CABANG">
+            <ManagerCabangLayout>
+              <KelasSensei />
+            </ManagerCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager-cabang/guru"
+        element={
+          <ProtectedRoute roleAllowed="MANAGER_CABANG">
+            <ManagerCabangLayout>
+              <Guru />
+            </ManagerCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager-cabang/kehadiran-sensei"
+        element={
+          <ProtectedRoute roleAllowed="MANAGER_CABANG">
+            <ManagerCabangLayout>
+              <DataKehadiranSensei />
+            </ManagerCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager-cabang/rekap-kehadiran-sensei"
+        element={
+          <ProtectedRoute roleAllowed="MANAGER_CABANG">
+            <ManagerCabangLayout>
+              <RekapKehadiranSensei />
+            </ManagerCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager-cabang/kehadiran-kandidat"
+        element={
+          <ProtectedRoute roleAllowed="MANAGER_CABANG">
+            <ManagerCabangLayout>
+              <AbsensiSiswa />
+            </ManagerCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager-cabang/keuangan"
+        element={
+          <ProtectedRoute roleAllowed="MANAGER_CABANG">
+            <ManagerCabangLayout>
+              <ManagerCabangKeuangan />
+            </ManagerCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/manager-cabang/pendaftar/:id/invoice"
+        element={
+          <ProtectedRoute roleAllowed="MANAGER_CABANG">
+            <ManagerCabangLayout>
+              <InvoicePendaftar variant="cabang" basePath="/manager-cabang" />
+            </ManagerCabangLayout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/riwayat-absensi-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'MANAGER_CABANG', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
             <RiwayatAbsensiKaryawan />
           </ProtectedRoute>
         }
@@ -899,7 +1016,7 @@ function AppRoutes() {
       <Route
         path="/pengajuan-izin"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'MANAGER_CABANG', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
             <PengajuanIzin />
           </ProtectedRoute>
         }
@@ -908,7 +1025,7 @@ function AppRoutes() {
       <Route
         path="/lembur-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'MANAGER_CABANG', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
             <LemburKaryawan />
           </ProtectedRoute>
         }
@@ -917,7 +1034,7 @@ function AppRoutes() {
       <Route
         path="/jadwal-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'MANAGER_CABANG', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
             <JadwalKaryawan />
           </ProtectedRoute>
         }
@@ -926,7 +1043,7 @@ function AppRoutes() {
       <Route
         path="/profil-karyawan"
         element={
-          <ProtectedRoute roleBlocked={['MANAGER', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
+          <ProtectedRoute roleBlocked={['MANAGER', 'MANAGER_CABANG', 'HR', 'ADMIN', 'GURU', 'ACCOUNTING']}>
             <ProfilKaryawan />
           </ProtectedRoute>
         }
@@ -1197,7 +1314,7 @@ function AppRoutes() {
         path="/"
         element={
           isAuthenticated ? (
-            <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE', 'ADMIN_CABANG', 'ACCOUNTING', 'ADMIN_MUTASI', 'ADMIN_PUSAT']}>
+            <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE', 'ADMIN_CABANG', 'MANAGER_CABANG', 'ACCOUNTING', 'ADMIN_MUTASI', 'ADMIN_PUSAT']}>
               <DashboardLayout>
                 <DashboardHome />
               </DashboardLayout>
@@ -1225,7 +1342,7 @@ function AppRoutes() {
       <Route
         path="/*"
         element={
-          <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE', 'ADMIN_CABANG', 'ACCOUNTING', 'ADMIN_MUTASI']}>
+          <ProtectedRoute roleBlocked={['KARYAWAN', 'GURU', 'KANDIDAT', 'AFFILIATE', 'ADMIN_CABANG', 'MANAGER_CABANG', 'ACCOUNTING', 'ADMIN_MUTASI']}>
             <DashboardLayout>
               <Routes>
                 <Route path="/dashboard-absensi" element={<DashboardAbsensi />} />

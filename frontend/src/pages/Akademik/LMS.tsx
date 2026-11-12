@@ -158,6 +158,7 @@ interface CourseQuiz {
   cover_url: string | null
   course_id: number | null
   course_title: string | null
+  courses?: { id: number; title: string }[]
   questions_count: number
   time_limit_minutes: number
   max_attempts: number
@@ -652,7 +653,10 @@ export default function LMS() {
     quizApi.pakets().then(res => {
       const all = (res.data.pakets || []) as CourseQuiz[]
       // Jangan tampilkan paket yang belum punya soal (questions_count 0) ke kandidat.
-      setCourseQuizzes(all.filter(p => p.course_id === courseId && (Number(p.questions_count) || 0) > 0))
+      setCourseQuizzes(all.filter(p => (
+        (p.course_id === courseId || (p.courses ?? []).some(c => c.id === courseId))
+        && (Number(p.questions_count) || 0) > 0
+      )))
     }).catch(() => setCourseQuizzes([])).finally(() => setQuizLoading(false))
   }
 

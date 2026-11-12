@@ -13,7 +13,7 @@ class PengeluaranController extends Controller
     private function isCabangScoped()
     {
         $role = request()->user()->role;
-        return $role === 'ADMIN_CABANG';
+        return in_array($role, ['ADMIN_CABANG', 'MANAGER_CABANG']);
     }
 
     private function getCabangIds()

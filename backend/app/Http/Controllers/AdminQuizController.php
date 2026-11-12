@@ -118,7 +118,7 @@ class AdminQuizController extends Controller
         $batchIds = $this->getBranchBatchIds();
         $global = $this->isGlobal();
 
-        $query = QuizPaket::with(['batch:id,nama_batch', 'course:id,title', 'user:id,name'])
+        $query = QuizPaket::with(['batch:id,nama_batch', 'course:id,title', 'courses:id,title', 'user:id,name'])
             ->withCount(['questions', 'attempts']);
 
         if (!$global) {
@@ -943,6 +943,9 @@ $data = $request->validate([
         // atau pivot lms_lesson_quiz_pakets. Gabungkan semuanya supaya paket
         // yang dibuat dari bank soal / ditautkan ke pertemuan tetap terpantau.
         $paketIds = QuizPaket::where('course_id', $course->id)->pluck('id');
+        $paketIds = $paketIds->merge(
+            DB::table('lms_course_quiz_pakets')->where('course_id', $course->id)->pluck('quiz_paket_id')
+        );
 
         $lessonIds = $course->lessons()->pluck('id');
         if ($lessonIds->isNotEmpty()) {
@@ -1311,8 +1314,12 @@ $data = $request->validate([
             $allPaketIds[] = $id;
         }
 
-        // Semua paket milik kursus ini ikut diambil agar paket yang belum
+        // Semua paket milik kursus ini (termasuk yang dipakai bersama lewat
+        // pivot lms_course_quiz_pakets) ikut diambil agar paket yang belum
         // tertaut ke pertemuan mana pun tetap bisa dipantau.
+        foreach (DB::table('lms_course_quiz_pakets')->where('course_id', $course->id)->pluck('quiz_paket_id') as $id) {
+            $allPaketIds[] = (int) $id;
+        }
         foreach (QuizPaket::where('course_id', $course->id)->pluck('id') as $id) {
             $allPaketIds[] = (int) $id;
         }
@@ -1435,7 +1442,7 @@ $data = $request->validate([
             }
         }
         $orphanPakets = [];
-        foreach (QuizPaket::where('course_id', $course->id)->withCount('questions')->get() as $p) {
+        foreach (QuizPaket::whereIn('id', $allPaketIds)->withCount('questions')->get() as $p) {
             if (!isset($linked[(int) $p->id])) {
                 $orphanPakets[] = $paketRow((int) $p->id);
             }
@@ -1607,13 +1614,39 @@ $data = $request->validate([
             'paket_ids.*' => 'integer|exists:quiz_pakets,id',
         ]);
 
-        $attached = QuizPaket::whereIn('id', $data['paket_ids'])
+        $courseId = (int) $data['course_id'];
+        $paketIds = array_values(array_unique(array_map('intval', $data['paket_ids'])));
+
+        // Paket yang belum punya kursus utama dijadikan milik kursus ini.
+        // Paket yang sudah dipakai kursus lain tetap di kursus asalnya, lalu
+        // ditautkan lewat pivot sehingga bisa dipakai di banyak kursus.
+        QuizPaket::whereIn('id', $paketIds)
             ->whereNull('course_id')
-            ->update(['course_id' => $data['course_id']]);
+            ->update(['course_id' => $courseId]);
+
+        $existing = DB::table('lms_course_quiz_pakets')
+            ->where('course_id', $courseId)
+            ->whereIn('quiz_paket_id', $paketIds)
+            ->pluck('quiz_paket_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $newIds = array_values(array_diff($paketIds, $existing));
+        if ($newIds) {
+            $now = now();
+            $rows = array_map(fn ($id) => [
+                'course_id' => $courseId,
+                'quiz_paket_id' => $id,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ], $newIds);
+            DB::table('lms_course_quiz_pakets')->insertOrIgnore($rows);
+        }
 
         return response()->json([
-            'attached' => $attached,
-            'course_id' => $data['course_id'],
+            'attached' => count($newIds),
+            'already_linked' => count($existing),
+            'course_id' => $courseId,
         ]);
     }
 

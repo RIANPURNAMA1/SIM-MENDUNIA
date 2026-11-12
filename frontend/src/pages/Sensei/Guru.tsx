@@ -6,7 +6,7 @@ import type { Guru } from "../../types";
 
 export default function GuruPage() {
   const location = useLocation();
-  const isAdminCabang = location.pathname.startsWith('/admin-cabang');
+  const isAdminCabang = location.pathname.startsWith('/admin-cabang') || location.pathname.startsWith('/manager-cabang');
   const [gurus, setGurus] = useState<Guru[]>([]);
   const [availableUsers, setAvailableUsers] = useState<{ id: number; name: string; email: string; role: string; foto_profil: string | null; already_guru: boolean }[]>([]);
   const [loading, setLoading] = useState(true);

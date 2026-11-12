@@ -4,12 +4,12 @@ import { ArrowLeft } from 'lucide-react'
 import api from '../../services/api'
 import MatchingJobForm from '../Siswa/MatchingJobForm'
 
-export default function AdminJobMatchingKandidat({ variant = 'all' }: { variant?: 'all' | 'cabang' }) {
+export default function AdminJobMatchingKandidat({ variant = 'all', basePath: basePathProp }: { variant?: 'all' | 'cabang'; basePath?: string }) {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const kandidatId = Number(id)
   const [nama, setNama] = useState('')
-  const basePath = variant === 'cabang' ? '/admin-cabang/kandidat' : '/data-kandidat'
+  const basePath = basePathProp || (variant === 'cabang' ? '/admin-cabang/kandidat' : '/data-kandidat')
 
   useEffect(() => {
     if (!id) return

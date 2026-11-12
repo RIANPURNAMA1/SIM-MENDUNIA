@@ -51,6 +51,7 @@ use App\Http\Controllers\PertemuanController;
 use App\Http\Controllers\Api\CouponController;
 use App\Http\Controllers\CompanyProfileController;
 use App\Http\Controllers\AdminCabangController;
+use App\Http\Controllers\ManagerCabangController;
 use App\Http\Controllers\AdminMutasiController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\LmsController;
@@ -193,7 +194,7 @@ Route::prefix('izin-sensei')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [IzinSenseiController::class, 'index']);
     Route::post('/', [IzinSenseiController::class, 'store']);
 
-    Route::middleware('role:HR,MANAGER,ADMIN,ADMIN_CABANG,ADMIN_PUSAT')->group(function () {
+    Route::middleware('role:HR,MANAGER,ADMIN,ADMIN_CABANG,MANAGER_CABANG,ADMIN_PUSAT')->group(function () {
         Route::post('/{id}/approve', [IzinSenseiController::class, 'approve']);
         Route::post('/{id}/reject', [IzinSenseiController::class, 'reject']);
     });
@@ -231,7 +232,7 @@ Route::get('/monitoring-lokasi', [MonitoringController::class, 'apiMonitoring'])
 Route::get('/data-agenda', [AdminAgendaController::class, 'apiIndex']);
 
 // Rekap Kehadiran Sensei
-Route::prefix('rekap-kehadiran-sensei')->group(function () {
+Route::prefix('rekap-kehadiran-sensei')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [RekapKehadiranSenseiController::class, 'apiIndex']);
     Route::get('/table-data', [RekapKehadiranSenseiController::class, 'tableData']);
     Route::get('/riwayat/{userId}', [RekapKehadiranSenseiController::class, 'riwayatKelas']);
@@ -240,7 +241,7 @@ Route::prefix('rekap-kehadiran-sensei')->group(function () {
 });
 
 // Kehadiran Sensei
-Route::prefix('kehadiran-sensei')->group(function () {
+Route::prefix('kehadiran-sensei')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [KehadiranSenseiController::class, 'apiIndex']);
     Route::get('/kelas/{userId}', [KehadiranSenseiController::class, 'getKelasByUser']);
     Route::post('/update-status', [KehadiranSenseiController::class, 'apiUpdateStatus']);
@@ -259,7 +260,7 @@ Route::post('/guru/gaji', [PengajuanGajiController::class, 'store'])->middleware
 Route::prefix('gaji')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [PengajuanGajiController::class, 'index']);
     Route::post('/{id}/status', [PengajuanGajiController::class, 'updateStatus'])
-        ->middleware('role:HR,MANAGER,ACCOUNTING,ADMIN_CABANG,ADMIN_PUSAT');
+        ->middleware('role:HR,MANAGER,ACCOUNTING,ADMIN_CABANG,MANAGER_CABANG,ADMIN_PUSAT');
 });
 
 // Kelas Sensei
@@ -337,7 +338,7 @@ Route::prefix('raport')->group(function () {
 });
 
 // Absensi Siswa
-Route::prefix('absensi-siswa')->group(function () {
+Route::prefix('absensi-siswa')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [AbsensiSiswaController::class, 'apiIndex']);
     Route::post('/', [AbsensiSiswaController::class, 'store']);
     Route::post('/mass', [AbsensiSiswaController::class, 'massStore']);
@@ -691,7 +692,7 @@ Route::middleware('auth')->group(function () {
 });
 
 // ========== Admin Cabang Routes ==========
-Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
+Route::prefix('admin-cabang')->middleware(['auth:sanctum', 'role:ADMIN_CABANG,MANAGER_CABANG'])->group(function () {
     Route::get('/dashboard', [AdminCabangController::class, 'dashboard']);
     Route::get('/pendaftar', [AdminCabangController::class, 'pendaftar']);
     Route::get('/tagihan', [AdminCabangController::class, 'tagihan']);
@@ -774,6 +775,19 @@ Route::prefix('admin-cabang')->middleware(['auth:sanctum'])->group(function () {
     Route::get('/batch-biaya/{batchId}', [BiayaController::class, 'batchBiayaIndex']);
 });
 
+// ========== Manager Cabang Routes ==========
+// Manager cabang berfokus pada monitoring data & operasional lingkup cabang.
+Route::prefix('manager-cabang')->middleware(['auth:sanctum', 'role:MANAGER_CABANG'])->group(function () {
+    Route::get('/dashboard', [ManagerCabangController::class, 'dashboard']);
+    Route::get('/keuangan', [ManagerCabangController::class, 'keuangan']);
+
+    // Monitoring pengeluaran cabang (read-only)
+    Route::get('/pengeluaran', [PengeluaranController::class, 'index']);
+    Route::get('/pengeluaran/dashboard', [PengeluaranController::class, 'dashboard']);
+    Route::get('/pengeluaran/rekap', [PengeluaranController::class, 'rekap']);
+    Route::get('/kategori-pengeluaran', [PengeluaranController::class, 'kategoriIndex']);
+});
+
 // ========== Admin Mutasi Routes ==========
 Route::prefix('admin-mutasi')->middleware(['auth:sanctum', 'role:ADMIN_MUTASI'])->group(function () {
     Route::get('/dashboard', [AdminMutasiController::class, 'dashboard']);
@@ -787,8 +801,8 @@ Route::prefix('admin-pusat')->middleware(['auth:sanctum', 'role:ADMIN_PUSAT'])->
 // ========== Evaluasi Instruktur (MANAGER/HR/ADMIN/ACCOUNTING) ==========
 Route::middleware(['auth:sanctum'])->get('/evaluasi-instruktur', [AdminCabangController::class, 'evaluasiInstrukturAll']);
 
-// ========== Pengeluaran (HR, MANAGER, ACCOUNTING & ADMIN CABANG) ==========
-Route::middleware(['auth:sanctum', 'role:HR,MANAGER,ACCOUNTING,ADMIN_CABANG'])->prefix('pengeluaran')->group(function () {
+// ========== Pengeluaran (HR, MANAGER, ACCOUNTING, ADMIN CABANG & MANAGER CABANG) ==========
+Route::middleware(['auth:sanctum', 'role:HR,MANAGER,ACCOUNTING,ADMIN_CABANG,MANAGER_CABANG'])->prefix('pengeluaran')->group(function () {
     Route::get('/kategori', [PengeluaranController::class, 'kategoriIndex']);
     Route::post('/kategori', [PengeluaranController::class, 'kategoriStore']);
     Route::put('/kategori/{id}', [PengeluaranController::class, 'kategoriUpdate']);

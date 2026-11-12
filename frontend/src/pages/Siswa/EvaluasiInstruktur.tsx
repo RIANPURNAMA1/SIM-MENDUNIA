@@ -89,7 +89,7 @@ function ratingBadge(rating: number | null) {
 
 export default function EvaluasiInstruktur() {
   const location = useLocation()
-  const isAdminCabang = location.pathname.startsWith('/admin-cabang')
+  const isAdminCabang = location.pathname.startsWith('/admin-cabang') || location.pathname.startsWith('/manager-cabang')
   const [data, setData] = useState<InstrukturData[]>([])
   const [filters, setFilters] = useState<Filters>({ batches: [], levels: [], gurus: [] })
   const [loading, setLoading] = useState(true)

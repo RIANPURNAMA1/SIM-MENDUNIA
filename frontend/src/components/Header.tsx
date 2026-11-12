@@ -130,8 +130,8 @@ export default function Header({ onToggleSidebar }: HeaderProps) {
         {/* Dark mode toggle */}
         <ThemeToggle />
 
-        {/* Notifications (hidden for ADMIN_CABANG) */}
-        {user?.role !== 'ADMIN_CABANG' && (
+        {/* Notifications (hidden for ADMIN_CABANG & MANAGER_CABANG) */}
+        {user?.role !== 'ADMIN_CABANG' && user?.role !== 'MANAGER_CABANG' && (
         <div className="relative">
           <button
             onClick={() => setShowNotif(!showNotif)}

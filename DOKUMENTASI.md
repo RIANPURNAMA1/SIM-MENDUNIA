@@ -17,10 +17,11 @@
    - [6.7 HR & Operasional](#67-hr--operasional)
    - [6.8 Keuangan](#68-keuangan)
    - [6.9 Admin Cabang](#69-admin-cabang)
-   - [6.10 AI & Automasi](#610-ai--automasi)
-   - [6.11 Manajemen Proyek](#611-manajemen-proyek)
-   - [6.12 Evaluasi & Raport](#612-evaluasi--raport)
-   - [6.13 Notifikasi & Template](#613-notifikasi--template)
+   - [6.10 Manager Cabang](#610-manager-cabang)
+   - [6.11 AI & Automasi](#611-ai--automasi)
+   - [6.12 Manajemen Proyek](#612-manajemen-proyek)
+   - [6.13 Evaluasi & Raport](#613-evaluasi--raport)
+   - [6.14 Notifikasi & Template](#614-notifikasi--template)
 7. [API Endpoints](#7-api-endpoints)
 8. [Alur Penting](#8-alur-penting)
 9. [Frontend Routing](#9-frontend-routing)
@@ -315,18 +316,20 @@ backend/app/
 | **HR** | Semua fitur admin (kecuali Affiliate Dashboard) |
 | **ACCOUNTING** | Dashboard keuangan, pengeluaran, kategori pengeluaran |
 | **ADMIN_CABANG** | Dashboard cabang: kandidat, pendaftaran, tagihan, rekap per batch, pengeluaran, akademik (guru, kelas, jadwal level, penilaian, raport, lms) |
+| **MANAGER_CABANG** | Monitoring cabang: dashboard, kandidat, akademik (evaluasi instruktur, kelas sensei), data guru/sensei, kehadiran sensei/kandidat, monitoring keuangan |
 | **KARYAWAN** | Halaman mobile: dashboard, absensi, izin, lembur, jadwal, profil |
 | **GURU** | Mobile dashboard guru: kelas, absensi, penilaian harian, LMS, assignment |
 | **KANDIDAT** | Dashboard siswa: profil, absensi, pembayaran, LMS, nilai, evaluasi instruktur |
 | **AFFILIATE** | Dashboard affiliate: link, pendaftar, komisi, closing, pencairan, notifikasi |
 
 Rule di frontend (`App.tsx`):
-- Route `/` dan admin lainnya diblokir untuk `KANDIDAT`, `AFFILIATE`, `KARYAWAN`, `GURU`, `ADMIN_CABANG`, `ACCOUNTING`
+- Route `/` dan admin lainnya diblokir untuk `KANDIDAT`, `AFFILIATE`, `KARYAWAN`, `GURU`, `ADMIN_CABANG`, `MANAGER_CABANG`, `ACCOUNTING`
 - Route `/affiliate-dashboard` hanya untuk `AFFILIATE`
 - Route `/siswa-dashboard/*` hanya untuk `KANDIDAT`
 - Route `/guru-dashboard/*` hanya untuk `GURU`
-- Route `/dashboard-karyawan/*` diblokir untuk `MANAGER`, `HR`, `ADMIN`, `GURU`, `ACCOUNTING`
-- Route `/admin-cabang/*` hanya untuk `ADMIN_CABANG`
+- Route `/dashboard-karyawan/*` diblokir untuk `MANAGER`, `MANAGER_CABANG`, `HR`, `ADMIN`, `GURU`, `ACCOUNTING`
+- Route `/admin-cabang/*` untuk `ADMIN_CABANG` dan `MANAGER_CABANG`
+- Route `/manager-cabang/*` hanya untuk `MANAGER_CABANG`
 - Route `/dashboard-keuangan` untuk `ACCOUNTING`, `MANAGER`, `HR`, `ADMIN`
 
 ---
@@ -703,7 +706,32 @@ Rule di frontend (`App.tsx`):
 - Evaluasi Instruktur → `/admin-cabang/evaluasi-instruktur`
 - LMS → `/admin-cabang/lms`
 
-### 6.10 AI & Automasi
+### 6.10 Manager Cabang
+
+**Role Manager Cabang (`MANAGER_CABANG`):**
+- Role monitoring dengan layout, sidebar, dan dashboard terpisah
+- Hanya melihat data untuk cabang yang ditugaskan (`cabang_ids`)
+- Fokus pada monitoring data kandidat, akademik, kehadiran, dan keuangan cabang
+- Dapat mengelola data guru/sensei serta kehadiran sensei/kandidat lingkup cabang
+- Tidak memiliki akses ke dashboard admin pusat maupun fitur di luar cabangnya
+
+**Dashboard:**
+- Statistik kandidat, siswa aktif, sensei, kelas, evaluasi, dan persentase kehadiran
+- Ringkasan keuangan (tagihan, terkumpul, outstanding, pendapatan, pengeluaran)
+- Grafik 6 bulan terakhir, daftar batch, serta aktivitas terbaru
+
+**Sidebar Manager Cabang:**
+- Dashboard → `/manager-cabang`
+- Data Kandidat Cabang → `/manager-cabang/kandidat`
+- Evaluasi Instruktur → `/manager-cabang/evaluasi-instruktur`
+- Kelas Sensei → `/manager-cabang/kelas-sensei`
+- Data Guru / Sensei → `/manager-cabang/guru`
+- Kehadiran Sensei → `/manager-cabang/kehadiran-sensei`
+- Rekap Kehadiran Sensei → `/manager-cabang/rekap-kehadiran-sensei`
+- Kehadiran Kandidat → `/manager-cabang/kehadiran-kandidat`
+- Monitoring Keuangan → `/manager-cabang/keuangan`
+
+### 6.11 AI & Automasi
 
 **AI Chat:**
 - Chat dengan AI (Groq API) untuk informasi umum
@@ -725,7 +753,7 @@ Rule di frontend (`App.tsx`):
 - `app:notif-tidak-absen-pulang` — Notif tidak absen pulang (tiap jam)
 - `app:reminder-pembayaran` — Reminder pembayaran (harian 09:00)
 
-### 6.11 Manajemen Proyek
+### 6.12 Manajemen Proyek
 
 - CRUD proyek dengan list pekerjaan
 - Assign task ke karyawan
@@ -734,7 +762,7 @@ Rule di frontend (`App.tsx`):
 - Dashboard management proyek
 - Upload file via CKEditor
 
-### 6.12 Evaluasi & Raport
+### 6.13 Evaluasi & Raport
 
 **Evaluasi Level:**
 - Evaluasi per level untuk setiap siswa
@@ -753,7 +781,7 @@ Rule di frontend (`App.tsx`):
 - Siswa memberikan rating/evaluasi ke instruktur
 - Per level
 
-### 6.13 Notifikasi & Template
+### 6.14 Notifikasi & Template
 
 **WA Notification:**
 - Kirim notifikasi WA via Fonnte API
@@ -982,6 +1010,19 @@ Rule di frontend (`App.tsx`):
 | GET | `/admin-cabang/evaluasi-instruktur` | Evaluasi instruktur |
 | GET | `/admin-cabang/lms` | LMS cabang |
 
+### 7.6 Manager Cabang Endpoints
+
+| Method | Endpoint | Deskripsi |
+|--------|----------|-----------|
+| GET | `/manager-cabang/dashboard` | Dashboard monitoring cabang |
+| GET | `/manager-cabang/keuangan` | Monitoring keuangan cabang |
+| GET | `/manager-cabang/pengeluaran` | List pengeluaran cabang (read-only) |
+| GET | `/manager-cabang/pengeluaran/dashboard` | Ringkasan pengeluaran cabang |
+| GET | `/manager-cabang/pengeluaran/rekap` | Rekap pengeluaran cabang |
+| GET | `/manager-cabang/kategori-pengeluaran` | Kategori pengeluaran |
+
+Manager Cabang juga memakai endpoint `/admin-cabang/*` (read-only untuk kandidat & akademik) serta endpoint kehadiran (`/kehadiran-sensei`, `/rekap-kehadiran-sensei`, `/absensi-siswa`) yang otomatis dibatasi berdasarkan `cabang_ids`.
+
 ---
 
 ## 8. Alur Penting
@@ -1205,6 +1246,17 @@ Dashboard: profit/loss = pendapatan (total pembayaran) - pengeluaran
 | `/admin-cabang/raport` | ADMIN_CABANG | Raport |
 | `/admin-cabang/evaluasi-instruktur` | ADMIN_CABANG | EvaluasiInstruktur |
 | `/admin-cabang/lms` | ADMIN_CABANG | DataCourse |
+| `/manager-cabang` | MANAGER_CABANG | ManagerCabangDashboard |
+| `/manager-cabang/kandidat` | MANAGER_CABANG | DataKandidat |
+| `/manager-cabang/kandidat/job-matching/:id` | MANAGER_CABANG | AdminJobMatchingKandidat |
+| `/manager-cabang/evaluasi-instruktur` | MANAGER_CABANG | EvaluasiInstruktur |
+| `/manager-cabang/kelas-sensei` | MANAGER_CABANG | KelasSensei |
+| `/manager-cabang/guru` | MANAGER_CABANG | Guru |
+| `/manager-cabang/kehadiran-sensei` | MANAGER_CABANG | DataKehadiranSensei |
+| `/manager-cabang/rekap-kehadiran-sensei` | MANAGER_CABANG | RekapKehadiranSensei |
+| `/manager-cabang/kehadiran-kandidat` | MANAGER_CABANG | AbsensiSiswa |
+| `/manager-cabang/keuangan` | MANAGER_CABANG | ManagerCabangKeuangan |
+| `/manager-cabang/pendaftar/:id/invoice` | MANAGER_CABANG | InvoicePendaftar |
 
 
 coba agar terintegrasi datanya itu data matchng job itu terntergasri ke database sim mendunia 

@@ -302,7 +302,7 @@ class QuizController extends Controller
 
         $query = QuizPaket::aktif()
             ->withCount('questions')
-            ->with(['course:id,title', 'batch:id,nama_batch']);
+            ->with(['course:id,title', 'courses:id,title', 'batch:id,nama_batch']);
 
         $query->where(function ($q) use ($siswa) {
             $q->whereNull('batch_id')->orWhere('batch_id', $siswa->batch_id);

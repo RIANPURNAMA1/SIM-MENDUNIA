@@ -102,6 +102,15 @@ class QuizPaket extends Model
         return $this->belongsTo(Course::class, 'course_id');
     }
 
+    /**
+     * Kursus yang memakai paket ini. Satu paket bank boleh dipakai di banyak
+     * kursus, sedangkan course_id tetap menyimpan kursus asal/utama.
+     */
+    public function courses()
+    {
+        return $this->belongsToMany(Course::class, 'lms_course_quiz_pakets', 'quiz_paket_id', 'course_id');
+    }
+
     public function batch()
     {
         return $this->belongsTo(Batch::class, 'batch_id');

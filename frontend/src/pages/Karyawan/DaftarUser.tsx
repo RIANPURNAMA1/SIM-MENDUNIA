@@ -105,8 +105,8 @@ export default function DaftarUserPage() {
       setFormError('Nama, email, dan password wajib diisi')
       return
     }
-    if (form.role === 'ADMIN_CABANG' && form.cabang_ids.length === 0) {
-      setFormError('Admin Cabang wajib memilih minimal 1 cabang')
+    if ((form.role === 'ADMIN_CABANG' || form.role === 'MANAGER_CABANG') && form.cabang_ids.length === 0) {
+      setFormError(`${form.role === 'MANAGER_CABANG' ? 'Manager Cabang' : 'Admin Cabang'} wajib memilih minimal 1 cabang`)
       return
     }
     setCreating(true)
@@ -118,7 +118,7 @@ export default function DaftarUserPage() {
         role: form.role,
         status: form.status,
       }
-      if (form.role === 'ADMIN_CABANG') {
+      if (form.role === 'ADMIN_CABANG' || form.role === 'MANAGER_CABANG') {
         payload.cabang_ids = form.cabang_ids
       }
       await userApi.store(payload as any)
@@ -152,8 +152,8 @@ export default function DaftarUserPage() {
       setEditFormError('Nama dan email wajib diisi')
       return
     }
-    if (editForm.role === 'ADMIN_CABANG' && editForm.cabang_ids.length === 0) {
-      setEditFormError('Admin Cabang wajib memilih minimal 1 cabang')
+    if ((editForm.role === 'ADMIN_CABANG' || editForm.role === 'MANAGER_CABANG') && editForm.cabang_ids.length === 0) {
+      setEditFormError(`${editForm.role === 'MANAGER_CABANG' ? 'Manager Cabang' : 'Admin Cabang'} wajib memilih minimal 1 cabang`)
       return
     }
     setEditing(true)
@@ -165,7 +165,7 @@ export default function DaftarUserPage() {
         status: editForm.status,
       }
       if (editForm.password) payload.password = editForm.password
-      if (editForm.role === 'ADMIN_CABANG') payload.cabang_ids = editForm.cabang_ids
+      if (editForm.role === 'ADMIN_CABANG' || editForm.role === 'MANAGER_CABANG') payload.cabang_ids = editForm.cabang_ids
       await userApi.update(editForm.id, payload as any)
       setShowEditModal(false)
       fetchData()
@@ -221,12 +221,13 @@ export default function DaftarUserPage() {
       KANDIDAT: 'bg-[#fce8e6] text-[#a50e0e]',
       AFFILIATE: 'bg-[#fef7e0] text-[#b06000]',
       ADMIN_CABANG: 'bg-[#e8f0fe] text-[#1967d2]',
+      MANAGER_CABANG: 'bg-[#f3e8fd] text-[#7c3aed]',
       ADMIN_MUTASI: 'bg-[#e8def8] text-[#8430ce]',
       ADMIN_PUSAT: 'bg-[#f1f8ff] text-[#0b7dda]',
     }
     return (
       <span className={`text-[10px] font-semibold px-2 py-0.5 ${colors[role] || 'bg-[#f1f3f4] text-[#5f6368]'}`}>
-        {role === 'ADMIN_CABANG' ? 'ADMIN CABANG' : role === 'ADMIN_MUTASI' ? 'ADMIN MUTASI' : role === 'ADMIN_PUSAT' ? 'ADMIN PUSAT' : role}
+        {role === 'ADMIN_CABANG' ? 'ADMIN CABANG' : role === 'MANAGER_CABANG' ? 'MANAGER CABANG' : role === 'ADMIN_MUTASI' ? 'ADMIN MUTASI' : role === 'ADMIN_PUSAT' ? 'ADMIN PUSAT' : role}
       </span>
     )
   }
@@ -286,6 +287,7 @@ export default function DaftarUserPage() {
             <option value="KANDIDAT">KANDIDAT</option>
             <option value="AFFILIATE">AFFILIATE</option>
             <option value="ADMIN_CABANG">ADMIN CABANG</option>
+            <option value="MANAGER_CABANG">MANAGER CABANG</option>
             <option value="ADMIN_MUTASI">ADMIN MUTASI</option>
             <option value="ADMIN_PUSAT">ADMIN PUSAT</option>
           </select>
@@ -489,7 +491,7 @@ export default function DaftarUserPage() {
                   <label className="block text-xs font-medium text-[#5f6368] mb-1.5">Role *</label>
                   <select
                     value={form.role}
-                    onChange={e => setForm({ ...form, role: e.target.value, cabang_ids: e.target.value !== 'ADMIN_CABANG' ? [] : form.cabang_ids })}
+                    onChange={e => setForm({ ...form, role: e.target.value, cabang_ids: !['ADMIN_CABANG', 'MANAGER_CABANG'].includes(e.target.value) ? [] : form.cabang_ids })}
                     className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   >
                     <option value="HR">HR</option>
@@ -500,6 +502,7 @@ export default function DaftarUserPage() {
                     <option value="KANDIDAT">KANDIDAT</option>
                     <option value="AFFILIATE">AFFILIATE</option>
                     <option value="ADMIN_CABANG">ADMIN CABANG</option>
+                    <option value="MANAGER_CABANG">MANAGER CABANG</option>
                     <option value="ADMIN_MUTASI">ADMIN MUTASI</option>
                     <option value="ADMIN_PUSAT">ADMIN PUSAT</option>
                   </select>
@@ -517,7 +520,7 @@ export default function DaftarUserPage() {
                 </div>
               </div>
 
-              {form.role === 'ADMIN_CABANG' && (
+              {(form.role === 'ADMIN_CABANG' || form.role === 'MANAGER_CABANG') && (
                 <div>
                   <label className="block text-xs font-medium text-[#5f6368] mb-1.5">
                     Pilih Cabang * <span className="text-[#80868b] font-normal">(wajib minimal 1)</span>
@@ -647,7 +650,7 @@ export default function DaftarUserPage() {
                   <label className="block text-xs font-medium text-[#5f6368] mb-1.5">Role *</label>
                   <select
                     value={editForm.role}
-                    onChange={e => setEditForm({ ...editForm, role: e.target.value, cabang_ids: e.target.value !== 'ADMIN_CABANG' ? [] : editForm.cabang_ids })}
+                    onChange={e => setEditForm({ ...editForm, role: e.target.value, cabang_ids: !['ADMIN_CABANG', 'MANAGER_CABANG'].includes(e.target.value) ? [] : editForm.cabang_ids })}
                     className="w-full border border-[#dadce0] bg-white px-3 py-2 text-sm text-[#3c4043] outline-none transition focus:border-[#1a73e8]"
                   >
                     <option value="HR">HR</option>
@@ -658,6 +661,7 @@ export default function DaftarUserPage() {
                     <option value="KANDIDAT">KANDIDAT</option>
                     <option value="AFFILIATE">AFFILIATE</option>
                     <option value="ADMIN_CABANG">ADMIN CABANG</option>
+                    <option value="MANAGER_CABANG">MANAGER CABANG</option>
                     <option value="ADMIN_MUTASI">ADMIN MUTASI</option>
                     <option value="ADMIN_PUSAT">ADMIN PUSAT</option>
                   </select>
@@ -675,7 +679,7 @@ export default function DaftarUserPage() {
                 </div>
               </div>
 
-              {editForm.role === 'ADMIN_CABANG' && (
+              {(editForm.role === 'ADMIN_CABANG' || editForm.role === 'MANAGER_CABANG') && (
                 <div>
                   <label className="block text-xs font-medium text-[#5f6368] mb-1.5">
                     Pilih Cabang * <span className="text-[#80868b] font-normal">(wajib minimal 1)</span>
