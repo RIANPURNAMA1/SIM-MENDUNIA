@@ -143,6 +143,7 @@ export default function GuruLMS() {
   const [batches, setBatches] = useState<Batch[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
+  const [listFilter, setListFilter] = useState<'berlangsung' | 'all'>('berlangsung')
   const navigate = useNavigate()
 
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
@@ -730,7 +731,10 @@ export default function GuruLMS() {
     return batches.find(b => b.id === batchId)?.nama_batch || `Batch #${batchId}`
   }
 
-  const filtered = courses.filter(c => c.title.toLowerCase().includes(search.toLowerCase()))
+  const filtered = courses.filter(c =>
+    c.title.toLowerCase().includes(search.toLowerCase()) &&
+    (listFilter === 'all' || !!c.is_berlangsung)
+  )
   const sedangBerlangsungCount = courses.filter(c => c.is_berlangsung).length
   const diajarCount = courses.filter(c => c.can_manage).length
   const hanyaBacaCount = courses.filter(c => !c.can_manage).length
@@ -1704,16 +1708,39 @@ export default function GuruLMS() {
           </div>
         </div>
 
+        {/* Filter */}
+        <div className="flex items-center gap-2 mb-4">
+          <button onClick={() => setListFilter('berlangsung')}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[11px] font-bold border transition-colors ${
+              listFilter === 'berlangsung'
+                ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
+                : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+            }`}>
+            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${listFilter === 'berlangsung' ? 'bg-white animate-pulse' : 'bg-emerald-500'}`} />
+            Sedang Berlangsung
+            <span className={`px-1.5 py-0.5 rounded-md text-[10px] tabular-nums ${listFilter === 'berlangsung' ? 'bg-white/20' : 'bg-gray-100'}`}>{sedangBerlangsungCount}</span>
+          </button>
+          <button onClick={() => setListFilter('all')}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[11px] font-bold border transition-colors ${
+              listFilter === 'all'
+                ? 'bg-[#0069b0] border-[#0069b0] text-white shadow-sm'
+                : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+            }`}>
+            Semua
+            <span className={`px-1.5 py-0.5 rounded-md text-[10px] tabular-nums ${listFilter === 'all' ? 'bg-white/20' : 'bg-gray-100'}`}>{courses.length}</span>
+          </button>
+        </div>
+
         {filtered.length === 0 ? (
           <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
             <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
               <BookOpen size={28} className="text-gray-300" />
             </div>
             <p className="text-sm font-semibold text-gray-600">
-              {search ? 'Kursus tidak ditemukan' : 'Belum ada Kursus'}
+              {search ? 'Kursus tidak ditemukan' : listFilter === 'berlangsung' ? 'Tidak ada kursus yang sedang berlangsung' : 'Belum ada Kursus'}
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              {search ? 'Coba kata kunci lain' : 'Belum ada kursus. Kursus dibuat otomatis saat Anda menambahkan kelas baru'}
+              {search ? 'Coba kata kunci lain' : listFilter === 'berlangsung' ? 'Klik "Semua" untuk melihat seluruh kursus' : 'Belum ada kursus. Kursus dibuat otomatis saat Anda menambahkan kelas baru'}
             </p>
           </div>
         ) : (
