@@ -72,6 +72,11 @@ class Product extends Model
         return $this->hasMany(KomisiTier::class)->orderBy('kategori_id')->orderBy('urutan');
     }
 
+    public function bankAccounts()
+    {
+        return $this->belongsToMany(BankAccount::class, 'product_bank_account')->withTimestamps();
+    }
+
     public function batch()
     {
         return $this->belongsTo(Batch::class);

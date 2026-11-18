@@ -119,9 +119,15 @@ class PaymentController extends Controller
     }
 
     // Public endpoint for candidates to see active bank accounts
-    public function bankAccountsPublic()
+    // Optional query: ?product_id= atau ?pendaftar_id= untuk rekening khusus program
+    public function bankAccountsPublic(Request $request)
     {
-        $accounts = BankAccount::active()->get();
+        $productId = $request->query('product_id');
+        if (!$productId && $request->query('pendaftar_id')) {
+            $productId = \App\Models\Pendaftar::whereKey($request->query('pendaftar_id'))->value('product_id');
+        }
+
+        $accounts = BankAccount::forProduct($productId ? (int) $productId : null);
         return response()->json($accounts);
     }
 

@@ -12,7 +12,7 @@ class ProductController extends Controller
 {
     public function index()
     {
-        return response()->json(Product::with(['biayaKategoris', 'komisiTiers', 'batch'])->orderBy('created_at', 'desc')->get());
+        return response()->json(Product::with(['biayaKategoris', 'komisiTiers', 'batch', 'bankAccounts'])->orderBy('created_at', 'desc')->get());
     }
 
     public function showBySlug($slug)
@@ -50,6 +50,8 @@ class ProductController extends Controller
             'komisi_tiers.*.max_orang' => 'nullable|integer|min:1',
             'komisi_tiers.*.komisi' => 'required|numeric|min:0',
             'komisi_tiers.*.urutan' => 'nullable|integer|min:0',
+            'bank_account_ids' => 'nullable|array',
+            'bank_account_ids.*' => 'integer|exists:bank_accounts,id',
         ]);
 
         $kategoriItems = $this->parseArrayInput($request, 'kategori_items', []);
@@ -75,15 +77,16 @@ class ProductController extends Controller
         $product->syncKategoriItems($kategoriItems);
 
         $this->syncKomisiTiers($product, $request);
+        $this->syncBankAccounts($product, $request);
 
-        return response()->json($product->load(['biayaKategoris', 'komisiTiers', 'batch']), 201);
+        return response()->json($product->load(['biayaKategoris', 'komisiTiers', 'batch', 'bankAccounts']), 201);
     }
 
     public function show($slugOrId)
     {
         $product = is_numeric($slugOrId)
-            ? Product::with(['biayaKategoris', 'komisiTiers', 'batch'])->find($slugOrId)
-            : Product::with(['biayaKategoris', 'komisiTiers', 'batch'])->where('slug', $slugOrId)->first();
+            ? Product::with(['biayaKategoris', 'komisiTiers', 'batch', 'bankAccounts'])->find($slugOrId)
+            : Product::with(['biayaKategoris', 'komisiTiers', 'batch', 'bankAccounts'])->where('slug', $slugOrId)->first();
 
         if (!$product) return response()->json(['message' => 'Not found'], 404);
 
@@ -113,6 +116,8 @@ class ProductController extends Controller
             'komisi_tiers.*.max_orang' => 'nullable|integer|min:1',
             'komisi_tiers.*.komisi' => 'required|numeric|min:0',
             'komisi_tiers.*.urutan' => 'nullable|integer|min:0',
+            'bank_account_ids' => 'nullable|array',
+            'bank_account_ids.*' => 'integer|exists:bank_accounts,id',
         ]);
 
         $updateData = [];
@@ -154,8 +159,9 @@ class ProductController extends Controller
         }
 
         $this->syncKomisiTiers($product, $request);
+        $this->syncBankAccounts($product, $request);
 
-        return response()->json($product->load(['biayaKategoris', 'komisiTiers', 'batch']));
+        return response()->json($product->load(['biayaKategoris', 'komisiTiers', 'batch', 'bankAccounts']));
     }
 
     public function destroy($id)
@@ -166,9 +172,17 @@ class ProductController extends Controller
         return response()->json(['message' => 'Product deleted']);
     }
 
+    private function syncBankAccounts(Product $product, Request $request): void
+    {
+        if (!$request->exists('bank_account_ids')) return;
+        $ids = $this->parseArrayInput($request, 'bank_account_ids', []);
+        $ids = array_values(array_unique(array_map('intval', array_filter($ids, fn ($v) => $v !== null && $v !== ''))));
+        $product->bankAccounts()->sync($ids);
+    }
+
     private function decodeJsonFields(Request $request): void
     {
-        foreach (['kategori_items', 'komisi_tiers'] as $field) {
+        foreach (['kategori_items', 'komisi_tiers', 'bank_account_ids'] as $field) {
             $value = $request->input($field);
             if (is_string($value)) {
                 $decoded = json_decode($value, true);

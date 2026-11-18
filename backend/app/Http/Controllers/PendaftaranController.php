@@ -1284,9 +1284,7 @@ class PendaftaranController extends Controller
             'link_grup' => $pendaftar->batch?->link_grup ?? '',
             'total_transfer' => number_format((int) $pendaftar->nominal, 0, ',', '.'),
             'jatuh_tempo' => '1×24 jam sejak invoice diterbitkan',
-            'bank_nama' => $company->bank_nama ?? '-',
-            'bank_rekening' => $company->bank_nomor_rekening ?? '-',
-            'bank_pemilik' => $company->bank_pemilik ?? '-',
+            ...\App\Models\BankAccount::primaryInfoForProduct($pendaftar->product_id, $company),
             'konfirmasi_url' => $pendaftar->token ? $frontendUrl . '/checkout-berhasil/' . $pendaftar->token : $frontendUrl . '/login',
         ];
 
@@ -3813,6 +3811,8 @@ class PendaftaranController extends Controller
             ]);
         }
 
+        $primaryBank = \App\Models\BankAccount::primaryInfoForProduct($pendaftar->product_id, $company);
+
         return response()->json([
             'no_invoice' => $noInvoice,
             'pendaftar' => [
@@ -3840,13 +3840,13 @@ class PendaftaranController extends Controller
                 'sisa' => $sisa,
             ],
             'company' => [
-                'bank_nama' => $company->bank_nama,
-                'bank_nomor_rekening' => $company->bank_nomor_rekening,
-                'bank_pemilik' => $company->bank_pemilik,
+                'bank_nama' => $primaryBank['bank_nama'],
+                'bank_nomor_rekening' => $primaryBank['bank_rekening'],
+                'bank_pemilik' => $primaryBank['bank_pemilik'],
                 'company_name' => $company->company_name,
                 'pt_name' => $company->pt_name,
             ],
-            'bank_accounts' => \App\Models\BankAccount::active()->get(),
+            'bank_accounts' => \App\Models\BankAccount::forProduct($pendaftar->product_id),
             'payment_settings' => [
                 'manual_payment_enabled' => \App\Models\PaymentSetting::isEnabled('manual_payment_enabled'),
                 'unique_code_max' => \App\Models\PaymentSetting::getUniqueCodeMax(),

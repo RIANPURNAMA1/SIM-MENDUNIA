@@ -86,9 +86,7 @@ class SendRegistrationNotifications
                         'payment_code' => $paymentCode,
                         'jatuh_tempo' => $jatuhTempo->format('l, d F Y') . ' pukul ' . $jatuhTempo->format('H:i') . ' WIB',
                         'company_name' => $company->company_name ?? 'MENDUNIA.ID',
-                        'bank_nama' => $company->bank_nama ?? '-',
-                        'bank_rekening' => $company->bank_nomor_rekening ?? '-',
-                        'bank_pemilik' => $company->bank_pemilik ?? '-',
+                        ...\App\Models\BankAccount::primaryInfoForProduct($pendaftar->product_id, $company),
                         'konfirmasi_url' => $frontendUrl . '/checkout-berhasil/' . $pendaftar->token,
                         'invoice_url' => $frontendUrl . '/pendaftar/' . $pendaftar->id . '/invoice',
                     ];

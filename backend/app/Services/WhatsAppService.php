@@ -878,9 +878,7 @@ class WhatsAppService
             'total_transfer' => number_format($totalTransfer, 0, ',', '.'),
             'jatuh_tempo' => $jatuhTempo->format('l, d F Y') . ' pukul ' . $jatuhTempo->format('H:i') . ' WIB',
             'company_name' => $companyName,
-            'bank_nama' => $company->bank_nama ?? '-',
-            'bank_rekening' => $company->bank_nomor_rekening ?? '-',
-            'bank_pemilik' => $company->bank_pemilik ?? '-',
+            ...\App\Models\BankAccount::primaryInfoForProduct($pendaftar->product_id, $company),
             'konfirmasi_url' => $linkBayar,
         ]);
 
