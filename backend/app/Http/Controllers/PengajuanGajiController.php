@@ -69,9 +69,10 @@ class PengajuanGajiController extends Controller
         $pending = $this->pendingPengajuan($userId);
         $claimed = $this->claimedAbsensiIds($userId);
 
+        // Hanya kelas yang masih aktif diajar (status aktif & hari ini dalam periode kelas).
         $kelasList = KelasSensei::with('batchRelasi:id,nama_batch')
             ->where('user_id', $userId)
-            ->whereDate('tanggal_mulai', '<=', now()->toDateString())
+            ->aktif()
             ->orderByDesc('tanggal_mulai')
             ->get()
             ->map(function (KelasSensei $kelas) use ($userId, $claimed) {
@@ -124,10 +125,11 @@ class PengajuanGajiController extends Controller
         $userId = Auth::id();
         $kelas = KelasSensei::with('batchRelasi:id,nama_batch')
             ->where('user_id', $userId)
+            ->aktif()
             ->find($validated['selected_kelas_id']);
 
         if (!$kelas) {
-            return response()->json(['message' => 'Kelas tidak ditemukan atau bukan kelas Anda.'], 422);
+            return response()->json(['message' => 'Kelas tidak ditemukan, bukan kelas Anda, atau sudah tidak aktif.'], 422);
         }
 
         $ringkasan = null;

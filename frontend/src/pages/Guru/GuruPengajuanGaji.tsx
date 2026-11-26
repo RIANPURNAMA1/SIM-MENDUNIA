@@ -603,7 +603,7 @@ setGajiSaving(true)
                     <div>
                       <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[#8B90A0]">Pilih Kelas</p>
                       {!eligibility || eligibility.kelas.length === 0 ? (
-                        <p className="rounded-lg border border-[#E5E7EF] bg-white px-3 py-3 text-[11px] text-[#8B90A0]">Belum ada kelas yang sudah berjalan.</p>
+                        <p className="rounded-lg border border-[#E5E7EF] bg-white px-3 py-3 text-[11px] text-[#8B90A0]">Tidak ada kelas aktif yang sedang Anda ajar.</p>
                       ) : (
                         <div className="space-y-2">
                           {eligibility.kelas.map(k => {
