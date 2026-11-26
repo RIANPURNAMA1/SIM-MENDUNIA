@@ -13,6 +13,8 @@ class PengajuanGaji extends Model
         'kelas_sensei_id',
         'absensi_sensei_ids',
         'jumlah_pertemuan',
+        'pertemuan_dari',
+        'pertemuan_sampai',
         'bulan',
         'tahun',
         'jumlah',
@@ -28,6 +30,8 @@ class PengajuanGaji extends Model
         'no_req_list' => 'array',
         'absensi_sensei_ids' => 'array',
         'jumlah_pertemuan' => 'integer',
+        'pertemuan_dari' => 'integer',
+        'pertemuan_sampai' => 'integer',
     ];
 
     public function user()

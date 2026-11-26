@@ -18,6 +18,8 @@ interface PengajuanGajiItem {
   catatan: string | null
   kelas_sensei_id?: number | null
   jumlah_pertemuan?: number | null
+  pertemuan_dari?: number | null
+  pertemuan_sampai?: number | null
   kelas_sensei?: { id: number; nama_kelas: string; level: string | number; batch_relasi?: { nama_batch: string } | null } | null
   ringkasan_kehadiran?: {
     total_kelas?: number
@@ -79,6 +81,14 @@ function kelasDiajukanLabel(item: PengajuanGajiItem) {
   }
   const k = item.ringkasan_kehadiran?.kelas_diajukan
   return k ? `${k.nama_batch || '-'} · Level ${k.level}` : null
+}
+
+function pertemuanDiajukanLabel(item: PengajuanGajiItem) {
+  if (item.pertemuan_dari) {
+    const hadir = item.jumlah_pertemuan != null ? ` · ${item.jumlah_pertemuan} hadir` : ''
+    return `Pertemuan ${item.pertemuan_dari}–${item.pertemuan_sampai}${hadir}`
+  }
+  return item.jumlah_pertemuan != null ? `${item.jumlah_pertemuan} pertemuan` : null
 }
 
 function formatTanggalRiwayat(dateStr: string) {
@@ -310,9 +320,9 @@ export default function DataPengajuanGaji() {
                       {kelasDiajukanLabel(item) || item.jumlah_pertemuan != null ? (
                         <>
                           <div className="font-medium text-black">{kelasDiajukanLabel(item) || '-'}</div>
-                          {item.jumlah_pertemuan != null && (
+                          {pertemuanDiajukanLabel(item) && (
                             <span className="mt-1 inline-flex rounded bg-[#e8f0fe] px-1.5 py-0.5 text-[10px] font-bold text-[#1a73e8]">
-                              {item.jumlah_pertemuan} pertemuan
+                              {pertemuanDiajukanLabel(item)}
                             </span>
                           )}
                         </>
@@ -491,7 +501,7 @@ export default function DataPengajuanGaji() {
                 <InfoItem label="Guru" value={detailItem.user?.name} />
                 <InfoItem label="Email" value={detailItem.user?.email} />
                 <InfoItem label="Kelas Diajukan" value={kelasDiajukanLabel(detailItem)} />
-                <InfoItem label="Jumlah Pertemuan Diajukan" value={detailItem.jumlah_pertemuan != null ? `${detailItem.jumlah_pertemuan} pertemuan` : null} />
+                <InfoItem label="Pertemuan Diajukan" value={pertemuanDiajukanLabel(detailItem)} />
                 <InfoItem label="No. Req" value={(Array.isArray((detailItem.user as any)?.rekening_list) && (detailItem.user as any).rekening_list.some((r:any)=>r?.no_req)) ? (detailItem.user as any).rekening_list.map((r:any)=>r.no_req).filter(Boolean).join(', ') : (Array.isArray((detailItem as any).no_req_list) ? (detailItem as any).no_req_list.filter(Boolean).join(', ') : null)} />
                 <InfoItem label="Bank" value={detailItem.user?.bank || (Array.isArray((detailItem.user as any)?.rekening_list) ? (detailItem.user as any).rekening_list.map((r:any)=>r.bank).filter(Boolean).join(', ') : null)} />
                 <InfoItem label="No. Rekening" value={detailItem.user?.no_rekening || (Array.isArray((detailItem.user as any)?.rekening_list) ? (detailItem.user as any).rekening_list.map((r:any)=>r.no_rekening).filter(Boolean).join(', ') : null)} />

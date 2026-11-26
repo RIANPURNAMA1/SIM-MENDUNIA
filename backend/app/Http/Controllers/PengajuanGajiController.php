@@ -11,6 +11,14 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * Pengajuan gaji sensei per blok pertemuan.
+ *
+ * Pertemuan dihitung dari tanggal mulai kelas (hari kerja, tanpa akhir pekan &
+ * hari libur). Pengajuan dilakukan per blok 5 pertemuan berurutan: 1–5, 6–10,
+ * 11–15, dst. Sebuah blok baru bisa diajukan setelah pertemuan terakhir di blok
+ * itu selesai, dan hanya boleh ada satu pengajuan yang belum di-ACC.
+ */
 class PengajuanGajiController extends Controller
 {
     private const BULAN = [
@@ -18,10 +26,10 @@ class PengajuanGajiController extends Controller
         'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember',
     ];
 
-    /** Minimal pertemuan yang belum diajukan agar sensei boleh mengajukan gaji. */
+    /** Jumlah pertemuan per satu pengajuan gaji. */
     public const MIN_PERTEMUAN = 5;
 
-    /** Status absensi sensei yang dihitung sebagai pertemuan mengajar. */
+    /** Status absensi sensei yang dihitung sebagai hadir mengajar. */
     public const STATUS_DIHITUNG = ['HADIR', 'TERLAMBAT', 'PULANG LEBIH AWAL'];
 
     /** Status pengajuan yang belum di-ACC (masih memblokir pengajuan baru). */
@@ -60,14 +68,13 @@ class PengajuanGajiController extends Controller
     }
 
     /**
-     * Status kelayakan pengajuan gaji sensei yang login: apakah masih ada
-     * pengajuan yang belum di-ACC, dan per kelas berapa pertemuan yang belum diajukan.
+     * Data form pengajuan: kelas aktif beserta seluruh pertemuannya (dari pertemuan 1
+     * s/d hari ini), status pengajuan tiap pertemuan, dan blok berikutnya yang bisa diajukan.
      */
     public function eligibility()
     {
         $userId = Auth::id();
         $pending = $this->pendingPengajuan($userId);
-        $claimed = $this->claimedAbsensiIds($userId);
 
         // Hanya kelas yang masih aktif diajar (status aktif & hari ini dalam periode kelas).
         $kelasList = KelasSensei::with('batchRelasi:id,nama_batch')
@@ -75,23 +82,7 @@ class PengajuanGajiController extends Controller
             ->aktif()
             ->orderByDesc('tanggal_mulai')
             ->get()
-            ->map(function (KelasSensei $kelas) use ($userId, $claimed) {
-                $semua = $this->pertemuanKelas($kelas, $userId);
-                $belum = $semua->reject(fn ($p) => in_array($p['id'], $claimed, true))->values();
-
-                return [
-                    'id' => $kelas->id,
-                    'nama' => $kelas->batchRelasi?->nama_batch ?: $kelas->nama_kelas,
-                    'level' => $kelas->level,
-                    'tanggal_mulai' => $kelas->tanggal_mulai?->toDateString(),
-                    'tanggal_selesai' => $kelas->tanggal_selesai?->toDateString(),
-                    'periode' => $this->formatPeriode($kelas),
-                    'total_pertemuan' => $semua->count(),
-                    'sudah_diajukan' => $semua->count() - $belum->count(),
-                    'belum_diajukan' => $belum->count(),
-                    'pertemuan' => $belum,
-                ];
-            })
+            ->map(fn (KelasSensei $kelas) => $this->ringkasKelas($kelas, $userId))
             ->values();
 
         return response()->json([
@@ -102,6 +93,8 @@ class PengajuanGajiController extends Controller
                 'status' => $pending->status,
                 'created_at' => $pending->created_at,
                 'jumlah_pertemuan' => $pending->jumlah_pertemuan,
+                'pertemuan_dari' => $pending->pertemuan_dari,
+                'pertemuan_sampai' => $pending->pertemuan_sampai,
             ] : null,
             'kelas' => $kelasList,
         ]);
@@ -158,37 +151,52 @@ class PengajuanGajiController extends Controller
                 return ['error' => 'Masih ada pengajuan gaji yang belum disetujui. Anda bisa mengajukan lagi setelah pengajuan sebelumnya di-ACC.'];
             }
 
-            $claimed = $this->claimedAbsensiIds($userId);
-            $belum = $this->pertemuanKelas($kelas, $userId)
-                ->reject(fn ($p) => in_array($p['id'], $claimed, true))
-                ->values();
-
-            if ($belum->count() < self::MIN_PERTEMUAN) {
+            $info = $this->ringkasKelas($kelas, $userId);
+            $blok = $info['blok'];
+            if (!$blok) {
+                return ['error' => 'Semua pertemuan di kelas ini sudah diajukan.'];
+            }
+            if (!$blok['siap']) {
                 return ['error' => sprintf(
-                    'Pengajuan minimal %d pertemuan yang belum diajukan. Kelas ini baru memiliki %d pertemuan.',
-                    self::MIN_PERTEMUAN,
-                    $belum->count()
+                    'Pengajuan pertemuan %d–%d baru bisa dilakukan setelah pertemuan ke-%d (%s) selesai.',
+                    $blok['dari'], $blok['sampai'], $blok['sampai'],
+                    Carbon::parse($blok['tanggal_selesai_blok'])->locale('id')->translatedFormat('d M Y')
                 )];
             }
 
-            // Riwayat yang dikirim selalu pertemuan yang belum diajukan (dihitung server).
+            $rows = collect($info['pertemuan'])
+                ->filter(fn ($p) => $p['pertemuan_ke'] >= $blok['dari'] && $p['pertemuan_ke'] <= $blok['sampai'])
+                ->values();
+            $hadir = $rows->filter(fn ($p) => $p['absensi'] && in_array($p['absensi']['status'], self::STATUS_DIHITUNG, true));
+            $namaKelas = $kelas->batchRelasi?->nama_batch ?: $kelas->nama_kelas;
+
             $ringkasan = $ringkasan ?? [];
-            $ringkasan['riwayat'] = $belum->map(fn ($p) => $p + [
+            $ringkasan['riwayat'] = $rows->map(fn ($p) => [
+                'id' => $p['absensi']['id'] ?? null,
+                'tanggal' => $p['tanggal'],
+                'pertemuan_ke' => $p['pertemuan_ke'],
+                'status' => $p['absensi']['status'] ?? 'TIDAK ADA ABSEN',
+                'jam_masuk' => $p['absensi']['jam_masuk'] ?? null,
+                'jam_keluar' => $p['absensi']['jam_keluar'] ?? null,
                 'kelas_id' => $kelas->id,
-                'kelas' => $kelas->batchRelasi?->nama_batch ?: $kelas->nama_kelas,
+                'kelas' => $namaKelas,
             ])->all();
             $ringkasan['kelas_diajukan'] = [
                 'id' => $kelas->id,
-                'nama_batch' => $kelas->batchRelasi?->nama_batch ?: $kelas->nama_kelas,
+                'nama_batch' => $namaKelas,
                 'level' => $kelas->level,
-                'periode' => $this->formatPeriode($kelas),
+                'periode' => $info['periode'],
+                'pertemuan_dari' => $blok['dari'],
+                'pertemuan_sampai' => $blok['sampai'],
             ];
 
             $pengajuan = PengajuanGaji::create([
                 'user_id' => $userId,
                 'kelas_sensei_id' => $kelas->id,
-                'absensi_sensei_ids' => $belum->pluck('id')->all(),
-                'jumlah_pertemuan' => $belum->count(),
+                'absensi_sensei_ids' => $hadir->pluck('absensi.id')->values()->all(),
+                'jumlah_pertemuan' => $hadir->count(),
+                'pertemuan_dari' => $blok['dari'],
+                'pertemuan_sampai' => $blok['sampai'],
                 'bulan' => $validated['bulan'] ?? self::BULAN[(int) now()->format('n')],
                 'tahun' => $validated['tahun'] ?? (int) now()->format('Y'),
                 'jumlah' => $validated['jumlah'] ?? null,
@@ -229,13 +237,19 @@ class PengajuanGajiController extends Controller
 
         $pengajuan = PengajuanGaji::findOrFail($id);
 
-        // Pengajuan yang ditolak melepas pertemuannya. Jika diaktifkan kembali, pastikan
-        // pertemuan itu belum dipakai pengajuan lain agar tidak terhitung dua kali.
-        if ($pengajuan->status === 'ditolak' && $validated['status'] !== 'ditolak') {
-            $dipakaiLain = $this->claimedAbsensiIds($pengajuan->user_id, $pengajuan->id);
-            if (array_intersect($pengajuan->claimedAbsensiIds(), $dipakaiLain)) {
+        // Pengajuan yang ditolak melepas bloknya. Jika diaktifkan kembali, pastikan blok
+        // pertemuan itu belum dipakai pengajuan lain agar tidak terbayar dua kali.
+        if ($pengajuan->status === 'ditolak' && $validated['status'] !== 'ditolak' && $pengajuan->pertemuan_dari) {
+            $bentrok = PengajuanGaji::where('user_id', $pengajuan->user_id)
+                ->where('kelas_sensei_id', $pengajuan->kelas_sensei_id)
+                ->where('id', '!=', $pengajuan->id)
+                ->where('status', '!=', 'ditolak')
+                ->where('pertemuan_dari', '<=', $pengajuan->pertemuan_sampai)
+                ->where('pertemuan_sampai', '>=', $pengajuan->pertemuan_dari)
+                ->exists();
+            if ($bentrok) {
                 return response()->json([
-                    'message' => 'Sebagian pertemuan pada pengajuan ini sudah diajukan di pengajuan lain, sehingga tidak bisa diaktifkan kembali.',
+                    'message' => 'Pertemuan pada pengajuan ini sudah diajukan di pengajuan lain, sehingga tidak bisa diaktifkan kembali.',
                 ], 422);
             }
         }
@@ -259,56 +273,153 @@ class PengajuanGajiController extends Controller
             ->first();
     }
 
-    /** Semua id absensi yang sudah dipakai pengajuan (selain yang ditolak). */
-    private function claimedAbsensiIds(int $userId, ?int $exceptPengajuanId = null): array
+    /**
+     * Ringkasan satu kelas: seluruh pertemuan dari pertemuan 1 s/d hari ini,
+     * status absen & pengajuan tiap pertemuan, dan blok berikutnya yang bisa diajukan.
+     */
+    private function ringkasKelas(KelasSensei $kelas, int $userId): array
     {
-        return PengajuanGaji::where('user_id', $userId)
-            ->where('status', '!=', 'ditolak')
-            ->when($exceptPengajuanId, fn ($q) => $q->where('id', '!=', $exceptPengajuanId))
-            ->get(['id', 'absensi_sensei_ids', 'ringkasan_kehadiran'])
-            ->flatMap(fn (PengajuanGaji $p) => $p->claimedAbsensiIds())
-            ->unique()
-            ->values()
-            ->all();
+        $today = now()->startOfDay();
+        $jadwal = $this->jadwalPertemuan($kelas);          // [pertemuan_ke => 'Y-m-d'] seluruh periode
+        $totalPeriode = count($jadwal);
+
+        $absensi = AbsensiSensei::where('kelas_sensei_id', $kelas->id)
+            ->where('user_id', $userId)
+            ->orderBy('jam_masuk')
+            ->get(['id', 'tanggal', 'jam_masuk', 'jam_keluar', 'status'])
+            ->groupBy(fn ($a) => Carbon::parse($a->tanggal)->toDateString())
+            ->map(fn ($items) => $items->first());
+
+        $klaim = $this->klaimPertemuan($kelas, $userId, $jadwal, $absensi);
+
+        $rows = [];
+        foreach ($jadwal as $ke => $tanggal) {
+            if (Carbon::parse($tanggal)->gt($today)) {
+                break;
+            }
+            $a = $absensi->get($tanggal);
+            $rows[] = [
+                'pertemuan_ke' => $ke,
+                'tanggal' => $tanggal,
+                // Pertemuan dianggap selesai bila harinya sudah lewat, atau hari ini & sudah absen pulang.
+                'terlaksana' => Carbon::parse($tanggal)->lt($today) || ($a && $a->jam_keluar),
+                'absensi' => $a ? [
+                    'id' => (int) $a->id,
+                    'jam_masuk' => $a->jam_masuk,
+                    'jam_keluar' => $a->jam_keluar,
+                    'status' => $a->status,
+                ] : null,
+                'pengajuan' => $klaim[$ke] ?? null,
+                'akan_diajukan' => false,
+            ];
+        }
+
+        // Blok berikutnya = blok 5 pertemuan pertama yang belum diklaim sama sekali.
+        $blok = null;
+        for ($dari = 1; $dari <= $totalPeriode; $dari += self::MIN_PERTEMUAN) {
+            $sampai = min($dari + self::MIN_PERTEMUAN - 1, $totalPeriode);
+            $adaKlaim = false;
+            for ($k = $dari; $k <= $sampai; $k++) {
+                if (isset($klaim[$k])) {
+                    $adaKlaim = true;
+                    break;
+                }
+            }
+            if ($adaKlaim) {
+                continue;
+            }
+            $dalamBlok = array_filter($rows, fn ($r) => $r['pertemuan_ke'] >= $dari && $r['pertemuan_ke'] <= $sampai);
+            $terlaksana = count(array_filter($dalamBlok, fn ($r) => $r['terlaksana']));
+            $blok = [
+                'dari' => $dari,
+                'sampai' => $sampai,
+                'ukuran' => $sampai - $dari + 1,
+                'terlaksana' => $terlaksana,
+                'siap' => $terlaksana === $sampai - $dari + 1,
+                'tanggal_selesai_blok' => $jadwal[$sampai],
+            ];
+            break;
+        }
+
+        if ($blok) {
+            foreach ($rows as &$r) {
+                $r['akan_diajukan'] = $r['pertemuan_ke'] >= $blok['dari'] && $r['pertemuan_ke'] <= $blok['sampai'];
+            }
+            unset($r);
+        }
+
+        return [
+            'id' => $kelas->id,
+            'nama' => $kelas->batchRelasi?->nama_batch ?: $kelas->nama_kelas,
+            'level' => $kelas->level,
+            'tanggal_mulai' => $kelas->tanggal_mulai?->toDateString(),
+            'tanggal_selesai' => $kelas->tanggal_selesai?->toDateString(),
+            'periode' => $this->formatPeriode($kelas),
+            'total_periode' => $totalPeriode,
+            'pertemuan_berjalan' => count($rows),
+            'sudah_diajukan' => count($klaim),
+            'pertemuan' => $rows,
+            'blok' => $blok,
+        ];
     }
 
-    /**
-     * Pertemuan mengajar sensei di kelas ini, dihitung dari tanggal mulai s/d
-     * tanggal selesai kelas (hari libur & akhir pekan tidak dihitung).
-     */
-    private function pertemuanKelas(KelasSensei $kelas, int $userId)
+    /** Daftar pertemuan seluruh periode kelas: [pertemuan_ke => 'Y-m-d'] (hari kerja, tanpa libur). */
+    private function jadwalPertemuan(KelasSensei $kelas): array
     {
         $mulai = Carbon::parse($kelas->tanggal_mulai)->startOfDay();
         $selesai = Carbon::parse($kelas->tanggal_selesai)->startOfDay();
 
-        return AbsensiSensei::where('kelas_sensei_id', $kelas->id)
-            ->where('user_id', $userId)
-            ->whereIn('status', self::STATUS_DIHITUNG)
-            ->whereDate('tanggal', '>=', $mulai->toDateString())
-            ->whereDate('tanggal', '<=', $selesai->toDateString())
-            ->orderBy('tanggal')
-            ->orderBy('jam_masuk')
-            ->get()
-            ->reject(fn ($a) => HariLibur::apakahLibur(Carbon::parse($a->tanggal)->toDateString()))
-            ->map(function (AbsensiSensei $a) use ($mulai) {
-                $tanggal = Carbon::parse($a->tanggal)->startOfDay();
-                $ke = 1;
-                for ($d = $mulai->copy(); $d->lt($tanggal); $d->addDay()) {
-                    if (!$d->isWeekend() && !HariLibur::apakahLibur($d->toDateString())) {
-                        $ke++;
+        $jadwal = [];
+        $ke = 1;
+        for ($d = $mulai->copy(); $d->lte($selesai); $d->addDay()) {
+            if ($d->isWeekend() || HariLibur::apakahLibur($d->toDateString())) {
+                continue;
+            }
+            $jadwal[$ke++] = $d->toDateString();
+        }
+
+        return $jadwal;
+    }
+
+    /**
+     * Pertemuan yang sudah diajukan (selain pengajuan yang ditolak):
+     * [pertemuan_ke => ['id' => pengajuan id, 'status' => status]].
+     */
+    private function klaimPertemuan(KelasSensei $kelas, int $userId, array $jadwal, $absensiByTanggal): array
+    {
+        $keByTanggal = array_flip($jadwal);
+        $keByAbsensiId = [];
+        foreach ($absensiByTanggal as $tanggal => $a) {
+            if (isset($keByTanggal[$tanggal])) {
+                $keByAbsensiId[(int) $a->id] = $keByTanggal[$tanggal];
+            }
+        }
+
+        $klaim = [];
+        PengajuanGaji::where('user_id', $userId)
+            ->where('status', '!=', 'ditolak')
+            ->orderBy('id')
+            ->get(['id', 'status', 'kelas_sensei_id', 'pertemuan_dari', 'pertemuan_sampai', 'absensi_sensei_ids', 'ringkasan_kehadiran'])
+            ->each(function (PengajuanGaji $p) use ($kelas, $keByAbsensiId, &$klaim) {
+                $info = ['id' => $p->id, 'status' => $p->status];
+                if ((int) $p->kelas_sensei_id === (int) $kelas->id && $p->pertemuan_dari && $p->pertemuan_sampai) {
+                    for ($k = $p->pertemuan_dari; $k <= $p->pertemuan_sampai; $k++) {
+                        $klaim[$k] = $info;
+                    }
+
+                    return;
+                }
+                // Pengajuan lama (sebelum ada rentang pertemuan): petakan dari id absensinya.
+                foreach ($p->claimedAbsensiIds() as $absensiId) {
+                    if (isset($keByAbsensiId[$absensiId])) {
+                        $klaim[$keByAbsensiId[$absensiId]] = $info;
                     }
                 }
+            });
 
-                return [
-                    'id' => (int) $a->id,
-                    'tanggal' => $tanggal->toDateString(),
-                    'jam_masuk' => $a->jam_masuk,
-                    'jam_keluar' => $a->jam_keluar,
-                    'status' => $a->status,
-                    'pertemuan_ke' => $ke,
-                ];
-            })
-            ->values();
+        ksort($klaim);
+
+        return $klaim;
     }
 
     private function formatPeriode(KelasSensei $kelas): string

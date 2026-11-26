@@ -17,6 +17,8 @@ import KaryawanBottomNav from '../../components/KaryawanBottomNav'
   catatan: string | null
   kelas_sensei_id?: number | null
   jumlah_pertemuan?: number | null
+  pertemuan_dari?: number | null
+  pertemuan_sampai?: number | null
   kelas_sensei?: { id: number; nama_kelas: string; level: string | number; batch_relasi?: { nama_batch: string } | null } | null
   ringkasan_kehadiran?: {
     total_kelas?: number
@@ -53,12 +55,21 @@ interface DashboardRingkasan {
 }
 
 interface PertemuanRow {
-  id: number
+  pertemuan_ke: number
   tanggal: string
-  jam_masuk: string | null
-  jam_keluar: string | null
-  status: string
-  pertemuan_ke: number | null
+  terlaksana: boolean
+  absensi: { id: number; jam_masuk: string | null; jam_keluar: string | null; status: string } | null
+  pengajuan: { id: number; status: string } | null
+  akan_diajukan: boolean
+}
+
+interface BlokPengajuan {
+  dari: number
+  sampai: number
+  ukuran: number
+  terlaksana: number
+  siap: boolean
+  tanggal_selesai_blok: string
 }
 
 interface KelasEligibility {
@@ -66,16 +77,17 @@ interface KelasEligibility {
   nama: string
   level: string | number
   periode: string
-  total_pertemuan: number
+  total_periode: number
+  pertemuan_berjalan: number
   sudah_diajukan: number
-  belum_diajukan: number
   pertemuan: PertemuanRow[]
+  blok: BlokPengajuan | null
 }
 
 interface Eligibility {
   min_pertemuan: number
   has_pending: boolean
-  pending: { id: number; status: string; created_at: string; jumlah_pertemuan: number | null } | null
+  pending: { id: number; status: string; created_at: string; jumlah_pertemuan: number | null; pertemuan_dari: number | null; pertemuan_sampai: number | null } | null
   kelas: KelasEligibility[]
 }
 
@@ -124,6 +136,10 @@ function formatPeriodeIzin(mulai: string, selesai: string) {
 
 const dayNames = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
 
+function formatTanggalPendek(dateStr: string) {
+  return new Date(`${dateStr}T00:00:00`).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
+}
+
 function formatTanggalRiwayat(dateStr: string) {
   const d = new Date(dateStr)
   return `${dayNames[d.getDay()]}, ${d.getDate()} ${new Intl.DateTimeFormat('id-ID', { month: 'long' }).format(d)} ${d.getFullYear()}`
@@ -167,13 +183,16 @@ export default function GuruPengajuanGaji() {
 
   const minPertemuan = eligibility?.min_pertemuan ?? 5
   const selectedKelas = eligibility?.kelas.find(k => k.id === selectedKelasId) ?? null
-  const pertemuanBelumDiajukan = selectedKelas?.pertemuan ?? []
-  const cukupPertemuan = pertemuanBelumDiajukan.length >= minPertemuan
+  const blok = selectedKelas?.blok ?? null
+  const blokRows = selectedKelas && blok
+    ? selectedKelas.pertemuan.filter(r => r.pertemuan_ke >= blok.dari && r.pertemuan_ke <= blok.sampai)
+    : []
+  const bisaAjukan = !!blok?.siap
 
-  const fetchEligibility = useCallback(() => {
+  const fetchEligibility = useCallback((): Promise<Eligibility | null> => {
     return gajiApi.eligibility()
-      .then(res => setEligibility(res.data))
-      .catch(() => setEligibility(null))
+      .then(res => { setEligibility(res.data); return res.data as Eligibility })
+      .catch(() => { setEligibility(null); return null })
   }, [])
 
   useEffect(() => { fetchEligibility() }, [fetchEligibility])
@@ -217,7 +236,13 @@ export default function GuruPengajuanGaji() {
       .catch(() => setRiwayatIzin([]))
     Promise.all([
       api.get('/guru-dashboard').then(res => setRingkasan(res.data)).catch(() => setRingkasan(null)),
-      fetchEligibility(),
+      fetchEligibility().then(el => {
+        // Langsung pilih kelasnya bila hanya ada satu kelas aktif.
+        if (el && el.kelas.length === 1) {
+          setSelectedKelasId(el.kelas[0].id)
+          setSelectedKelasName(el.kelas[0].nama)
+        }
+      }),
     ]).finally(() => setRingkasanLoading(false))
   }, [showModal, fetchEligibility])
 
@@ -238,14 +263,14 @@ export default function GuruPengajuanGaji() {
   useEffect(() => { fetchData(1) }, [fetchData, filterStatus, search])
 
   const hitungStatusAbsensi = () => {
-    const rows = pertemuanBelumDiajukan
+    const rows = blokRows
     const count = (statuses: string[]) =>
-      rows.filter(r => statuses.includes((r.status || '').toUpperCase())).length
+      rows.filter(r => statuses.includes((r.absensi?.status || '').toUpperCase())).length
     return {
       hadir: count(['HADIR']),
       terlambat: count(['TERLAMBAT']),
       tidakAbsenPulang: count(['TIDAK ABSEN PULANG']),
-      alpa: count(['ALPA']),
+      alpa: count(['ALPA']) + rows.filter(r => !r.absensi).length,
       izin: count(['IZIN', 'IZIN DISETUJUI']),
       total: rows.length,
     }
@@ -258,11 +283,15 @@ export default function GuruPengajuanGaji() {
       Swal.fire({ icon: 'warning', title: 'Pilih Kelas', text: 'Pilih kelas yang ingin diajukan terlebih dahulu.', confirmButtonColor: '#0069b0' })
       return
     }
-    if (!cukupPertemuan) {
+    if (!blok) {
+      Swal.fire({ icon: 'info', title: 'Sudah Diajukan Semua', text: 'Semua pertemuan di kelas ini sudah diajukan.', confirmButtonColor: '#0069b0' })
+      return
+    }
+    if (!blok.siap) {
       Swal.fire({
         icon: 'warning',
         title: 'Pertemuan Belum Cukup',
-        text: `Pengajuan minimal ${minPertemuan} pertemuan yang belum diajukan. Kelas ini baru ${pertemuanBelumDiajukan.length} pertemuan.`,
+        text: `Pengajuan pertemuan ${blok.dari}–${blok.sampai} baru bisa dilakukan setelah pertemuan ke-${blok.sampai} (${formatTanggalPendek(blok.tanggal_selesai_blok)}) selesai.`,
         confirmButtonColor: '#0069b0',
       })
       return
@@ -287,7 +316,7 @@ export default function GuruPengajuanGaji() {
       icon: 'question',
       title: 'Ajukan Pengajuan Gaji?',
       html: `
-        <p class="text-sm text-gray-600 mb-3">Yakin ingin mengajukan gaji untuk <b>${selectedKelas.nama} (Level ${selectedKelas.level})</b> sebanyak <b>${pertemuanBelumDiajukan.length} pertemuan</b>? Berikut ringkasan yang akan ikut terkirim:</p>
+        <p class="text-sm text-gray-600 mb-3">Yakin ingin mengajukan gaji untuk <b>${selectedKelas.nama} (Level ${selectedKelas.level})</b> untuk <b>pertemuan ${blok.dari}–${blok.sampai}</b>? Berikut ringkasan yang akan ikut terkirim:</p>
         ${noReqHtml}
         <div class="border border-gray-200 rounded-lg overflow-hidden text-left">
           ${statRow('Hadir', s.hadir)}
@@ -402,7 +431,7 @@ setGajiSaving(true)
             <div className="min-w-0">
               <p className="text-sm font-semibold text-amber-800">Pengajuan gaji Anda sedang menunggu persetujuan</p>
               <p className="mt-0.5 text-xs text-amber-700">
-                {eligibility.pending?.jumlah_pertemuan ? `${eligibility.pending.jumlah_pertemuan} pertemuan diajukan. ` : ''}
+                {eligibility.pending?.pertemuan_dari ? `Pertemuan ${eligibility.pending.pertemuan_dari}–${eligibility.pending.pertemuan_sampai} sedang diajukan. ` : ''}
                 Anda bisa mengajukan lagi setelah pengajuan ini di-ACC.
               </p>
             </div>
@@ -411,14 +440,16 @@ setGajiSaving(true)
           <div className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
             <Info size={18} className="mt-0.5 shrink-0 text-[#0069b0]" />
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-[#14182B]">Pengajuan minimal {minPertemuan} pertemuan per kelas</p>
-              <p className="mt-0.5 text-xs text-[#4B5063]">Pertemuan dihitung dari tanggal mulai s/d selesai kelas. Pertemuan yang sudah diajukan tidak dihitung lagi.</p>
+              <p className="text-sm font-semibold text-[#14182B]">Pengajuan gaji per {minPertemuan} pertemuan</p>
+              <p className="mt-0.5 text-xs text-[#4B5063]">Dihitung dari pertemuan pertama kelas: pertemuan 1–5, lalu 6–10, 11–15, dst. Setiap blok bisa diajukan setelah pertemuan terakhirnya selesai.</p>
               {eligibility.kelas.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-1.5">
                   {eligibility.kelas.map(k => (
-                    <span key={k.id} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${k.belum_diajukan >= minPertemuan ? 'bg-emerald-50 text-emerald-700' : 'bg-white text-[#4B5063]'}`}>
-                      {k.belum_diajukan >= minPertemuan && <CheckCircle2 size={12} />}
-                      {k.nama} L{k.level}: {k.belum_diajukan}/{minPertemuan} pertemuan
+                    <span key={k.id} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${k.blok?.siap ? 'bg-emerald-50 text-emerald-700' : 'bg-white text-[#4B5063]'}`}>
+                      {k.blok?.siap && <CheckCircle2 size={12} />}
+                      {k.nama} L{k.level}: {k.blok
+                        ? `pertemuan ${k.blok.dari}–${k.blok.sampai} (${k.blok.terlaksana}/${k.blok.ukuran})${k.blok.siap ? ' siap diajukan' : ''}`
+                        : 'semua sudah diajukan'}
                     </span>
                   ))}
                 </div>
@@ -499,7 +530,12 @@ setGajiSaving(true)
                             <p className="text-xs font-medium text-[#14182B]">
                               {item.kelas_sensei ? `${item.kelas_sensei.batch_relasi?.nama_batch || item.kelas_sensei.nama_kelas} · L${item.kelas_sensei.level}` : '-'}
                             </p>
-                            {item.jumlah_pertemuan != null && (
+                            {item.pertemuan_dari ? (
+                              <p className="text-[11px] font-semibold text-[#0069b0]">
+                                Pertemuan {item.pertemuan_dari}–{item.pertemuan_sampai}
+                                {item.jumlah_pertemuan != null && <span className="font-medium text-[#8B90A0]"> · {item.jumlah_pertemuan} hadir</span>}
+                              </p>
+                            ) : item.jumlah_pertemuan != null && (
                               <p className="text-[11px] font-semibold text-[#0069b0]">{item.jumlah_pertemuan} pertemuan</p>
                             )}
                           </>
@@ -608,7 +644,8 @@ setGajiSaving(true)
                         <div className="space-y-2">
                           {eligibility.kelas.map(k => {
                             const active = selectedKelasId === k.id
-                            const cukup = k.belum_diajukan >= minPertemuan
+                            const b = k.blok
+                            const siap = !!b?.siap
                             return (
                               <button type="button" key={k.id}
                                 onClick={() => { setSelectedKelasId(k.id); setSelectedKelasName(k.nama) }}
@@ -618,17 +655,26 @@ setGajiSaving(true)
                                     <p className="break-words text-xs font-bold text-[#14182B]">{k.nama} (Level {k.level})</p>
                                     <p className="text-[10px] text-[#8B90A0]">Periode: {k.periode}</p>
                                   </div>
-                                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${cukup ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                                    {k.belum_diajukan}/{minPertemuan}
-                                  </span>
+                                  {b ? (
+                                    <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${siap ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                      {b.terlaksana}/{b.ukuran}
+                                    </span>
+                                  ) : (
+                                    <span className="shrink-0 rounded-full bg-[#F0F1F5] px-2 py-0.5 text-[10px] font-bold text-[#6B7280]">Semua diajukan</span>
+                                  )}
                                 </div>
-                                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#F0F1F5]">
-                                  <div className={`h-full rounded-full ${cukup ? 'bg-emerald-500' : 'bg-amber-400'}`}
-                                    style={{ width: `${Math.min(100, (k.belum_diajukan / minPertemuan) * 100)}%` }} />
-                                </div>
-                                <p className="mt-1.5 text-[10px] text-[#8B90A0]">
-                                  {k.belum_diajukan} belum diajukan · {k.sudah_diajukan} sudah diajukan · {k.total_pertemuan} total pertemuan
-                                </p>
+                                {b && (
+                                  <>
+                                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#F0F1F5]">
+                                      <div className={`h-full rounded-full ${siap ? 'bg-emerald-500' : 'bg-amber-400'}`}
+                                        style={{ width: `${Math.min(100, (b.terlaksana / b.ukuran) * 100)}%` }} />
+                                    </div>
+                                    <p className="mt-1.5 text-[10px] text-[#8B90A0]">
+                                      Pengajuan berikutnya: <span className="font-semibold text-[#4B5063]">pertemuan {b.dari}–{b.sampai}</span>
+                                      {' · '}{k.pertemuan_berjalan} dari {k.total_periode} pertemuan berjalan · {k.sudah_diajukan} sudah diajukan
+                                    </p>
+                                  </>
+                                )}
                               </button>
                             )
                           })}
@@ -636,52 +682,80 @@ setGajiSaving(true)
                       )}
                     </div>
 
-                    {selectedKelas && !cukupPertemuan && (
+                    {selectedKelas && blok && !blok.siap && (
                       <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
-                        Kelas ini baru memiliki {pertemuanBelumDiajukan.length} pertemuan yang belum diajukan. Pengajuan minimal {minPertemuan} pertemuan.
+                        Pengajuan pertemuan {blok.dari}–{blok.sampai} baru bisa dilakukan setelah pertemuan ke-{blok.sampai} ({formatTanggalPendek(blok.tanggal_selesai_blok)}) selesai. Saat ini {blok.terlaksana} dari {blok.ukuran} pertemuan sudah terlaksana.
+                      </div>
+                    )}
+                    {selectedKelas && blok?.siap && (
+                      <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700">
+                        Pertemuan {blok.dari}–{blok.sampai} siap diajukan (ditandai biru pada tabel).
+                      </div>
+                    )}
+                    {selectedKelas && !blok && (
+                      <div className="rounded-lg border border-[#E5E7EF] bg-white px-3 py-2 text-[11px] text-[#4B5063]">
+                        Semua pertemuan di kelas ini sudah diajukan.
                       </div>
                     )}
 
-                    <div className="max-h-56 overflow-y-auto overflow-x-auto border border-[#E5E7EF] rounded-lg">
+                    <div className="max-h-72 overflow-y-auto overflow-x-auto border border-[#E5E7EF] rounded-lg">
                     <table className="w-full border-collapse text-left text-sm text-[#3c4043] bg-white rounded-lg overflow-hidden">
-                      <thead>
+                      <thead className="sticky top-0 z-10">
                         <tr>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Tanggal</th>
                           <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 text-center bg-[#FAFBFD]">Pertemuan</th>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Jam Masuk</th>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Jam Keluar</th>
-                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 text-center bg-[#FAFBFD]">Status</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Tanggal</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Masuk</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Keluar</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 text-center bg-[#FAFBFD]">Absen</th>
+                          <th className="text-[10px] font-medium text-[#8B90A0] border border-[#E5E7EF] px-3 py-1.5 text-center bg-[#FAFBFD]">Pengajuan</th>
                         </tr>
                       </thead>
                       <tbody>
                         {!selectedKelas ? (
                           <tr>
-                            <td colSpan={5} className="px-3 py-4 text-[11px] text-[#8B90A0] text-center border-b border-[#E5E7EF]">Pilih kelas untuk melihat pertemuan yang akan diajukan</td>
+                            <td colSpan={6} className="px-3 py-4 text-[11px] text-[#8B90A0] text-center border-b border-[#E5E7EF]">Pilih kelas untuk melihat daftar pertemuan</td>
                           </tr>
-                        ) : pertemuanBelumDiajukan.length === 0 ? (
+                        ) : selectedKelas.pertemuan.length === 0 ? (
                           <tr>
-                            <td colSpan={5} className="px-3 py-4 text-[11px] text-[#8B90A0] text-center border-b border-[#E5E7EF]">Semua pertemuan di kelas ini sudah diajukan</td>
+                            <td colSpan={6} className="px-3 py-4 text-[11px] text-[#8B90A0] text-center border-b border-[#E5E7EF]">Belum ada pertemuan</td>
                           </tr>
                         ) : (
-                          pertemuanBelumDiajukan.map(r => (
-                            <tr key={r.id} className="border-b border-[#E5E7EF]">
-                              <td className="px-3 py-2 text-[11px] font-semibold text-[#14182B] whitespace-nowrap">{formatTanggalRiwayat(r.tanggal)}</td>
-                              <td className="px-3 py-2 text-[11px] text-center whitespace-nowrap">
-                                <span className="inline-flex px-1.5 py-0.5 rounded bg-[#E8F0FE] text-[#0069b0] text-[9px] font-bold">
-                                  {r.pertemuan_ke ? `Ke-${r.pertemuan_ke}` : '—'}
-                                </span>
-                              </td>
-                              <td className="px-3 py-2 text-[11px] text-[#3c4043] tabular-nums">{r.jam_masuk ? r.jam_masuk.slice(0, 5) : '—'}</td>
-                              <td className="px-3 py-2 text-[11px] text-[#3c4043] tabular-nums">{r.jam_keluar ? r.jam_keluar.slice(0, 5) : '—'}</td>
-                              <td className="px-3 py-2 text-center">
-                                <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${
-                                  r.status === 'HADIR' ? 'bg-[#DCFCE7] text-[#15803D]' :
-                                  r.status === 'TERLAMBAT' ? 'bg-[#FEF3C7] text-[#B45309]' :
-                                  'bg-[#F0F1F5] text-[#6B7280]'
-                                }`}>{r.status}</span>
-                              </td>
-                            </tr>
-                          ))
+                          selectedKelas.pertemuan.map(r => {
+                            const st = r.absensi?.status
+                            return (
+                              <tr key={r.pertemuan_ke} className={`border-b border-[#E5E7EF] ${r.akan_diajukan ? 'bg-[#0069b0]/[0.05]' : ''}`}>
+                                <td className={`px-3 py-2 text-center whitespace-nowrap ${r.akan_diajukan ? 'border-l-2 border-l-[#0069b0]' : ''}`}>
+                                  <span className="inline-flex px-1.5 py-0.5 rounded bg-[#E8F0FE] text-[#0069b0] text-[9px] font-bold">Ke-{r.pertemuan_ke}</span>
+                                </td>
+                                <td className="px-3 py-2 text-[11px] font-semibold text-[#14182B] whitespace-nowrap">{formatTanggalRiwayat(r.tanggal)}</td>
+                                <td className="px-3 py-2 text-[11px] text-[#3c4043] tabular-nums">{r.absensi?.jam_masuk ? r.absensi.jam_masuk.slice(0, 5) : '—'}</td>
+                                <td className="px-3 py-2 text-[11px] text-[#3c4043] tabular-nums">{r.absensi?.jam_keluar ? r.absensi.jam_keluar.slice(0, 5) : '—'}</td>
+                                <td className="px-3 py-2 text-center whitespace-nowrap">
+                                  {st ? (
+                                    <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                      st === 'HADIR' ? 'bg-[#DCFCE7] text-[#15803D]' :
+                                      st === 'TERLAMBAT' ? 'bg-[#FEF3C7] text-[#B45309]' :
+                                      st === 'LIBUR' ? 'bg-[#F0F1F5] text-[#6B7280]' :
+                                      'bg-[#FEE2E2] text-[#B91C1C]'
+                                    }`}>{st}</span>
+                                  ) : (
+                                    <span className="text-[10px] text-[#8B90A0]">{r.terlaksana ? 'Tidak absen' : 'Berlangsung'}</span>
+                                  )}
+                                </td>
+                                <td className="px-3 py-2 text-center whitespace-nowrap">
+                                  {r.pengajuan ? (
+                                    <span className={`inline-flex px-1.5 py-0.5 rounded border text-[9px] font-bold ${statusStyle[r.pengajuan.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                                      Diajukan · {statusLabel[r.pengajuan.status] || r.pengajuan.status}
+                                    </span>
+                                  ) : r.akan_diajukan ? (
+                                    <span className="text-[10px] font-semibold text-[#0069b0]">{blok?.siap ? 'Akan diajukan' : 'Blok berikutnya'}</span>
+                                  ) : (
+                                    <span className="text-[10px] text-[#C5C8D4]">—</span>
+                                  )}
+                                </td>
+                              </tr>
+                            )
+                          })
                         )}
                       </tbody>
                     </table>
@@ -772,7 +846,7 @@ setGajiSaving(true)
                   className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition">
                   Batal
                 </button>
-                <button type="submit" disabled={gajiSaving || !selectedKelas || !cukupPertemuan}
+                <button type="submit" disabled={gajiSaving || !selectedKelas || !bisaAjukan}
                   className="rounded-lg bg-[#0069b0] px-4 py-2 text-xs font-semibold text-white hover:bg-[#004d7a] transition disabled:opacity-50 flex items-center gap-1.5">
                   {gajiSaving ? 'Mengirim...' : 'Kirim Pengajuan'}
                 </button>
