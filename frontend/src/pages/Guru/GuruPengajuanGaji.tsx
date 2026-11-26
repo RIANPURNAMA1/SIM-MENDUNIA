@@ -63,13 +63,13 @@ interface PertemuanRow {
   akan_diajukan: boolean
 }
 
+/** Pertemuan yang akan diajukan berikutnya: semua pertemuan hadir sejak pengajuan terakhir. */
 interface BlokPengajuan {
   dari: number
   sampai: number
-  ukuran: number
-  terlaksana: number
+  /** Jumlah pertemuan hadir dalam rentang dari–sampai. */
+  jumlah: number
   siap: boolean
-  tanggal_selesai_blok: string
 }
 
 interface KelasEligibility {
@@ -291,7 +291,7 @@ export default function GuruPengajuanGaji() {
       Swal.fire({
         icon: 'warning',
         title: 'Pertemuan Belum Cukup',
-        text: `Pengajuan pertemuan ${blok.dari}–${blok.sampai} baru bisa dilakukan setelah pertemuan ke-${blok.sampai} (${formatTanggalPendek(blok.tanggal_selesai_blok)}) selesai.`,
+        text: `Pengajuan minimal ${minPertemuan} pertemuan hadir. Saat ini baru ${blok.jumlah} pertemuan hadir yang belum diajukan.`,
         confirmButtonColor: '#0069b0',
       })
       return
@@ -316,7 +316,7 @@ export default function GuruPengajuanGaji() {
       icon: 'question',
       title: 'Ajukan Pengajuan Gaji?',
       html: `
-        <p class="text-sm text-gray-600 mb-3">Yakin ingin mengajukan gaji untuk <b>${selectedKelas.nama} (Level ${selectedKelas.level})</b> untuk <b>pertemuan ${blok.dari}–${blok.sampai}</b>? Berikut ringkasan yang akan ikut terkirim:</p>
+        <p class="text-sm text-gray-600 mb-3">Yakin ingin mengajukan gaji untuk <b>${selectedKelas.nama} (Level ${selectedKelas.level})</b> untuk <b>pertemuan ${blok.dari}–${blok.sampai}</b> (${blok.jumlah} pertemuan hadir)? Berikut ringkasan yang akan ikut terkirim:</p>
         ${noReqHtml}
         <div class="border border-gray-200 rounded-lg overflow-hidden text-left">
           ${statRow('Hadir', s.hadir)}
@@ -448,7 +448,9 @@ setGajiSaving(true)
                     <span key={k.id} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${k.blok?.siap ? 'bg-emerald-50 text-emerald-700' : 'bg-white text-[#4B5063]'}`}>
                       {k.blok?.siap && <CheckCircle2 size={12} />}
                       {k.nama} L{k.level}: {k.blok
-                        ? `pertemuan ${k.blok.dari}–${k.blok.sampai} (${k.blok.terlaksana}/${k.blok.ukuran})${k.blok.siap ? ' siap diajukan' : ''}`
+                        ? (k.blok.siap
+                          ? `pertemuan ${k.blok.dari}–${k.blok.sampai} (${k.blok.jumlah} pertemuan) siap diajukan`
+                          : `${k.blok.jumlah}/${minPertemuan} pertemuan hadir`)
                         : 'semua sudah diajukan'}
                     </span>
                   ))}
@@ -657,7 +659,7 @@ setGajiSaving(true)
                                   </div>
                                   {b ? (
                                     <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${siap ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-                                      {b.terlaksana}/{b.ukuran}
+                                      {b.jumlah}/{minPertemuan}
                                     </span>
                                   ) : (
                                     <span className="shrink-0 rounded-full bg-[#F0F1F5] px-2 py-0.5 text-[10px] font-bold text-[#6B7280]">Semua diajukan</span>
@@ -667,10 +669,12 @@ setGajiSaving(true)
                                   <>
                                     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#F0F1F5]">
                                       <div className={`h-full rounded-full ${siap ? 'bg-emerald-500' : 'bg-amber-400'}`}
-                                        style={{ width: `${Math.min(100, (b.terlaksana / b.ukuran) * 100)}%` }} />
+                                        style={{ width: `${Math.min(100, (b.jumlah / minPertemuan) * 100)}%` }} />
                                     </div>
                                     <p className="mt-1.5 text-[10px] text-[#8B90A0]">
-                                      Pengajuan berikutnya: <span className="font-semibold text-[#4B5063]">pertemuan {b.dari}–{b.sampai}</span>
+                                      {b.jumlah > 0
+                                        ? <>Belum diajukan: <span className="font-semibold text-[#4B5063]">pertemuan {b.dari}–{b.sampai} ({b.jumlah} hadir)</span></>
+                                        : <>Belum ada pertemuan hadir yang belum diajukan</>}
                                       {' · '}{k.pertemuan_berjalan} dari {k.total_periode} pertemuan berjalan · {k.sudah_diajukan} sudah diajukan
                                     </p>
                                   </>
@@ -684,12 +688,12 @@ setGajiSaving(true)
 
                     {selectedKelas && blok && !blok.siap && (
                       <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
-                        Pengajuan pertemuan {blok.dari}–{blok.sampai} baru bisa dilakukan setelah pertemuan ke-{blok.sampai} ({formatTanggalPendek(blok.tanggal_selesai_blok)}) selesai. Saat ini {blok.terlaksana} dari {blok.ukuran} pertemuan sudah terlaksana.
+                        Pengajuan minimal {minPertemuan} pertemuan hadir. Saat ini baru {blok.jumlah} pertemuan hadir yang belum diajukan &mdash; butuh {minPertemuan - blok.jumlah} pertemuan lagi.
                       </div>
                     )}
                     {selectedKelas && blok?.siap && (
                       <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] text-emerald-700">
-                        Pertemuan {blok.dari}–{blok.sampai} siap diajukan (ditandai biru pada tabel).
+                        Pertemuan {blok.dari}–{blok.sampai} ({blok.jumlah} pertemuan hadir) siap diajukan &mdash; ditandai biru pada tabel.
                       </div>
                     )}
                     {selectedKelas && !blok && (
@@ -748,7 +752,7 @@ setGajiSaving(true)
                                       Diajukan · {statusLabel[r.pengajuan.status] || r.pengajuan.status}
                                     </span>
                                   ) : r.akan_diajukan ? (
-                                    <span className="text-[10px] font-semibold text-[#0069b0]">{blok?.siap ? 'Akan diajukan' : 'Blok berikutnya'}</span>
+                                    <span className="text-[10px] font-semibold text-[#0069b0]">{blok?.siap ? 'Akan diajukan' : 'Belum diajukan'}</span>
                                   ) : (
                                     <span className="text-[10px] text-[#C5C8D4]">—</span>
                                   )}

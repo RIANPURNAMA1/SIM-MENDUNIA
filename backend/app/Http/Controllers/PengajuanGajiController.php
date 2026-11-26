@@ -12,12 +12,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Pengajuan gaji sensei per blok pertemuan.
+ * Pengajuan gaji sensei berdasarkan pertemuan.
  *
  * Pertemuan dihitung dari tanggal mulai kelas (hari kerja, tanpa akhir pekan &
- * hari libur). Pengajuan dilakukan per blok 5 pertemuan berurutan: 1–5, 6–10,
- * 11–15, dst. Sebuah blok baru bisa diajukan setelah pertemuan terakhir di blok
- * itu selesai, dan hanya boleh ada satu pengajuan yang belum di-ACC.
+ * hari libur). Satu pengajuan mencakup semua pertemuan yang sudah dijalani sejak
+ * pengajuan sebelumnya (mis. belum pernah mengajukan & sudah 17 pertemuan → 1–17),
+ * dengan syarat minimal 5 pertemuan. Hanya boleh ada satu pengajuan yang belum di-ACC.
  */
 class PengajuanGajiController extends Controller
 {
@@ -158,9 +158,8 @@ class PengajuanGajiController extends Controller
             }
             if (!$blok['siap']) {
                 return ['error' => sprintf(
-                    'Pengajuan pertemuan %d–%d baru bisa dilakukan setelah pertemuan ke-%d (%s) selesai.',
-                    $blok['dari'], $blok['sampai'], $blok['sampai'],
-                    Carbon::parse($blok['tanggal_selesai_blok'])->locale('id')->translatedFormat('d M Y')
+                    'Pengajuan minimal %d pertemuan hadir. Saat ini baru %d pertemuan hadir yang belum diajukan.',
+                    self::MIN_PERTEMUAN, $blok['jumlah']
                 )];
             }
 
@@ -301,8 +300,8 @@ class PengajuanGajiController extends Controller
             $rows[] = [
                 'pertemuan_ke' => $ke,
                 'tanggal' => $tanggal,
-                // Pertemuan dianggap selesai bila harinya sudah lewat, atau hari ini & sudah absen pulang.
-                'terlaksana' => Carbon::parse($tanggal)->lt($today) || ($a && $a->jam_keluar),
+                // Pertemuan dihitung sudah dijalani bila harinya sudah lewat, atau hari ini & sensei sudah absen.
+                'terlaksana' => Carbon::parse($tanggal)->lt($today) || (bool) $a,
                 'absensi' => $a ? [
                     'id' => (int) $a->id,
                     'jam_masuk' => $a->jam_masuk,
@@ -314,36 +313,25 @@ class PengajuanGajiController extends Controller
             ];
         }
 
-        // Blok berikutnya = blok 5 pertemuan pertama yang belum diklaim sama sekali.
+        // Pengajuan berikutnya = semua pertemuan yang sudah dijalani setelah pertemuan
+        // terakhir yang pernah diajukan. Boleh diajukan bila jumlahnya minimal 5
+        // (atau sisa pertemuan terakhir kelas bila periodenya sudah habis dijalani).
+        // Yang dihitung hanya pertemuan yang diabsen hadir (status STATUS_DIHITUNG).
         $blok = null;
-        for ($dari = 1; $dari <= $totalPeriode; $dari += self::MIN_PERTEMUAN) {
-            $sampai = min($dari + self::MIN_PERTEMUAN - 1, $totalPeriode);
-            $adaKlaim = false;
-            for ($k = $dari; $k <= $sampai; $k++) {
-                if (isset($klaim[$k])) {
-                    $adaKlaim = true;
-                    break;
-                }
-            }
-            if ($adaKlaim) {
-                continue;
-            }
-            $dalamBlok = array_filter($rows, fn ($r) => $r['pertemuan_ke'] >= $dari && $r['pertemuan_ke'] <= $sampai);
-            $terlaksana = count(array_filter($dalamBlok, fn ($r) => $r['terlaksana']));
+        $dari = ($klaim ? max(array_keys($klaim)) : 0) + 1;
+        if ($dari <= $totalPeriode) {
+            $hadirKe = array_column(array_filter($rows, fn ($r) => $r['pertemuan_ke'] >= $dari
+                && $r['absensi'] && in_array($r['absensi']['status'], self::STATUS_DIHITUNG, true)), 'pertemuan_ke');
+            $jumlah = count($hadirKe);
+            $sampai = $hadirKe ? max($hadirKe) : $dari - 1;
             $blok = [
                 'dari' => $dari,
                 'sampai' => $sampai,
-                'ukuran' => $sampai - $dari + 1,
-                'terlaksana' => $terlaksana,
-                'siap' => $terlaksana === $sampai - $dari + 1,
-                'tanggal_selesai_blok' => $jadwal[$sampai],
+                'jumlah' => $jumlah,
+                'siap' => $jumlah >= self::MIN_PERTEMUAN || ($jumlah > 0 && $sampai === $totalPeriode),
             ];
-            break;
-        }
-
-        if ($blok) {
             foreach ($rows as &$r) {
-                $r['akan_diajukan'] = $r['pertemuan_ke'] >= $blok['dari'] && $r['pertemuan_ke'] <= $blok['sampai'];
+                $r['akan_diajukan'] = $jumlah > 0 && $r['pertemuan_ke'] >= $dari && $r['pertemuan_ke'] <= $sampai;
             }
             unset($r);
         }
