@@ -3,7 +3,7 @@ import {
   Plus, X, Trash2, ArrowLeft, ListChecks, Eye,
   ChevronUp, ChevronDown, Camera, Clock, Repeat, Award, Users,
   UserCheck, BookOpen, Search, Pencil, Loader2, ImageIcon,
-  LayoutGrid, ShieldCheck,
+  LayoutGrid, ShieldCheck, RotateCcw,
 } from 'lucide-react'
 import { adminQuizApi } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -35,6 +35,7 @@ interface Paket {
   block_exit: boolean
   batch?: { id: number; nama_batch: string } | null
   course?: { id: number; title: string } | null
+  deleted_at?: string | null
 }
 
 interface Section {
@@ -139,6 +140,7 @@ export default function AdminQuizPaketSoal() {
   const [activePaket, setActivePaket] = useState<Paket | null>(null)
   const [search, setSearch] = useState('')
   const [filterBatch, setFilterBatch] = useState('')
+  const [trashMode, setTrashMode] = useState(false)
 
   const [showPaketModal, setShowPaketModal] = useState(false)
   const [editingPaket, setEditingPaket] = useState<Paket | null>(null)
@@ -181,9 +183,10 @@ export default function AdminQuizPaketSoal() {
 
   const fetchPakets = () => {
     setLoading(true)
-    const params: Record<string, string> = {}
+    const params: Record<string, string | number> = {}
     if (search) params.search = search
     if (filterBatch) params.batch_id = filterBatch
+    if (trashMode) params.trash = 1
     adminQuizApi.pakets(params).then(res => {
       setPakets(res.data.pakets || [])
     }).catch(() => {}).finally(() => setLoading(false))
@@ -198,7 +201,7 @@ export default function AdminQuizPaketSoal() {
   useEffect(() => {
     fetchPakets()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, filterBatch])
+  }, [search, filterBatch, trashMode])
 
   const openCreatePaket = () => {
     setEditingPaket(null)
@@ -332,8 +335,8 @@ export default function AdminQuizPaketSoal() {
 
   const deletePaket = (p: Paket) => {
     Swal.fire({
-      title: 'Hapus paket soal?',
-      text: `"${p.title}" beserta semua soal & riwayat pengerjaan akan dihapus`,
+      title: 'Pindahkan paket ke tempat sampah?',
+      text: `"${p.title}" tidak tampil di bank lagi, tetapi soal & riwayat pengerjaannya tetap tersimpan dan dapat dipulihkan dari menu Tempat Sampah.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc2626',
@@ -343,10 +346,22 @@ export default function AdminQuizPaketSoal() {
       if (res.isConfirmed) {
         adminQuizApi.deletePaket(p.id).then(() => {
           fetchPakets()
-          Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1500, showConfirmButton: false })
+          fetchMeta()
+          Swal.fire({ icon: 'success', title: 'Dipindahkan ke tempat sampah', timer: 1500, showConfirmButton: false })
         }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus' }))
       }
     })
+  }
+
+  const restorePaket = async (p: Paket) => {
+    try {
+      await adminQuizApi.restorePaket(p.id)
+      fetchPakets()
+      fetchMeta()
+      Swal.fire({ icon: 'success', title: 'Paket dipulihkan', timer: 1500, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal memulihkan paket' })
+    }
   }
 
   const togglePaket = (p: Paket) => {
@@ -568,7 +583,7 @@ export default function AdminQuizPaketSoal() {
               <p className="text-sm text-slate-500">Kelola paket soal MCQ dan lihat hasil pengerjaan kandidat</p>
             </div>
           </div>
-          {view === 'list' && (
+          {view === 'list' && !trashMode && (
             <button onClick={openCreatePaket} className={primaryBtn}>
               <Plus size={16} /> Buat Paket
             </button>
@@ -587,6 +602,10 @@ export default function AdminQuizPaketSoal() {
               <option value="">Semua Batch</option>
               {batches.map(b => <option key={b.id} value={b.id}>{b.nama_batch}</option>)}
             </select>
+            <button onClick={() => setTrashMode(v => !v)}
+              className={`shrink-0 inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border transition-colors ${trashMode ? 'border-slate-500 bg-slate-100 text-slate-700' : 'border-slate-200 bg-white text-slate-500 hover:border-[#0E6187] hover:text-[#0E6187]'}`}>
+              {trashMode ? <><ArrowLeft size={16} /> Kembali ke Bank</> : <><Trash2 size={16} /> Tempat Sampah</>}
+            </button>
           </div>
         )}
 
@@ -601,11 +620,13 @@ export default function AdminQuizPaketSoal() {
               <div className="w-14 h-14 mx-auto rounded-lg bg-[#0E6187]/10 flex items-center justify-center mb-3">
                 <ListChecks size={28} className="text-[#0E6187]" />
               </div>
-              <p className="text-slate-800 font-semibold">Belum ada paket soal</p>
-              <p className="text-slate-500 text-sm mt-1">Buat paket soal MCQ untuk kandidat</p>
-              <button onClick={openCreatePaket} className={`${primaryBtn} mt-5`}>
-                <Plus size={16} /> Buat Paket Soal
-              </button>
+              <p className="text-slate-800 font-semibold">{trashMode ? 'Tempat sampah kosong' : 'Belum ada paket soal'}</p>
+              <p className="text-slate-500 text-sm mt-1">{trashMode ? 'Paket yang dihapus dari bank bisa dipulihkan dari sini.' : 'Buat paket soal MCQ untuk kandidat'}</p>
+              {!trashMode && (
+                <button onClick={openCreatePaket} className={`${primaryBtn} mt-5`}>
+                  <Plus size={16} /> Buat Paket Soal
+                </button>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -620,8 +641,8 @@ export default function AdminQuizPaketSoal() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <h2 className="text-slate-800 font-semibold truncate">{p.title}</h2>
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${p.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
-                          {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${trashMode ? 'bg-red-50 text-red-500' : p.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>
+                          {trashMode ? 'Di Tempat Sampah' : p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
                         </span>
                       </div>
                       {p.category && (
@@ -636,12 +657,14 @@ export default function AdminQuizPaketSoal() {
                         </p>
                       )}
                     </div>
-                    <button
-                      onClick={() => togglePaket(p)}
-                      className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-300'}`}
-                      title={p.status === 'aktif' ? 'Tutup paket' : 'Buka paket'}>
-                      <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
-                    </button>
+                    {!trashMode && (
+                      <button
+                        onClick={() => togglePaket(p)}
+                        className={`relative w-10 h-[22px] rounded-full transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                        title={p.status === 'aktif' ? 'Tutup paket' : 'Buka paket'}>
+                        <span className={`absolute top-[2px] w-[18px] h-[18px] rounded-full bg-white shadow transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
+                      </button>
+                    )}
                   </div>
 
                   {p.description && <p className="text-sm text-slate-500 mt-2 line-clamp-2">{p.description}</p>}
@@ -666,20 +689,29 @@ export default function AdminQuizPaketSoal() {
                   </div>
 
                   <div className="flex items-center gap-2 mt-4 pt-4 border-t border-slate-100">
-                    <button onClick={() => openQuestions(p)}
-                      className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-[#0E6187] py-2 rounded-lg hover:bg-[#0E6187]/90 transition-colors">
-                      <ListChecks size={15} /> Soal ({p.questions_count})
-                    </button>
-                    <button onClick={() => openResults(p)}
-                      className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] py-2 rounded-lg hover:bg-[#0E6187]/15 transition-colors">
-                      <Eye size={15} /> Hasil
-                    </button>
-                    <button onClick={() => openEditPaket(p)} className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
-                      <Pencil size={15} className="text-slate-600" />
-                    </button>
-                    <button onClick={() => deletePaket(p)} className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors" title="Hapus">
-                      <Trash2 size={15} className="text-red-500" />
-                    </button>
+                    {trashMode ? (
+                      <button onClick={() => restorePaket(p)}
+                        className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-emerald-600 bg-emerald-50 py-2 rounded-lg hover:bg-emerald-100 transition-colors">
+                        <RotateCcw size={15} /> Pulihkan Paket
+                      </button>
+                    ) : (
+                      <>
+                        <button onClick={() => openQuestions(p)}
+                          className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-white bg-[#0E6187] py-2 rounded-lg hover:bg-[#0E6187]/90 transition-colors">
+                          <ListChecks size={15} /> Soal ({p.questions_count})
+                        </button>
+                        <button onClick={() => openResults(p)}
+                          className="flex-1 flex items-center justify-center gap-1.5 text-sm font-semibold text-[#0E6187] bg-[#0E6187]/[0.08] py-2 rounded-lg hover:bg-[#0E6187]/15 transition-colors">
+                          <Eye size={15} /> Hasil
+                        </button>
+                        <button onClick={() => openEditPaket(p)} className="w-10 h-10 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 transition-colors" title="Edit">
+                          <Pencil size={15} className="text-slate-600" />
+                        </button>
+                        <button onClick={() => deletePaket(p)} className="w-10 h-10 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 transition-colors" title="Pindahkan ke tempat sampah">
+                          <Trash2 size={15} className="text-red-500" />
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}

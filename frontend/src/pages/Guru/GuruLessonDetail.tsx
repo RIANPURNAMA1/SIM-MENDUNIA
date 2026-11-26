@@ -1839,7 +1839,7 @@ export default function GuruLessonDetail() {
         </div>
 
         {/* Sub menu tabs */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 min-[400px]:grid-cols-3 sm:grid-cols-4 gap-2">
           {([
             { key: 'materi' as 'materi', label: 'Materi', icon: BookOpen, count: undefined as number | undefined },
             { key: 'quiz' as 'quiz', label: 'Quiz', icon: HelpCircle, count: quizCount },
@@ -1855,8 +1855,8 @@ export default function GuruLessonDetail() {
                   ? 'border-[#0069b0] text-[#0069b0] bg-[#0069b0]/[0.04]'
                   : 'border-[#E5E7EF] bg-white text-[#4B5063] hover:border-[#D6D9E1] hover:text-[#14182B]'
               }`}>
-              <tab.icon size={15} />
-              <span className="truncate">{tab.label}</span>
+              <tab.icon size={15} className="shrink-0" />
+              <span className="min-w-0 text-left leading-tight break-words">{tab.label}</span>
               {tab.count !== undefined && (
                 <span className={`ml-auto text-[9px] px-1.5 py-0.5 rounded-full font-bold shrink-0 ${
                   lessonTab === tab.key ? 'bg-[#0069b0]/10 text-[#0069b0]' : 'bg-gray-100 text-[#8B90A0]'
@@ -3844,25 +3844,23 @@ export default function GuruLessonDetail() {
                       const attached = bankPickerMode === 'pembahasan' ? (asPembahasan || asQuiz) : (asQuiz || asPembahasan)
                       return (
                         <label key={p.id}
-                          className={`flex items-center gap-3 border rounded-md px-4 py-3 transition-colors ${attached ? 'border-[#E5E7EF] bg-[#F8F9FB] opacity-70 cursor-not-allowed' : `cursor-pointer ${checked ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:bg-[#F7F8FA]'}`}`}>
+                          className={`flex items-start gap-3 border rounded-md px-4 py-3 transition-colors ${attached ? 'border-[#E5E7EF] bg-[#F8F9FB] opacity-70 cursor-not-allowed' : `cursor-pointer ${checked ? 'border-[#0069b0] bg-[#0069b0]/[0.04] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:bg-[#F7F8FA]'}`}`}>
                           <input type="checkbox" checked={checked || attached} disabled={attached} onChange={() => pickBankPaket(p.id)}
-                            className="w-4 h-4 rounded border-[#D6D9E1] text-[#0069b0] focus:ring-[#0069b0] shrink-0" />
+                            className="w-4 h-4 mt-px rounded border-[#D6D9E1] text-[#0069b0] focus:ring-[#0069b0] shrink-0" />
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <p className="text-xs font-bold text-[#14182B] truncate">{p.title}</p>
+                            <p className="text-xs font-bold text-[#14182B] leading-snug break-words">{p.title}</p>
+                            <div className="text-[10px] text-[#8B90A0] font-medium mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                              <span>{p.questions_count != null ? `${p.questions_count} soal` : 'Paket soal'}</span>
+                              {p.category && <><span>·</span><span>{p.category}</span></>}
                               {p.course_id && (
-                                <span className="text-[9px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] px-1.5 py-0.5 rounded-full shrink-0">Terhubung kursus</span>
+                                <span className="text-[9px] font-bold text-[#0069b0] bg-[#0069b0]/[0.06] px-1.5 py-0.5 rounded-full">Terhubung kursus</span>
                               )}
                               {p.status === 'nonaktif' && (
-                                <span className="text-[9px] font-bold text-amber-600 shrink-0">Nonaktif</span>
+                                <span className="text-[9px] font-bold text-amber-600">Nonaktif</span>
                               )}
                             </div>
-                            <p className="text-[10px] text-[#8B90A0] font-medium mt-0.5 flex items-center gap-1.5">
-                              {p.questions_count != null ? `${p.questions_count} soal` : 'Paket soal'}
-                              {p.category && <><span>·</span><span>{p.category}</span></>}
-                            </p>
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${attached ? 'bg-[#0069b0]/10 text-[#0069b0]' : p.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-[#8B90A0]'}`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 whitespace-nowrap ${attached ? 'bg-[#0069b0]/10 text-[#0069b0]' : p.status === 'aktif' ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-[#8B90A0]'}`}>
                             {asPembahasan ? 'Sudah jadi pembahasan' : asQuiz ? 'Sudah jadi quiz' : p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
                           </span>
                         </label>

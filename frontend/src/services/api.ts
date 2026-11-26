@@ -716,6 +716,7 @@ export const aiSettingApi = {
     groq_api_key?: string; gemini_api_key?: string; claude_api_key?: string; gpt_api_key?: string; modelsstudio_api_key?: string;
     modelsstudio_base_url?: string;
     groq_model?: string; gemini_model?: string; claude_model?: string; gpt_model?: string; modelsstudio_model?: string;
+    feature_providers?: Record<string, string>;
   }) => api.put('/ai-settings', data),
   test: (data: { provider: 'groq' | 'gemini' | 'claude' | 'gpt' | 'modelsstudio'; api_key?: string }) => api.post('/ai-settings/test', data),
 }
@@ -793,11 +794,15 @@ export const adminQuizApi = {
   storePaket: (data: Record<string, unknown>) => api.post('/admin-cabang/quiz/pakets', data),
   updatePaket: (id: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/pakets/${id}`, data),
   deletePaket: (id: number) => api.delete(`/admin-cabang/quiz/pakets/${id}`),
+  restorePaket: (id: number) => api.post(`/admin-cabang/quiz/pakets/${id}/restore`),
   togglePaket: (id: number) => api.post(`/admin-cabang/quiz/pakets/${id}/toggle`),
   assignBank: (data: { course_id: number; paket_ids: number[] }) => api.post('/admin-cabang/quiz/assign-bank', data),
+  detachBank: (courseId: number, paketId: number) => api.delete(`/admin-cabang/quiz/courses/${courseId}/pakets/${paketId}`),
   questions: (paketId: number) => api.get(`/admin-cabang/quiz/pakets/${paketId}/questions`),
   storeQuestion: (paketId: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/pakets/${paketId}/questions`, data),
   storeQuestionsBulk: (paketId: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/pakets/${paketId}/questions-bulk`, data),
+  aiParseQuestions: (paketId: number, data: { text: string; question_type: string; ai_boleh_isi_kunci: boolean }) =>
+    api.post(`/admin-cabang/quiz/pakets/${paketId}/ai-parse`, data, { timeout: 200000 }),
   sections: (paketId: number) => api.get(`/admin-cabang/quiz/pakets/${paketId}/sections`),
   storeSection: (paketId: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/pakets/${paketId}/sections`, data),
   updateSection: (id: number, data: Record<string, unknown>) => api.post(`/admin-cabang/quiz/sections/${id}`, data),
@@ -836,6 +841,7 @@ export const quizReferenceApi = {
 }
 
 export const gajiApi = {
+  eligibility: () => api.get('/guru/gaji/eligibility'),
   store: (data: FormData) => api.post('/guru/gaji', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   list: (params?: Record<string, string | number | undefined>) => api.get('/gaji', { params }),
   updateStatus: (id: number, data: { status: string; catatan?: string }) =>

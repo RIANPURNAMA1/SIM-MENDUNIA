@@ -239,7 +239,7 @@ class SiswaController extends Controller
         ]);
     }
 
-    public function importAi(Request $request, GroqService $groq)
+    public function importAi(Request $request, \App\Services\AiAssistantService $ai)
     {
         $request->validate([
             'text' => 'required|string|min:3',
@@ -264,7 +264,7 @@ class SiswaController extends Controller
             ],
         ];
 
-        $response = $groq->chat($messages, 0.3, 1024);
+        $response = $ai->chatFor('import_siswa', $messages, 0.3, 1024);
 
         $names = [];
         if (preg_match('/\[.*?\]/s', $response, $matches)) {

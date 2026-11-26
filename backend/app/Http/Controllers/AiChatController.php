@@ -107,7 +107,7 @@ class AiChatController extends Controller
         $lastQueryResults = [];
 
         for ($round = 0; $round < 3; $round++) {
-            $latestResponse = $this->ai->chat($messages);
+            $latestResponse = $this->ai->chatFor('ai_chat', $messages);
 
             preg_match_all('/\[QUERY\]([\s\S]*?)\[\/QUERY\]/', $latestResponse, $qMatches);
 

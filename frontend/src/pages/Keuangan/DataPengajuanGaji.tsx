@@ -16,10 +16,14 @@ interface PengajuanGajiItem {
   no_req_list?: string[] | null
   status: string
   catatan: string | null
+  kelas_sensei_id?: number | null
+  jumlah_pertemuan?: number | null
+  kelas_sensei?: { id: number; nama_kelas: string; level: string | number; batch_relasi?: { nama_batch: string } | null } | null
   ringkasan_kehadiran?: {
     total_kelas?: number
     kehadiran_bulan_ini?: number
     kelas_aktif?: { nama_batch?: string; nama_kelas?: string; level?: string | number; periode?: string }[]
+    kelas_diajukan?: { id: number; nama_batch?: string; level?: string | number; periode?: string }
     riwayat?: { tanggal: string; status: string; jam_masuk?: string | null; jam_keluar?: string | null; pertemuan_ke?: number | null }[]
     riwayat_izin?: { jenis_izin: string; tgl_mulai: string; tgl_selesai: string; status: string; alasan?: string | null; kelas?: string | null; pengganti?: string | null }[]
   } | null
@@ -67,6 +71,14 @@ function formatPeriodeIzin(mulai: string, selesai: string) {
   const pendek = (v: string) =>
     new Date(`${v}T00:00:00`).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })
   return mulai === selesai ? pendek(mulai) : `${pendek(mulai)} – ${pendek(selesai)}`
+}
+
+function kelasDiajukanLabel(item: PengajuanGajiItem) {
+  if (item.kelas_sensei) {
+    return `${item.kelas_sensei.batch_relasi?.nama_batch || item.kelas_sensei.nama_kelas} · Level ${item.kelas_sensei.level}`
+  }
+  const k = item.ringkasan_kehadiran?.kelas_diajukan
+  return k ? `${k.nama_batch || '-'} · Level ${k.level}` : null
 }
 
 function formatTanggalRiwayat(dateStr: string) {
@@ -241,11 +253,12 @@ export default function DataPengajuanGaji() {
       {/* Table */}
       <div className="border border-[#dadce0] bg-white">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[760px] border-collapse text-left text-sm text-black">
+          <table className="w-full min-w-[880px] border-collapse text-left text-sm text-black">
             <thead className="sticky top-0 z-20 bg-white">
               <tr>
                 <th scope="col" className="border-b border-[#e8eaed] px-4 py-3 text-xs font-medium text-[#5f6368]">Guru</th>
                 <th scope="col" className="border-b border-[#e8eaed] px-4 py-3 text-xs font-medium text-[#5f6368]">Bulan / Tahun</th>
+                <th scope="col" className="border-b border-[#e8eaed] px-4 py-3 text-xs font-medium text-[#5f6368]">Kelas / Pertemuan</th>
                 <th scope="col" className="border-b border-[#e8eaed] px-4 py-3 text-xs font-medium text-[#5f6368]">Keterangan</th>
                 <th scope="col" className="border-b border-[#e8eaed] px-4 py-3 text-xs font-medium text-[#5f6368] text-center">Status</th>
                 <th scope="col" className="border-b border-[#e8eaed] px-4 py-3 text-xs font-medium text-[#5f6368] text-center">Aksi</th>
@@ -255,14 +268,14 @@ export default function DataPengajuanGaji() {
               {loading ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i}>
-                    <td colSpan={5} className="px-6 py-12 text-center">
+                    <td colSpan={6} className="px-6 py-12 text-center">
                       <div className="h-3 bg-[#e8eaed] w-full animate-pulse" />
                     </td>
                   </tr>
                 ))
               ) : data.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center">
+                  <td colSpan={6} className="px-6 py-12 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#f1f3f4] text-[#80868b]">
                       <Banknote size={24} />
                     </div>
@@ -292,6 +305,20 @@ export default function DataPengajuanGaji() {
                       <div className="text-[10px] text-[#80868b]">
                         {new Date(item.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </div>
+                    </td>
+                    <td className="border-b border-[#e8eaed] px-3 py-3 text-xs">
+                      {kelasDiajukanLabel(item) || item.jumlah_pertemuan != null ? (
+                        <>
+                          <div className="font-medium text-black">{kelasDiajukanLabel(item) || '-'}</div>
+                          {item.jumlah_pertemuan != null && (
+                            <span className="mt-1 inline-flex rounded bg-[#e8f0fe] px-1.5 py-0.5 text-[10px] font-bold text-[#1a73e8]">
+                              {item.jumlah_pertemuan} pertemuan
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-[#80868b]">-</span>
+                      )}
                     </td>
                     <td className="border-b border-[#e8eaed] px-3 py-3 text-xs text-black max-w-[220px]">
                       <div className="truncate" title={item.keterangan || ''}>{item.keterangan || '-'}</div>
@@ -463,10 +490,8 @@ export default function DataPengajuanGaji() {
               <div className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
                 <InfoItem label="Guru" value={detailItem.user?.name} />
                 <InfoItem label="Email" value={detailItem.user?.email} />
-                <InfoItem label="No. Req" value={(Array.isArray((detailItem.user as any)?.rekening_list) && (detailItem.user as any).rekening_list.some((r:any)=>r?.no_req)) ? (detailItem.user as any).rekening_list.map((r:any)=>r.no_req).filter(Boolean).join(', ') : (Array.isArray((detailItem as any).no_req_list) ? (detailItem as any).no_req_list.filter(Boolean).join(', ') : null)} />
-                <InfoItem label="Bank" value={detailItem.user?.bank || (Array.isArray((detailItem.user as any)?.rekening_list) ? (detailItem.user as any).rekening_list.map((r:any)=>r.bank).filter(Boolean).join(', ') : null)} />
-                <InfoItem label="No. Rekening" value={detailItem.user?.no_rekening || (Array.isArray((detailItem.user as any)?.rekening_list) ? (detailItem.user as any).rekening_list.map((r:any)=>r.no_rekening).filter(Boolean).join(', ') : null)} />
-                <InfoItem label="Nama Rekening" value={detailItem.user?.nama_rekening || (Array.isArray((detailItem.user as any)?.rekening_list) ? (detailItem.user as any).rekening_list.map((r:any)=>r.nama_rekening).filter(Boolean).join(', ') : null)} />
+                <InfoItem label="Kelas Diajukan" value={kelasDiajukanLabel(detailItem)} />
+                <InfoItem label="Jumlah Pertemuan Diajukan" value={detailItem.jumlah_pertemuan != null ? `${detailItem.jumlah_pertemuan} pertemuan` : null} />
                 <InfoItem label="No. Req" value={(Array.isArray((detailItem.user as any)?.rekening_list) && (detailItem.user as any).rekening_list.some((r:any)=>r?.no_req)) ? (detailItem.user as any).rekening_list.map((r:any)=>r.no_req).filter(Boolean).join(', ') : (Array.isArray((detailItem as any).no_req_list) ? (detailItem as any).no_req_list.filter(Boolean).join(', ') : null)} />
                 <InfoItem label="Bank" value={detailItem.user?.bank || (Array.isArray((detailItem.user as any)?.rekening_list) ? (detailItem.user as any).rekening_list.map((r:any)=>r.bank).filter(Boolean).join(', ') : null)} />
                 <InfoItem label="No. Rekening" value={detailItem.user?.no_rekening || (Array.isArray((detailItem.user as any)?.rekening_list) ? (detailItem.user as any).rekening_list.map((r:any)=>r.no_rekening).filter(Boolean).join(', ') : null)} />
@@ -512,7 +537,9 @@ export default function DataPengajuanGaji() {
 
                     {detailItem.ringkasan_kehadiran.riwayat && detailItem.ringkasan_kehadiran.riwayat.length > 0 ? (
                       <div>
-                        <p className="mb-2 text-xs font-medium text-[#5f6368]">Riwayat Absensi</p>
+                        <p className="mb-2 text-xs font-medium text-[#5f6368]">
+                          {detailItem.jumlah_pertemuan != null ? `Pertemuan yang Diajukan (${detailItem.ringkasan_kehadiran.riwayat.length})` : 'Riwayat Absensi'}
+                        </p>
                         <div className="overflow-x-auto border border-[#dadce0] bg-white">
                           <table className="w-full min-w-[560px] border-collapse text-left text-xs text-[#3c4043]">
                             <thead>

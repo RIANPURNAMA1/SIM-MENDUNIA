@@ -4,8 +4,9 @@ import {
   BookOpen, Plus, Edit3, Trash2, Search, X, Image as ImageIcon, FileText,
   ListChecks, Eye, EyeOff, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Camera, Clock, Repeat,
   Award, Users, UserCheck, UserRound, Pencil, Loader2, ArrowLeft, Video, UploadCloud, Upload, Mic, RotateCcw,
-  Settings, LayoutGrid, ShieldCheck, Link2, Building2, Layers, Settings2, FileCheck2, Radio,
+  Settings, LayoutGrid, ShieldCheck, Link2, Link2Off, Building2, Layers, Settings2, FileCheck2, Radio,
   ClipboardPaste, Tags, BarChart3, Copy, CheckCircle2,
+  Sparkles,
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -13,6 +14,7 @@ import { lmsAdminApi, adminCabangApi, jadwalLevelApi, adminQuizApi, cabangApi, A
 import { getYouTubeEmbedUrl } from '../../utils/youtube'
 import { isQuestionAudioFile, QUESTION_AUDIO_ACCEPT } from '../../utils/questionMedia'
 import CertificateCard, { type Sertifikat } from '../../components/quiz/CertificateCard'
+import AiImportEditor, { aiEditorHtmlToText, aiEditorHasContent } from '../../components/quiz/AiImportEditor'
 import LessonMediaFields, { LessonSlideItem } from '../../components/LessonMediaFields'
 import Swal from 'sweetalert2'
 import type { Pagination } from '../../types'
@@ -72,6 +74,28 @@ const stripMedia = (s: string) => {
     text = text.replace(plays[0], '').trim()
   }
   return { text, image_path, audio_path, audio_max_plays }
+}
+
+// Teks mentah yang panjang dipecah per ±6000 karakter agar respon AI tidak terpotong.
+// Pemenggalan hanya di baris kosong atau baris bernomor ("12." / "（12）") supaya soal tidak terbelah.
+const AI_IMPORT_CHUNK = 6000
+const splitAiImportText = (text: string): string[] => {
+  const lines = text.replace(/\r\n/g, '\n').split('\n')
+  const chunks: string[] = []
+  let buf: string[] = []
+  let size = 0
+  for (const line of lines) {
+    const boundary = line.trim() === '' || /^\s*(?:No\.?\s*)?[(（]?[0-9０-９]{1,3}\s*[.)．）、]/.test(line)
+    if (size >= AI_IMPORT_CHUNK && boundary) {
+      chunks.push(buf.join('\n'))
+      buf = []
+      size = 0
+    }
+    buf.push(line)
+    size += line.length + 1
+  }
+  if (buf.join('').trim()) chunks.push(buf.join('\n'))
+  return chunks.filter(c => c.trim())
 }
 
 const parseQuestionImport = (text: string, type: 'choice' | 'multi' | 'rating' | 'essay' = 'choice'): ImportQ[] => {
@@ -410,6 +434,7 @@ interface QuizPaket {
   batch?: { id: number; nama_batch: string } | null
   course?: { id: number; title: string } | null
   courses?: { id: number; title: string }[]
+  deleted_at?: string | null
 }
 
 interface Question {
@@ -721,6 +746,7 @@ export default function DataCourse() {
   const [bankSearch, setBankSearch] = useState('')
   const [bankPage, setBankPage] = useState(1)
   const [bankCategory, setBankCategory] = useState('')
+  const [bankTrashMode, setBankTrashMode] = useState(false)
   const [bankPagination, setBankPagination] = useState<Pagination>({ current_page: 1, last_page: 1, total: 0, per_page: BANK_PER_PAGE })
   const [quizSource, setQuizSource] = useState<'course' | 'bank'>('course')
 
@@ -769,6 +795,11 @@ export default function DataCourse() {
   const [importParse, setImportParse] = useState<ImportQ[]>([])
   const [savingImport, setSavingImport] = useState(false)
   const [importError, setImportError] = useState('')
+  const [aiRawText, setAiRawText] = useState('')
+  const [aiBolehIsiKunci, setAiBolehIsiKunci] = useState(true)
+  const [aiProgress, setAiProgress] = useState<{ done: number; total: number } | null>(null)
+  const [aiUploading, setAiUploading] = useState(0)
+  const aiPathMap = useRef(new Map<string, string>())
   const [importingMedia, setImportingMedia] = useState<'gambar' | 'audio' | null>(null)
   const [importMedia, setImportMedia] = useState<{ type: 'gambar' | 'audio'; url: string; name: string }[]>([])
   const importTextRef = useRef<HTMLTextAreaElement>(null)
@@ -1096,7 +1127,10 @@ export default function DataCourse() {
     setView(r.view)
     setQuizSource(r.source)
 
-    if (r.view === 'bank') fetchBankPakets()
+    if (r.view === 'bank') {
+      setBankTrashMode(false)
+      fetchBankPakets(undefined, undefined, false)
+    }
     if (r.view === 'materi-bank') fetchBankMateris()
     if (r.view === 'rekap-nilai') fetchRekap(1)
 
@@ -1267,14 +1301,27 @@ export default function DataCourse() {
     }).catch(() => setQuizPakets([])).finally(() => setQuizLoading(false))
   }
 
-  const fetchBankPakets = (page?: number, category?: string) => {
+  const fetchBankPakets = (page?: number, category?: string, trashMode = bankTrashMode) => {
     setBankLoading(true)
     const filterCat = (category !== undefined ? category : bankCategory).trim()
-    adminQuizApi.pakets({ page: page ?? bankPage, per_page: BANK_PER_PAGE, search: bankSearch.trim() || undefined, category: filterCat || undefined }).then(res => {
+    adminQuizApi.pakets({
+      page: page ?? bankPage,
+      per_page: BANK_PER_PAGE,
+      search: bankSearch.trim() || undefined,
+      category: filterCat || undefined,
+      trash: trashMode ? 1 : undefined,
+    }).then(res => {
       const all = res.data.pakets || []
       setBankPakets(all)
       setBankPagination(res.data.pagination || { current_page: 1, last_page: 1, total: all.length, per_page: BANK_PER_PAGE })
     }).catch(() => setBankPakets([])).finally(() => setBankLoading(false))
+  }
+
+  const toggleBankTrash = (next: boolean) => {
+    setBankTrashMode(next)
+    setBankPage(1)
+    setBankSearch('')
+    fetchBankPakets(1, bankCategory, next)
   }
 
   const fetchRekap = (page?: number) => {
@@ -1318,10 +1365,11 @@ export default function DataCourse() {
     setBankSearch('')
     setBankPage(1)
     setBankCategory('')
+    setBankTrashMode(false)
     setActiveQuizPaket(null)
     setActiveCourse(null)
     setView('bank')
-    fetchBankPakets(1)
+    fetchBankPakets(1, '', false)
     navigate(`${base}/bank-paket-soal`)
   }
 
@@ -2119,16 +2167,48 @@ export default function DataCourse() {
 
   const deletePaket = (p: QuizPaket) => {
     Swal.fire({
-      title: 'Hapus paket soal?', text: `"${p.title}" beserta semua soal & riwayat pengerjaan akan dihapus`, icon: 'warning',
+      title: 'Pindahkan paket ke tempat sampah?',
+      text: `"${p.title}" tidak tampil di bank lagi, tetapi soal & riwayat pengerjaannya tetap tersimpan dan dapat dipulihkan dari menu Tempat Sampah.`,
+      icon: 'warning',
       showCancelButton: true, confirmButtonColor: '#d93025', confirmButtonText: 'Hapus', cancelButtonText: 'Batal',
     }).then(res => {
       if (res.isConfirmed) {
         adminQuizApi.deletePaket(p.id).then(() => {
           refreshPaketList()
-          Swal.fire({ icon: 'success', title: 'Dihapus', timer: 1500, showConfirmButton: false })
+          fetchQuizMeta()
+          Swal.fire({ icon: 'success', title: 'Dipindahkan ke tempat sampah', timer: 1500, showConfirmButton: false })
         }).catch(() => Swal.fire({ icon: 'error', title: 'Gagal menghapus' }))
       }
     })
+  }
+
+  const restorePaket = async (p: QuizPaket) => {
+    try {
+      await adminQuizApi.restorePaket(p.id)
+      fetchBankPakets(bankPage, bankCategory, bankTrashMode)
+      fetchQuizMeta()
+      Swal.fire({ icon: 'success', title: 'Paket dipulihkan', timer: 1500, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal memulihkan paket' })
+    }
+  }
+
+  const detachPaketFromCourse = async (p: QuizPaket) => {
+    if (!activeCourse) return
+    const conf = await Swal.fire({
+      title: 'Lepas paket dari kursus?',
+      text: `"${p.title}" akan dilepas dari kursus "${activeCourse.title}". Paket, soal, dan riwayat pengerjaannya tetap tersimpan di bank paket soal.`,
+      icon: 'warning',
+      showCancelButton: true, confirmButtonColor: '#d93025', confirmButtonText: 'Lepas', cancelButtonText: 'Batal',
+    })
+    if (!conf.isConfirmed) return
+    try {
+      await adminQuizApi.detachBank(activeCourse.id, p.id)
+      fetchQuizPakets(activeCourse.id)
+      Swal.fire({ icon: 'success', title: 'Dilepas dari kursus', timer: 1500, showConfirmButton: false })
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Gagal melepas paket' })
+    }
   }
 
   const togglePaket = (p: QuizPaket) => {
@@ -2345,6 +2425,10 @@ export default function DataCourse() {
     setImportType('choice')
     setImportError('')
     setImportMedia([])
+    setAiRawText('')
+    setAiProgress(null)
+    setAiUploading(0)
+    aiPathMap.current = new Map()
     setShowImportModal(true)
   }
 
@@ -2352,6 +2436,63 @@ export default function DataCourse() {
     setImportText(val)
     setImportParse(parseQuestionImport(val, importType))
     setImportError('')
+  }
+
+  const uploadAiImage = (file: File): Promise<string> => {
+    const fd = new FormData()
+    fd.append('file', file)
+    return adminQuizApi.uploadMedia(fd).then(res => String(res.data.url))
+  }
+
+  const runAiImport = async () => {
+    if (!activeQuizPaket || aiProgress || aiUploading) return
+    if (!aiEditorHasContent(aiRawText)) {
+      setImportError('Tempel teks soal yang ingin diproses AI terlebih dahulu')
+      return
+    }
+    setImportError('')
+    setAiProgress({ done: 0, total: 1 })
+    const hasil: string[] = []
+    let total = 0
+    let tanpaKunci = 0
+    let chunks: string[] = []
+    try {
+      // Gambar di editor menjadi tag [gambar:path] di posisinya.
+      const plain = await aiEditorHtmlToText(aiRawText, aiPathMap.current, uploadAiImage)
+      chunks = splitAiImportText(plain)
+      if (chunks.length === 0) {
+        setImportError('Tempel teks soal yang ingin diproses AI terlebih dahulu')
+        return
+      }
+      setAiProgress({ done: 0, total: chunks.length })
+      for (let i = 0; i < chunks.length; i++) {
+        const res = await adminQuizApi.aiParseQuestions(activeQuizPaket.id, {
+          text: chunks[i],
+          question_type: importType,
+          ai_boleh_isi_kunci: aiBolehIsiKunci,
+        })
+        hasil.push(String(res.data?.text || '').trim())
+        total += Number(res.data?.count || 0)
+        tanpaKunci += Number(res.data?.tanpa_kunci || 0)
+        setAiProgress({ done: i + 1, total: chunks.length })
+      }
+      const generated = hasil.filter(Boolean).join('\n\n')
+      onImportTextChange([importText.trim(), generated].filter(Boolean).join('\n\n') + '\n')
+      setAiRawText('')
+      Swal.fire({
+        icon: tanpaKunci ? 'warning' : 'success',
+        title: `AI menghasilkan ${total} soal`,
+        html: `<p class="text-sm text-gray-600">Hasil sudah dimasukkan ke kotak teks & pratinjau. Periksa kembali soal dan kunci jawaban sebelum disimpan.${tanpaKunci ? `<br/><b>${tanpaKunci} soal belum memiliki kunci jawaban.</b>` : ''}</p>`,
+        confirmButtonColor: '#0E6187',
+      })
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || (e?.code === 'ECONNABORTED' ? 'AI terlalu lama merespon. Coba perkecil teks.' : 'Gagal memproses teks dengan AI')
+      // Bagian yang sudah berhasil tetap dimasukkan.
+      if (hasil.length) onImportTextChange([importText.trim(), ...hasil].filter(Boolean).join('\n\n') + '\n')
+      setImportError(hasil.length ? `${msg} (${hasil.length} dari ${chunks.length || 1} bagian sudah berhasil diproses)` : msg)
+    } finally {
+      setAiProgress(null)
+    }
   }
 
   const removeImportQ = (i: number) => {
@@ -2751,51 +2892,69 @@ const visibleBatches = filterCabang
                 <td className="border-b border-[#e8eaed] px-4 py-3 text-center text-sm font-semibold text-[#202124]">{p.participants}</td>
                 <td className="border-b border-[#e8eaed] px-4 py-3 text-center text-sm font-semibold text-[#1a73e8]">{Number(p.best_score) || '-'}</td>
                 <td className="border-b border-[#e8eaed] px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-1.5">
-                    {!isAdminCabang && (
-                      <button onClick={() => togglePaket(p)}
-                        className={`relative w-10 h-[22px] border border-[#dadce0] transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}
-                        title={p.status === 'aktif' ? 'Tutup paket' : 'Buka paket'}>
-                        <span className={`absolute top-[2px] w-[16px] h-[16px] bg-white  transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
-                      </button>
-                    )}
-                    <span className={`text-[11px] font-semibold ${p.status === 'aktif' ? 'text-[#137333]' : 'text-[#5f6368]'}`}>
-                      {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
-                    </span>
-                  </div>
+                  {source === 'bank' && bankTrashMode ? (
+                    <span className="text-[11px] font-semibold text-[#80868b]">Di Tempat Sampah</span>
+                  ) : (
+                    <div className="flex items-center justify-center gap-1.5">
+                      {!isAdminCabang && (
+                        <button onClick={() => togglePaket(p)}
+                          className={`relative w-10 h-[22px] border border-[#dadce0] transition-colors shrink-0 ${p.status === 'aktif' ? 'bg-[#0E6187]' : 'bg-[#e8eaed]'}`}
+                          title={p.status === 'aktif' ? 'Tutup paket' : 'Buka paket'}>
+                          <span className={`absolute top-[2px] w-[16px] h-[16px] bg-white  transition-all ${p.status === 'aktif' ? 'left-[20px]' : 'left-[2px]'}`} />
+                        </button>
+                      )}
+                      <span className={`text-[11px] font-semibold ${p.status === 'aktif' ? 'text-[#137333]' : 'text-[#5f6368]'}`}>
+                        {p.status === 'aktif' ? 'Dibuka' : 'Ditutup'}
+                      </span>
+                    </div>
+                  )}
                 </td>
                 <td className="border-b border-[#e8eaed] px-4 py-3">
-                  <div className="flex items-center justify-center gap-1">
-                    <button onClick={() => openMateri(p, source)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] bg-[#f1f3f4] px-2 py-1.5 hover:bg-[#f1f3f4] transition-colors">
-                      <BookOpen size={13} /> Materi
+                  {source === 'bank' && bankTrashMode ? (
+                    <button onClick={() => restorePaket(p)}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#137333] bg-[#e6f4ea] px-2 py-1.5 hover:bg-[#ceead6] transition-colors"
+                      title="Pulihkan paket ke bank">
+                      <RotateCcw size={13} /> Pulihkan
                     </button>
-                    <button onClick={() => openQuizQuestions(p, source)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2 py-1.5 hover:bgbg-[#e8f0fe] transition-colors">
-                      <ListChecks size={13} /> Soal
-                    </button>
-                    <button onClick={() => openQuizResults(p, source)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] bg-[#f1f3f4] px-2 py-1.5 hover:bg-[#f1f3f4] transition-colors">
-                      <Eye size={13} /> Hasil
-                    </button>
-                    {false && (
-                      <button onClick={() => openQuizMonitor(p)}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#c5221f] bg-[#fce8e6] px-2 py-1.5 hover:bg-[#f6d7d5] transition-colors">
-                        <Radio size={13} /> Monitoring
+                  ) : (
+                    <div className="flex items-center justify-center gap-1">
+                      <button onClick={() => openMateri(p, source)}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] bg-[#f1f3f4] px-2 py-1.5 hover:bg-[#f1f3f4] transition-colors">
+                        <BookOpen size={13} /> Materi
                       </button>
-                    )}
-                    {!isAdminCabang && (
-                      <>
-                        <div className="w-px h-4 bg-[#e8eaed] mx-1"></div>
-                        <button onClick={() => openEditPaket(p)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors" title="Edit">
-                          <Pencil size={13} className="text-[#5f6368]" />
+                      <button onClick={() => openQuizQuestions(p, source)}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-white bg-[#0E6187] px-2 py-1.5 hover:bgbg-[#e8f0fe] transition-colors">
+                        <ListChecks size={13} /> Soal
+                      </button>
+                      <button onClick={() => openQuizResults(p, source)}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1a73e8] bg-[#f1f3f4] px-2 py-1.5 hover:bg-[#f1f3f4] transition-colors">
+                        <Eye size={13} /> Hasil
+                      </button>
+                      {false && (
+                        <button onClick={() => openQuizMonitor(p)}
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#c5221f] bg-[#fce8e6] px-2 py-1.5 hover:bg-[#f6d7d5] transition-colors">
+                          <Radio size={13} /> Monitoring
                         </button>
-                        <button onClick={() => deletePaket(p)} className="p-1.5 bg-[#fce8e6] hover:bg-[#f6d7d5] transition-colors" title="Hapus">
-                          <Trash2 size={13} className="text-[#d93025]" />
-                        </button>
-                      </>
-                    )}
-                  </div>
+                      )}
+                      {!isAdminCabang && (
+                        <>
+                          <div className="w-px h-4 bg-[#e8eaed] mx-1"></div>
+                          <button onClick={() => openEditPaket(p)} className="p-1.5 hover:bg-[#f1f3f4] transition-colors" title="Edit">
+                            <Pencil size={13} className="text-[#5f6368]" />
+                          </button>
+                          {source === 'course' ? (
+                            <button onClick={() => detachPaketFromCourse(p)} className="p-1.5 bg-[#fce8e6] hover:bg-[#f6d7d5] transition-colors" title="Lepas dari kursus (tetap di bank)">
+                              <Link2Off size={13} className="text-[#d93025]" />
+                            </button>
+                          ) : (
+                            <button onClick={() => deletePaket(p)} className="p-1.5 bg-[#fce8e6] hover:bg-[#f6d7d5] transition-colors" title="Pindahkan ke tempat sampah">
+                              <Trash2 size={13} className="text-[#d93025]" />
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
@@ -3544,75 +3703,85 @@ const visibleBatches = filterCabang
                     <ListChecks size={22} />
                   </div>
                   <div className="min-w-0">
-                    <h2 className="text-lg font-bold text-[#202124] truncate">Bank Paket Soal</h2>
-                    <p className="text-sm text-[#5f6368]">Semua paket soal tersimpan di sini, termasuk yang sudah terhubung ke kursus</p>
+                    <h2 className="text-lg font-bold text-[#202124] truncate">{bankTrashMode ? 'Tempat Sampah Paket Soal' : 'Bank Paket Soal'}</h2>
+                    <p className="text-sm text-[#5f6368]">{bankTrashMode ? 'Paket yang dihapus tetap tersimpan di sini dan dapat dipulihkan kapan saja' : 'Semua paket soal tersimpan di sini, termasuk yang sudah terhubung ke kursus'}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <button onClick={openRekap}
-                    className="inline-flex items-center gap-2 border border-[#1a73e8] bg-[#f1f3f4] px-4 py-2.5 text-sm font-semibold text-[#1a73e8] transition-colors hover:bg-[#f1f3f4]">
-                    <BarChart3 size={16} /> Rekap Nilai
+                  <button onClick={() => toggleBankTrash(!bankTrashMode)}
+                    className={`inline-flex items-center gap-2 border px-4 py-2.5 text-sm font-semibold transition-colors ${bankTrashMode ? 'border-[#5f6368] bg-[#f1f3f4] text-[#3c4043]' : 'border-[#dadce0] bg-white text-[#5f6368] hover:border-[#1a73e8] hover:text-[#1a73e8]'}`}>
+                    {bankTrashMode ? <><ArrowLeft size={16} /> Kembali ke Bank</> : <><Trash2 size={16} /> Tempat Sampah</>}
                   </button>
-                  {bankCategory !== '' ? (
-                    <button onClick={openCreateBankPaket} className={primaryBtn}>
-                      <Plus size={16} /> Buat Paket Soal
-                    </button>
-                  ) : (
-                    <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-[#80868b]">
-                      Pilih kategori paket di atas untuk membuat paket baru
-                    </span>
+                  {!bankTrashMode && (
+                    <>
+                      <button onClick={openRekap}
+                        className="inline-flex items-center gap-2 border border-[#1a73e8] bg-[#f1f3f4] px-4 py-2.5 text-sm font-semibold text-[#1a73e8] transition-colors hover:bg-[#f1f3f4]">
+                        <BarChart3 size={16} /> Rekap Nilai
+                      </button>
+                      {bankCategory !== '' ? (
+                        <button onClick={openCreateBankPaket} className={primaryBtn}>
+                          <Plus size={16} /> Buat Paket Soal
+                        </button>
+                      ) : (
+                        <span className="hidden md:inline-flex items-center gap-1.5 text-xs font-medium text-[#80868b]">
+                          Pilih kategori paket di atas untuk membuat paket baru
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
 
-              <div className="border-t border-[#e8eaed] px-5 py-4">
-                <div className="flex items-center justify-between gap-3 mb-3">
-                  <div>
-                    <h3 className="text-sm font-bold text-[#202124] flex items-center gap-2">
-                      <LayoutGrid size={15} className="text-[#1a73e8]" /> Kategori Paket
-                    </h3>
-                    <p className="text-[11px] text-[#80868b]">Pilih kategori untuk menampilkan paket soal sesuai kategorinya</p>
+              {!bankTrashMode && (
+                <div className="border-t border-[#e8eaed] px-5 py-4">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                      <h3 className="text-sm font-bold text-[#202124] flex items-center gap-2">
+                        <LayoutGrid size={15} className="text-[#1a73e8]" /> Kategori Paket
+                      </h3>
+                      <p className="text-[11px] text-[#80868b]">Pilih kategori untuk menampilkan paket soal sesuai kategorinya</p>
+                    </div>
+                    <button onClick={() => setShowCategoryModal(true)}
+                      className="shrink-0 inline-flex items-center gap-1 text-sm font-medium text-[#1a73e8] px-3 py-1.5 border border-[#1a73e8] hover:bg-[#f1f3f4] transition-colors">
+                      <LayoutGrid size={13} /> + Kelola
+                    </button>
                   </div>
-                  <button onClick={() => setShowCategoryModal(true)}
-                    className="shrink-0 inline-flex items-center gap-1 text-sm font-medium text-[#1a73e8] px-3 py-1.5 border border-[#1a73e8] hover:bg-[#f1f3f4] transition-colors">
-                    <LayoutGrid size={13} /> + Kelola
-                  </button>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                    <button onClick={() => selectBankCategory('')}
+                      className={`flex items-center gap-2.5 border px-3.5 py-3 text-left transition-all ${ bankCategory === '' ? 'bg-[#0E6187] border-[#1a73e8] text-white -[#1a73e8]/25' : 'bg-white border-[#dadce0] hover:border-[#1a73e8] hover:' }`}>
+                      <span className={`w-9 h-9 shrink-0 flex items-center justify-center ${bankCategory === '' ? 'bg-white/15 text-white' : 'bg-[#f1f3f4] text-[#1a73e8]'}`}>
+                        <LayoutGrid size={15} />
+                      </span>
+                      <span className="flex-1 min-w-0">
+                        <span className="block text-xs font-bold truncate">Semua Paket</span>
+                        <span className={`block text-[10px] font-medium ${bankCategory === '' ? 'text-white/75' : 'text-[#80868b]'}`}>{bankTotalPakets} paket</span>
+                      </span>
+                    </button>
+                    {quizCategories.map(c => {
+                      const catCount = typeof c.paket_count === 'number' ? c.paket_count : 0
+                      const active = bankCategory === c.name
+                      return (
+                        <button key={c.id} onClick={() => selectBankCategory(c.name)}
+                          className={`flex items-center gap-2.5 border px-3.5 py-3 text-left transition-all ${ active ? 'bg-[#0E6187] border-[#1a73e8] text-white -[#1a73e8]/25' : 'bg-white border-[#dadce0] hover:border-[#1a73e8] hover:' }`}>
+                          <span className={`w-9 h-9 shrink-0 flex items-center justify-center ${active ? 'bg-white/15 text-white' : 'bg-[#f1f3f4] text-[#1a73e8]'}`}>
+                            <LayoutGrid size={15} />
+                          </span>
+                          <span className="flex-1 min-w-0">
+                            <span className="block text-xs font-bold truncate">{c.name}</span>
+                            <span className={`block text-[10px] font-medium ${active ? 'text-white/75' : 'text-[#80868b]'}`}>{catCount} paket</span>
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
-                  <button onClick={() => selectBankCategory('')}
-                    className={`flex items-center gap-2.5 border px-3.5 py-3 text-left transition-all ${ bankCategory === '' ? 'bg-[#0E6187] border-[#1a73e8] text-white -[#1a73e8]/25' : 'bg-white border-[#dadce0] hover:border-[#1a73e8] hover:' }`}>
-                    <span className={`w-9 h-9 shrink-0 flex items-center justify-center ${bankCategory === '' ? 'bg-white/15 text-white' : 'bg-[#f1f3f4] text-[#1a73e8]'}`}>
-                      <LayoutGrid size={15} />
-                    </span>
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-xs font-bold truncate">Semua Paket</span>
-                      <span className={`block text-[10px] font-medium ${bankCategory === '' ? 'text-white/75' : 'text-[#80868b]'}`}>{bankTotalPakets} paket</span>
-                    </span>
-                  </button>
-                  {quizCategories.map(c => {
-                    const catCount = typeof c.paket_count === 'number' ? c.paket_count : 0
-                    const active = bankCategory === c.name
-                    return (
-                      <button key={c.id} onClick={() => selectBankCategory(c.name)}
-                        className={`flex items-center gap-2.5 border px-3.5 py-3 text-left transition-all ${ active ? 'bg-[#0E6187] border-[#1a73e8] text-white -[#1a73e8]/25' : 'bg-white border-[#dadce0] hover:border-[#1a73e8] hover:' }`}>
-                        <span className={`w-9 h-9 shrink-0 flex items-center justify-center ${active ? 'bg-white/15 text-white' : 'bg-[#f1f3f4] text-[#1a73e8]'}`}>
-                          <LayoutGrid size={15} />
-                        </span>
-                        <span className="flex-1 min-w-0">
-                          <span className="block text-xs font-bold truncate">{c.name}</span>
-                          <span className={`block text-[10px] font-medium ${active ? 'text-white/75' : 'text-[#80868b]'}`}>{catCount} paket</span>
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="relative">
               <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#80868b]" />
               <input value={bankSearch} onChange={e => setBankSearch(e.target.value)}
-                placeholder={bankCategory ? `Cari paket soal pada ${bankCategory}...` : 'Cari paket soal...'}
+                placeholder={bankTrashMode ? 'Cari paket di tempat sampah...' : bankCategory ? `Cari paket soal pada ${bankCategory}...` : 'Cari paket soal...'}
                 className={`${inputCls} pl-9`} />
             </div>
 
@@ -3626,12 +3795,16 @@ const visibleBatches = filterCabang
                   <ListChecks size={28} className="text-[#1a73e8]" />
                 </div>
                 <p className="text-[#202124] font-semibold">
-                  {bankSearch.trim() ? 'Tidak ada paket yang cocok dengan pencarian' : bankCategory ? `Belum ada paket soal pada kategori "${bankCategory}"` : 'Belum ada paket soal di bank'}
+                  {bankTrashMode
+                    ? (bankSearch.trim() ? 'Tidak ada paket yang cocok dengan pencarian' : 'Tempat sampah kosong')
+                    : bankSearch.trim() ? 'Tidak ada paket yang cocok dengan pencarian' : bankCategory ? `Belum ada paket soal pada kategori "${bankCategory}"` : 'Belum ada paket soal di bank'}
                 </p>
                 <p className="text-[#5f6368] text-sm mt-1">
-                  {bankSearch.trim() ? 'Coba ubah kata kunci pencarian atau ganti kategori.' : bankCategory ? 'Buat paket soal baru untuk mengisi kategori ini, lalu hubungkan ke kursus nanti.' : 'Buat paket soal untuk disimpan di bank dan hubungkan ke kursus nanti'}
+                  {bankTrashMode
+                    ? 'Paket yang dihapus dari bank akan muncul di sini dan bisa dipulihkan.'
+                    : bankSearch.trim() ? 'Coba ubah kata kunci pencarian atau ganti kategori.' : bankCategory ? 'Buat paket soal baru untuk mengisi kategori ini, lalu hubungkan ke kursus nanti.' : 'Buat paket soal untuk disimpan di bank dan hubungkan ke kursus nanti'}
                 </p>
-                {!bankSearch.trim() && (
+                {!bankTrashMode && !bankSearch.trim() && (
                   bankCategory ? (
                     <button onClick={openCreateBankPaket} className={`${primaryBtn} mt-5`}>
                       <Plus size={16} /> Buat Paket Soal
@@ -3646,7 +3819,7 @@ const visibleBatches = filterCabang
               </div>
             ) : renderPaketTable(bankPakets, 'bank')}
 
-            {renderPagination(bankPagination, p => { setBankPage(p); fetchBankPakets(p) })}
+            {renderPagination(bankPagination, p => { setBankPage(p); fetchBankPakets(p, bankCategory, bankTrashMode) })}
           </div>
         )}
 
@@ -5548,6 +5721,59 @@ const visibleBatches = filterCabang
                     </button>
                   </div>
                 </div>
+                {/* IMPORT DENGAN AI */}
+                <div className="mb-3 border border-[#e8def8] bg-[#faf5ff] p-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div className="flex items-start gap-2">
+                      <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center bg-[#7627bb] text-white">
+                        <Sparkles size={14} />
+                      </span>
+                      <div>
+                        <p className="text-xs font-bold text-[#202124]">Import dengan AI</p>
+                        <p className="text-[11px] leading-snug text-[#5f6368]">
+                          Tempel teks soal apa adanya (hasil copy dari dokumen/website), termasuk gambarnya. AI akan merapikannya ke format di bawah &mdash; gambar otomatis ditempel ke soal/opsi sesuai posisinya, jenis soal mengikuti pilihan di langkah 1.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="mt-2.5 border border-[#e8def8]">
+                    <AiImportEditor
+                      value={aiRawText}
+                      onChange={setAiRawText}
+                      disabled={!!aiProgress}
+                      placeholder={'Tempel teks soal di sini — gambar juga bisa di-paste (Ctrl+V), di-drag, atau lewat tombol gambar.\n\nContoh:\n1. Arti kata "watashi" adalah...\nA. saya   B. kamu   C. dia\n\nKunci: 1.A'}
+                      uploadImage={uploadAiImage}
+                      toDisplayUrl={mediaUrl}
+                      pathMap={aiPathMap}
+                      onUploadingChange={d => setAiUploading(n => Math.max(0, n + d))}
+                      onUploadError={f => Swal.fire({ icon: 'error', title: 'Gagal mengunggah gambar', text: f.name })}
+                    />
+                  </div>
+                  {aiUploading > 0 && (
+                    <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-[#7627bb]">
+                      <Loader2 size={12} className="animate-spin" /> Mengunggah {aiUploading} gambar...
+                    </p>
+                  )}
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    {(importType === 'choice' || importType === 'multi') ? (
+                      <label className="flex cursor-pointer items-center gap-2 text-[11px] text-[#5f6368]">
+                        <input type="checkbox" checked={aiBolehIsiKunci} onChange={e => setAiBolehIsiKunci(e.target.checked)}
+                          className="h-3.5 w-3.5 accent-[#7627bb]" />
+                        AI boleh menentukan kunci jawaban jika tidak ada di teks
+                      </label>
+                    ) : <span />}
+                    <button type="button" onClick={runAiImport} disabled={!!aiProgress || aiUploading > 0 || !aiEditorHasContent(aiRawText)}
+                      className="inline-flex items-center gap-1.5 bg-[#7627bb] px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-[#6a1fa8] disabled:opacity-50">
+                      {aiProgress
+                        ? <><Loader2 size={13} className="animate-spin" /> Memproses{aiProgress.total > 1 ? ` ${aiProgress.done}/${aiProgress.total}` : ''}...</>
+                        : <><Sparkles size={13} /> Proses dengan AI</>}
+                    </button>
+                  </div>
+                  <p className="mt-2 text-[10px] text-[#80868b]">
+                    Hasil AI bisa keliru &mdash; selalu periksa pratinjau & kunci jawaban sebelum menyimpan. Teks dikirim ke provider AI yang aktif di pengaturan AI.
+                  </p>
+                </div>
+
                 <input ref={importImgInputRef} type="file" accept="image/*" className="hidden"
                   onChange={e => { onImportFile(e.target.files?.[0], 'gambar'); e.target.value = '' }} />
                 <input ref={importAudioInputRef} type="file" accept={QUESTION_AUDIO_ACCEPT} className="hidden"

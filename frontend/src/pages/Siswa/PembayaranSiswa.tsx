@@ -109,10 +109,16 @@ export default function PembayaranSiswa() {
       const c = r.data?.data || r.data
       if (c) setCompany({ bank_nama: c.bank_nama || 'BCA', bank_nomor_rekening: c.bank_nomor_rekening || '1831813364', bank_pemilik: c.bank_pemilik || 'PT. INDONESIA SUKSES MENDUNIA' })
     }).catch(() => {})
-    api.get('/bank-accounts-public').then(r => {
+  }, [])
+
+  // Rekening mengikuti program pendaftar (fallback: semua rekening aktif)
+  const pendaftarProductId = pendaftar?.product_id ?? pendaftar?.product?.id ?? null
+  useEffect(() => {
+    if (loading) return
+    api.get('/bank-accounts-public', { params: pendaftarProductId ? { product_id: pendaftarProductId } : {} }).then(r => {
       setBankAccounts(r.data || [])
     }).catch(() => {})
-  }, [])
+  }, [loading, pendaftarProductId])
 
   if (loading) {
     return (

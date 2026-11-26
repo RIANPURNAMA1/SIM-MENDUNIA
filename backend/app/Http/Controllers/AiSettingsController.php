@@ -60,6 +60,15 @@ class AiSettingsController extends Controller
         $data['base_urls'] = [
             'modelsstudio' => NotificationSetting::getValue('ai_modelsstudio_base_url', config('services.modelsstudio.base_url', 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1')),
         ];
+        $data['features'] = collect(AiAssistantService::FEATURES)
+            ->map(fn ($f, $key) => [
+                'key' => $key,
+                'label' => $f['label'],
+                'description' => $f['description'],
+                'provider' => AiAssistantService::featureSetting($key),
+                'effective_provider' => AiAssistantService::providerFor($key),
+            ])
+            ->values();
 
         return response()->json($data);
     }
@@ -79,6 +88,8 @@ class AiSettingsController extends Controller
             'claude_model' => 'nullable|string',
             'gpt_model' => 'nullable|string',
             'modelsstudio_model' => 'nullable|string',
+            'feature_providers' => 'nullable|array',
+            'feature_providers.*' => 'in:default,groq,gemini,claude,gpt,modelsstudio',
         ]);
 
         NotificationSetting::updateOrCreate(
@@ -146,6 +157,20 @@ class AiSettingsController extends Controller
             } else {
                 NotificationSetting::where('key', $key)->delete();
             }
+        }
+
+        foreach ($data['feature_providers'] ?? [] as $feature => $provider) {
+            if (!isset(AiAssistantService::FEATURES[$feature])) {
+                continue;
+            }
+            NotificationSetting::updateOrCreate(
+                ['key' => AiAssistantService::featureKey($feature)],
+                [
+                    'is_enabled' => true,
+                    'value' => $provider,
+                    'description' => 'Provider AI untuk fitur ' . AiAssistantService::FEATURES[$feature]['label'] . ' (default = ikuti provider utama)',
+                ]
+            );
         }
 
         return response()->json([

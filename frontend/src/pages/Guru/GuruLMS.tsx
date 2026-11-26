@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   BookOpen, Plus, FileText, X, Image as ImageIcon, Download, Trash2,
   ChevronRight, ArrowLeft, Layers, Search, Video, GripVertical, Edit3,
-  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, Trophy, Users, History, HelpCircle, Check, Lock, Activity, Volume2, CalendarCheck
+  ChevronUp, ChevronDown, Upload, FolderOpen, ListChecks, Eye, Trophy, Users, History, HelpCircle, Check, Lock, Activity, Volume2, CalendarCheck, PlayCircle
 } from 'lucide-react'
 import ReactQuill from 'react-quill-new'
 import 'react-quill-new/dist/quill.snow.css'
@@ -776,8 +776,8 @@ export default function GuruLMS() {
               <ArrowLeft size={14} /> Kembali ke Daftar Kursus
             </button>
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center shrink-0 overflow-hidden relative">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center shrink-0 overflow-hidden relative">
                   {selectedCourse.image ? (
                     <img src={`${APP_URL}/storage/${selectedCourse.image}`} alt="" className="w-full h-full object-cover" />
                   ) : (
@@ -785,9 +785,9 @@ export default function GuruLMS() {
                   )}
                   <div className="absolute inset-0 bg-[#0E6187]/40 mix-blend-multiply pointer-events-none" />
                 </div>
-                <div>
-                  <h1 className="text-lg font-bold text-gray-900">{selectedCourse.title}</h1>
-                  <div className="flex items-center gap-2 mt-0.5">
+                <div className="min-w-0 flex-1">
+                  <h1 className="text-base sm:text-lg font-bold leading-snug text-gray-900 break-words">{selectedCourse.title}</h1>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
                     <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{getBatchName(selectedCourse.batch_id)}</span>
                     {selectedCourse.level && (
                       <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">Level {selectedCourse.level}</span>
@@ -796,7 +796,7 @@ export default function GuruLMS() {
                       {selectedCourse.status === 'aktif' ? 'Aktif' : 'Nonaktif'}
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                     {(selectedCourse.tanggal_mulai_formatted || selectedCourse.tanggal_selesai_formatted) && (
                       <span className="text-[11px] font-medium text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
                         {selectedCourse.tanggal_mulai_formatted || '?'} – {selectedCourse.tanggal_selesai_formatted || '?'}
@@ -818,7 +818,7 @@ export default function GuruLMS() {
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 sm:shrink-0">
                 {!canManage && (
                   <span className="flex items-center gap-1 text-[10px] font-bold text-slate-500 bg-slate-100 px-2.5 py-1.5 rounded-lg">
                     <Eye size={12} /> Hanya Baca
@@ -878,7 +878,7 @@ export default function GuruLMS() {
         <div className="max-w-5xl mx-auto px-4 pt-4">
           {/* Lessons Tab */}
           {activeTab === 'lessons' && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                 <h3 className="text-sm font-bold text-gray-800">{viaKelas ? 'Daftar Pertemuan' : 'Daftar Pelajaran'}</h3>
                 {canManage && !viaKelas && (
@@ -909,7 +909,7 @@ export default function GuruLMS() {
               ) : (
                 <div className="divide-y divide-gray-100">
                   {courseLessons.map((lesson, idx) => (
-                    <div key={lesson.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/50 transition-colors group">
+                    <div key={lesson.id} className="flex items-center gap-3 px-4 sm:px-5 py-3.5 hover:bg-gray-50/50 transition-colors group">
                       {canManage && (
                         <div className="flex flex-col items-center gap-0.5">
                           <button onClick={() => moveLesson(idx, 'up')} disabled={idx === 0}
@@ -934,7 +934,7 @@ export default function GuruLMS() {
                       </div>
 
                       <div className="flex-1 min-w-0 cursor-pointer" onClick={() => navigate(`/guru-lms/lesson/${lesson.id}`)}>
-                        <p className={`text-sm font-semibold truncate ${lesson.status === 'aktif' ? 'text-gray-800' : 'text-gray-400'}`}>
+                        <p className={`text-sm font-semibold leading-snug break-words ${lesson.status === 'aktif' ? 'text-gray-800' : 'text-gray-400'}`}>
                           {lesson.title}
                         </p>
                         {lesson.pertemuan_date_label && (
@@ -942,7 +942,7 @@ export default function GuruLMS() {
                             <CalendarCheck size={10} /> {lesson.pertemuan_date_label}
                           </p>
                         )}
-                        <div className="flex items-center gap-3 mt-0.5">
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                           {lesson.video_url && <span className="text-[10px] text-gray-400 flex items-center gap-1"><Video size={10} /> Video</span>}
                           {lesson.content && <span className="text-[10px] text-gray-400 flex items-center gap-1"><FileText size={10} /> Materi</span>}
                           {lesson.file_name && <span className="text-[10px] text-gray-400 flex items-center gap-1"><FileText size={10} /> PDF</span>}
@@ -977,7 +977,7 @@ export default function GuruLMS() {
 
           {/* Files Tab */}
           {activeTab === 'files' && (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                 <h3 className="text-sm font-bold text-gray-800">File Materi</h3>
                 {canManage && (
@@ -1056,7 +1056,7 @@ export default function GuruLMS() {
             canManage ? (
               <GuruPaketSoal courseId={selectedCourse.id} embedded hiddenHeader onBack={() => setActiveTab('lessons')} />
             ) : (
-              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                   <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
                     <Trophy size={15} className="text-[#0069b0]" /> Quiz Kursus
@@ -1647,218 +1647,198 @@ export default function GuruLMS() {
 
   // ==================== COURSE LIST VIEW ====================
   return (
-    <div className="min-h-screen bg-[#F4F5F8] pb-24">
-      <div className="h-[3px] bg-gradient-to-r from-[#0069b0] via-[#0069b0] to-[#0069b0]" />
+    <div className="min-h-screen bg-[#F4F5F8] pb-28">
+      {/* ===== HERO HEADER ===== */}
+      <header className="relative overflow-hidden rounded-b-[28px] bg-gradient-to-br from-[#0079c9] via-[#0069b0] to-[#00426f] px-4 pt-6 pb-20">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/[0.07]" />
+        <div className="pointer-events-none absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-white/[0.05]" />
 
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#0069b0]/10 flex items-center justify-center shrink-0">
-                <BookOpen size={20} className="text-[#0069b0]" />
+        <div className="relative mx-auto max-w-5xl">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-2 ring-white/25">
+                <BookOpen size={22} className="text-white" />
               </div>
-              <div>
-                <h1 className="text-base font-bold text-gray-900">LMS</h1>
-                <p className="text-[11px] text-gray-400 font-medium">Learning Management System</p>
+              <div className="min-w-0">
+                <h1 className="text-lg font-bold leading-tight text-white">Kelas Mendunia</h1>
+                <p className="text-xs font-medium text-white/70">Kelola kursus & pertemuan Anda</p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <button onClick={handleSyncKehadiran} disabled={syncingKehadiran}
-                className="flex items-center gap-1.5 border border-[#0B5E42] text-[#0B5E42] px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-[#0B5E42]/5 transition-colors shadow-sm disabled:opacity-50 whitespace-nowrap">
-                <CalendarCheck size={14} className={syncingKehadiran ? 'animate-pulse' : ''} /> {syncingKehadiran ? 'Sinkronisasi Kehadiran...' : 'Sinkronisasi Kehadiran'}
-              </button>
-              <button onClick={openRankModal}
-                className="flex items-center gap-1.5 border border-[#0069b0] text-[#0069b0] px-4 py-2.5 rounded-lg text-[11px] font-bold bg-white hover:bg-[#0069b0]/5 transition-colors shadow-sm whitespace-nowrap">
-                <Trophy size={14} /> Rank
-              </button>
-            </div>
+            <button onClick={openRankModal}
+              className="flex shrink-0 items-center gap-1.5 rounded-full bg-yellow-400 px-3.5 py-2 text-[11px] font-bold text-[#3b2f00] shadow-md shadow-black/10 transition hover:bg-yellow-300 active:scale-95">
+              <Trophy size={14} /> Rank
+            </button>
           </div>
 
           {/* Search */}
-          <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <div className="relative mt-5">
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8B90A0]" />
             <input type="text" placeholder="Cari kursus..." value={search} onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#0069b0]/20 focus:border-[#0069b0] transition-colors" />
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-5xl mx-auto px-4 pt-4">
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
-          <div className="rounded-xl bg-emerald-500 px-3 py-2.5 text-white">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold opacity-90">
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse shrink-0" />
-              <span className="truncate">Sedang Berlangsung</span>
-            </div>
-            <p className="text-lg font-black leading-none mt-1.5 tabular-nums">{sedangBerlangsungCount}</p>
-          </div>
-          <div className="rounded-xl bg-white border border-gray-200 px-3 py-2.5">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
-              <BookOpen size={12} className="shrink-0" />
-              <span className="truncate">Diajar Anda</span>
-            </div>
-            <p className="text-lg font-black text-gray-900 leading-none mt-1.5 tabular-nums">{diajarCount}</p>
-          </div>
-          <div className="rounded-xl bg-white border border-gray-200 px-3 py-2.5">
-            <div className="flex items-center gap-1.5 text-[10px] font-bold text-gray-500">
-              <Eye size={12} className="shrink-0" />
-              <span className="truncate">Hanya Baca</span>
-            </div>
-            <p className="text-lg font-black text-gray-900 leading-none mt-1.5 tabular-nums">{hanyaBacaCount}</p>
-          </div>
-        </div>
-
-        {/* Filter */}
-        <div className="flex items-center gap-2 mb-4">
-          <button onClick={() => setListFilter('berlangsung')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[11px] font-bold border transition-colors ${
-              listFilter === 'berlangsung'
-                ? 'bg-emerald-500 border-emerald-500 text-white shadow-sm'
-                : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-            }`}>
-            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${listFilter === 'berlangsung' ? 'bg-white animate-pulse' : 'bg-emerald-500'}`} />
-            Sedang Berlangsung
-            <span className={`px-1.5 py-0.5 rounded-md text-[10px] tabular-nums ${listFilter === 'berlangsung' ? 'bg-white/20' : 'bg-gray-100'}`}>{sedangBerlangsungCount}</span>
-          </button>
-          <button onClick={() => setListFilter('all')}
-            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[11px] font-bold border transition-colors ${
-              listFilter === 'all'
-                ? 'bg-[#0069b0] border-[#0069b0] text-white shadow-sm'
-                : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-            }`}>
-            Semua
-            <span className={`px-1.5 py-0.5 rounded-md text-[10px] tabular-nums ${listFilter === 'all' ? 'bg-white/20' : 'bg-gray-100'}`}>{courses.length}</span>
-          </button>
-        </div>
-
-        {filtered.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
-              <BookOpen size={28} className="text-gray-300" />
-            </div>
-            <p className="text-sm font-semibold text-gray-600">
-              {search ? 'Kursus tidak ditemukan' : listFilter === 'berlangsung' ? 'Tidak ada kursus yang sedang berlangsung' : 'Belum ada Kursus'}
-            </p>
-            <p className="text-xs text-gray-400 mt-1">
-              {search ? 'Coba kata kunci lain' : listFilter === 'berlangsung' ? 'Klik "Semua" untuk melihat seluruh kursus' : 'Belum ada kursus. Kursus dibuat otomatis saat Anda menambahkan kelas baru'}
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
-            {filtered.map(course => {
-              const courseActive = course.status === 'aktif'
-              const sedangBerlangsung = !!course.is_berlangsung
-              return (
-              <button key={course.id} onClick={() => courseActive ? openCourse(course) : (
-                Swal.fire({
-                  icon: 'warning',
-                  title: 'Kursus Ditutup',
-                  text: 'Kursus ini sedang ditutup dan tidak dapat diakses saat ini.',
-                  confirmButtonText: 'OK',
-                  confirmButtonColor: '#0069b0',
-                })
-              )}
-                className={`bg-white rounded-2xl border overflow-hidden text-left group transition-all ${
-                  sedangBerlangsung
-                    ? 'border-emerald-300 ring-1 ring-emerald-200 hover:shadow-lg hover:border-emerald-400 hover:-translate-y-0.5'
-                    : courseActive
-                      ? 'border-gray-200 hover:shadow-lg hover:border-[#0069b0]/40 hover:-translate-y-0.5'
-                      : 'border-gray-200 opacity-75 cursor-not-allowed'
-                }`}>
-                <div className={`h-32 bg-gradient-to-br from-[#0E6187] to-[#1a3355] flex items-center justify-center relative overflow-hidden ${courseActive ? '' : 'grayscale'}`}>
-                  {course.image ? (
-                    <img src={`${APP_URL}/storage/${course.image}`} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    <img src={DEFAULT_COURSE_COVER} alt="" className="w-full h-full object-cover" />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0b1420]/70 via-[#0E6187]/25 to-transparent pointer-events-none" />
-                  {sedangBerlangsung && (
-                    <div className="absolute inset-x-0 top-0 h-1 bg-emerald-500" />
-                  )}
-                  <div className="absolute top-2.5 left-2.5 right-2.5 flex items-start justify-between gap-2">
-                    <span className="inline-flex items-center gap-1 rounded-md bg-slate-900/70 px-2 py-1 text-[10px] font-bold text-white ring-1 ring-white/15 backdrop-blur-sm">
-                      <Layers size={11} className="shrink-0" />
-                      <span className="truncate">{course.level ? `Level ${course.level}` : 'Umum'}</span>
-                    </span>
-                    <div className="flex flex-col items-end gap-1">
-                      {!course.can_manage && (
-                        <span className="px-2 py-1 rounded-md bg-slate-900/70 text-white text-[10px] font-bold ring-1 ring-white/15 backdrop-blur-sm">
-                          Hanya Baca
-                        </span>
-                      )}
-                      {!courseActive && (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-amber-500 text-white text-[10px] font-bold ring-1 ring-amber-400/50 shadow-sm">
-                          <Lock size={10} className="shrink-0" /> Ditutup
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  {sedangBerlangsung && (
-                    <span className="absolute bottom-2.5 left-2.5 inline-flex items-center gap-1.5 rounded-md bg-emerald-500 px-2 py-1 text-[10px] font-bold text-white shadow-sm">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                      Sedang Berlangsung
-                    </span>
-                  )}
-                </div>
-                <div className="p-3 sm:p-4">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-xs sm:text-sm font-bold text-gray-900 group-hover:text-[#0069b0] transition-colors truncate">{course.title}</h3>
-                      <span className="text-[10px] font-medium text-gray-400 mt-0.5 inline-block truncate">{getBatchName(course.batch_id)}</span>
-                    </div>
-                    {courseActive ? (
-                      <ChevronRight size={16} className="text-gray-300 shrink-0 mt-0.5 group-hover:text-[#0069b0] transition-colors" />
-                    ) : (
-                      <Lock size={16} className="text-gray-300 shrink-0 mt-0.5" />
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-1.5 mt-3 pt-3 border-t border-gray-100">
-                    {sedangBerlangsung ? (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500 text-white text-[10px] font-bold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                        Sedang Berlangsung
-                      </span>
-                    ) : (
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-bold ring-1 ${
-                        courseActive
-                          ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                          : 'bg-gray-100 text-gray-500 ring-gray-200'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${courseActive ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                        {courseActive ? 'Aktif' : 'Nonaktif'}
-                      </span>
-                    )}
-                    {sedangBerlangsung && (
-                      <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 text-[10px] font-bold">
-                        Aktif
-                      </span>
-                    )}
-                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#0069b0]/5 text-[#0069b0] ring-1 ring-[#0069b0]/15 text-[10px] font-bold">
-                      <Layers size={11} className="shrink-0" />
-                      {course.level ? `Level ${course.level}` : 'Level Umum'}
-                    </span>
-                    {!course.can_manage && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-gray-100 text-gray-600 ring-1 ring-gray-200 text-[10px] font-bold">
-                        <Eye size={11} className="shrink-0" /> Hanya Baca
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-3 sm:gap-4 mt-2.5 text-[10px] text-gray-400">
-                    <span className="flex items-center gap-1">
-                      <ListChecks size={11} /> {course.lessons_count} pelajaran
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <FolderOpen size={11} /> {course.files_count} file
-                    </span>
-                  </div>
-                </div>
+              className="w-full rounded-2xl border-0 bg-white py-3 pl-10 pr-10 text-sm text-[#14182B] shadow-lg shadow-black/10 placeholder:text-[#8B90A0] focus:outline-none focus:ring-2 focus:ring-yellow-300" />
+            {search && (
+              <button onClick={() => setSearch('')} aria-label="Hapus pencarian"
+                className="absolute right-3 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full bg-[#F4F5F8] text-[#8B90A0] hover:text-[#14182B]">
+                <X size={13} />
               </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <div className="relative mx-auto -mt-12 max-w-5xl space-y-5 px-4">
+        {/* ===== STATS ===== */}
+        <div className="grid grid-cols-3 divide-x divide-[#F0F1F5] rounded-2xl border border-[#E5E7EF] bg-white py-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
+          {[
+            { label: 'Berlangsung', value: sedangBerlangsungCount, icon: PlayCircle, tone: 'text-emerald-600' },
+            { label: 'Diajar Anda', value: diajarCount, icon: BookOpen, tone: 'text-[#0069b0]' },
+            { label: 'Hanya Baca', value: hanyaBacaCount, icon: Eye, tone: 'text-slate-500' },
+          ].map(s => (
+            <div key={s.label} className="flex flex-col items-center px-2 text-center">
+              <s.icon size={16} className={s.tone} />
+              <p className="mt-1.5 text-xl font-bold tabular-nums text-[#14182B]">{s.value}</p>
+              <p className="text-[10px] font-semibold leading-tight text-[#8B90A0]">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* ===== ACTIONS: FILTER + SYNC ===== */}
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-1 rounded-2xl border border-[#E5E7EF] bg-white p-1">
+            {([
+              { key: 'berlangsung' as const, label: 'Berlangsung', count: sedangBerlangsungCount },
+              { key: 'all' as const, label: 'Semua Kursus', count: courses.length },
+            ]).map(f => {
+              const active = listFilter === f.key
+              return (
+                <button key={f.key} onClick={() => setListFilter(f.key)}
+                  className={`flex items-center justify-center gap-1.5 rounded-xl py-2.5 text-xs font-bold transition-colors ${
+                    active ? 'bg-[#0069b0] text-white shadow-sm' : 'text-[#4B5063] hover:bg-[#F4F5F8]'
+                  }`}>
+                  {f.key === 'berlangsung' && (
+                    <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${active ? 'animate-pulse bg-white' : 'bg-emerald-500'}`} />
+                  )}
+                  {f.label}
+                  <span className={`rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ${active ? 'bg-white/20' : 'bg-[#F4F5F8] text-[#8B90A0]'}`}>{f.count}</span>
+                </button>
               )
             })}
           </div>
-        )}
+
+          <button onClick={handleSyncKehadiran} disabled={syncingKehadiran}
+            className="flex w-full items-center gap-3 rounded-2xl border border-[#E5E7EF] bg-white px-4 py-3 text-left transition hover:border-emerald-300 active:scale-[0.99] disabled:opacity-60">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <CalendarCheck size={17} className={syncingKehadiran ? 'animate-pulse' : ''} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-xs font-bold text-[#14182B]">{syncingKehadiran ? 'Menyinkronkan kehadiran...' : 'Sinkronisasi Kehadiran'}</span>
+              <span className="block text-[11px] font-medium text-[#8B90A0]">Perbarui data kehadiran siswa ke LMS</span>
+            </span>
+            <ChevronRight size={16} className="shrink-0 text-[#C5C8D4]" />
+          </button>
+        </div>
+
+        {/* ===== COURSE LIST ===== */}
+        <section>
+          <div className="mb-3 flex items-end justify-between gap-3 px-1">
+            <h3 className="text-[15px] font-bold text-[#14182B]">{listFilter === 'berlangsung' ? 'Sedang Berlangsung' : 'Semua Kursus'}</h3>
+            <span className="text-[11px] font-semibold text-[#8B90A0]">{filtered.length} kursus</span>
+          </div>
+
+          {filtered.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-[#D6D9E1] bg-white px-6 py-10 text-center">
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#F4F5F8]">
+                <BookOpen size={24} className="text-[#8B90A0]" strokeWidth={1.6} />
+              </div>
+              <p className="text-sm font-bold text-[#14182B]">
+                {search ? 'Kursus tidak ditemukan' : listFilter === 'berlangsung' ? 'Tidak ada kursus yang sedang berlangsung' : 'Belum ada kursus'}
+              </p>
+              <p className="mt-1 text-xs text-[#8B90A0]">
+                {search ? 'Coba kata kunci lain' : listFilter === 'berlangsung' ? 'Lihat seluruh kursus di tab "Semua Kursus"' : 'Kursus dibuat otomatis saat Anda menambahkan kelas baru'}
+              </p>
+              {!search && listFilter === 'berlangsung' && courses.length > 0 && (
+                <button onClick={() => setListFilter('all')}
+                  className="mt-4 rounded-full bg-[#0069b0] px-4 py-2 text-xs font-bold text-white transition hover:bg-[#004d7a]">
+                  Lihat Semua Kursus
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {filtered.map(course => {
+                const courseActive = course.status === 'aktif'
+                const sedangBerlangsung = !!course.is_berlangsung
+                return (
+                  <button key={course.id} onClick={() => courseActive ? openCourse(course) : (
+                    Swal.fire({
+                      icon: 'warning',
+                      title: 'Kursus Ditutup',
+                      text: 'Kursus ini sedang ditutup dan tidak dapat diakses saat ini.',
+                      confirmButtonText: 'OK',
+                      confirmButtonColor: '#0069b0',
+                    })
+                  )}
+                    className={`group flex items-stretch gap-3 rounded-2xl border bg-white p-3 text-left transition-all ${
+                      sedangBerlangsung
+                        ? 'border-emerald-200 ring-1 ring-emerald-100 hover:shadow-md active:scale-[0.99]'
+                        : courseActive
+                          ? 'border-[#E5E7EF] hover:border-[#0069b0]/30 hover:shadow-md active:scale-[0.99]'
+                          : 'cursor-not-allowed border-[#E5E7EF] opacity-70'
+                    }`}>
+                    {/* Cover */}
+                    <div className={`relative h-[92px] w-[92px] shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-[#0E6187] to-[#1a3355] ${courseActive ? '' : 'grayscale'}`}>
+                      <img src={course.image ? `${APP_URL}/storage/${course.image}` : DEFAULT_COURSE_COVER} alt="" className="h-full w-full object-cover" />
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      <span className="absolute inset-x-1.5 bottom-1.5 truncate rounded-md bg-black/50 px-1.5 py-0.5 text-center text-[10px] font-bold text-white backdrop-blur-sm">
+                        {course.level ? `Level ${course.level}` : 'Umum'}
+                      </span>
+                      {!courseActive && (
+                        <span className="absolute left-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-amber-500 text-white">
+                          <Lock size={12} />
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Info */}
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="break-words text-sm font-bold leading-snug text-[#14182B] transition-colors group-hover:text-[#0069b0]">{course.title}</h3>
+                          <p className="mt-0.5 break-words text-[11px] font-medium text-[#8B90A0]">{getBatchName(course.batch_id)}</p>
+                        </div>
+                        {courseActive
+                          ? <ChevronRight size={16} className="mt-0.5 shrink-0 text-[#C5C8D4] transition-colors group-hover:text-[#0069b0]" />
+                          : <Lock size={14} className="mt-0.5 shrink-0 text-[#C5C8D4]" />}
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                        {sedangBerlangsung ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" /> Berlangsung
+                          </span>
+                        ) : (
+                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${courseActive ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                            {courseActive ? <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> : <Lock size={9} />}
+                            {courseActive ? 'Aktif' : 'Ditutup'}
+                          </span>
+                        )}
+                        {!course.can_manage && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-500">
+                            <Eye size={10} /> Hanya Baca
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-auto flex items-center gap-3 pt-2 text-[11px] font-medium text-[#8B90A0]">
+                        <span className="flex items-center gap-1"><ListChecks size={12} /> {course.lessons_count} {course.kelas_sensei_id ? 'pertemuan' : 'pelajaran'}</span>
+                        <span className="flex items-center gap-1"><FolderOpen size={12} /> {course.files_count} file</span>
+                      </div>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </section>
       </div>
 
       {/* Course Modal */}

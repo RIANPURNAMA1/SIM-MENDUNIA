@@ -256,6 +256,7 @@ Route::prefix('guru')->group(function () {
 });
 
 // Pengajuan Gaji
+Route::get('/guru/gaji/eligibility', [PengajuanGajiController::class, 'eligibility'])->middleware('auth:sanctum');
 Route::post('/guru/gaji', [PengajuanGajiController::class, 'store'])->middleware('auth:sanctum');
 Route::prefix('gaji')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [PengajuanGajiController::class, 'index']);
@@ -752,11 +753,14 @@ Route::prefix('admin-cabang/quiz')
         Route::post('/pakets', [AdminQuizController::class, 'store']);
         Route::post('/pakets/{id}', [AdminQuizController::class, 'update']);
         Route::delete('/pakets/{id}', [AdminQuizController::class, 'destroy']);
+        Route::post('/pakets/{id}/restore', [AdminQuizController::class, 'restore']);
         Route::post('/pakets/{id}/toggle', [AdminQuizController::class, 'toggle']);
         Route::post('/assign-bank', [AdminQuizController::class, 'assignBank']);
+        Route::delete('/courses/{courseId}/pakets/{paketId}', [AdminQuizController::class, 'detachBank']);
         Route::get('/pakets/{id}/questions', [AdminQuizController::class, 'questions']);
         Route::post('/pakets/{id}/questions', [AdminQuizController::class, 'storeQuestion']);
         Route::post('/pakets/{id}/questions-bulk', [AdminQuizController::class, 'storeQuestionsBulk']);
+        Route::post('/pakets/{id}/ai-parse', [\App\Http\Controllers\AiQuestionImportController::class, 'parse'])->middleware('throttle:20,1');
         Route::get('/pakets/{id}/sections', [AdminQuizController::class, 'sections']);
         Route::post('/pakets/{id}/sections', [AdminQuizController::class, 'storeSection']);
         Route::post('/sections/{id}', [AdminQuizController::class, 'updateSection']);

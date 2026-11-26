@@ -121,6 +121,11 @@ class AdminQuizController extends Controller
         $query = QuizPaket::with(['batch:id,nama_batch', 'course:id,title', 'courses:id,title', 'user:id,name'])
             ->withCount(['questions', 'attempts']);
 
+        // Mode Tempat Sampah: tampilkan paket yang dihapus (soft delete).
+        if ($request->boolean('trash')) {
+            $query->onlyTrashed();
+        }
+
         if (!$global) {
             $query->where(function ($q) use ($batchIds) {
                 $q->whereIn('batch_id', $batchIds)->orWhereNull('batch_id');
@@ -263,7 +268,18 @@ class AdminQuizController extends Controller
     public function destroy($id)
     {
         QuizPaket::findOrFail($id)->delete();
-        return response()->json(['message' => 'Paket soal dihapus']);
+        return response()->json(['message' => 'Paket soal dipindahkan ke tempat sampah']);
+    }
+
+    public function restore($id)
+    {
+        $paket = QuizPaket::onlyTrashed()->findOrFail($id);
+        $paket->restore();
+
+        return response()->json([
+            'message' => 'Paket soal dipulihkan',
+            'paket' => $paket->fresh()->load('batch:id,nama_batch', 'course:id,title', 'user:id,name'),
+        ]);
     }
 
     public function uploadCover(Request $request)
@@ -1617,6 +1633,13 @@ $data = $request->validate([
         $courseId = (int) $data['course_id'];
         $paketIds = array_values(array_unique(array_map('intval', $data['paket_ids'])));
 
+        // Paket di tempat sampah tidak boleh ditautkan ke kursus sebelum dipulihkan.
+        if (QuizPaket::onlyTrashed()->whereIn('id', $paketIds)->exists()) {
+            return response()->json([
+                'message' => 'Sebagian paket masih berada di tempat sampah. Pulihkan terlebih dahulu.',
+            ], 422);
+        }
+
         // Paket yang belum punya kursus utama dijadikan milik kursus ini.
         // Paket yang sudah dipakai kursus lain tetap di kursus asalnya, lalu
         // ditautkan lewat pivot sehingga bisa dipakai di banyak kursus.
@@ -1647,6 +1670,39 @@ $data = $request->validate([
             'attached' => count($newIds),
             'already_linked' => count($existing),
             'course_id' => $courseId,
+        ]);
+    }
+
+    /**
+     * Lepas paket dari satu kursus saja. Paket di bank (beserta soal dan
+     * riwayat pengerjaannya) tidak dihapus, begitu juga tautannya di kursus lain.
+     */
+    public function detachBank($courseId, $paketId)
+    {
+        $courseId = (int) $courseId;
+        $paketId = (int) $paketId;
+
+        Course::findOrFail($courseId);
+        $paket = QuizPaket::findOrFail($paketId);
+
+        $detached = DB::table('lms_course_quiz_pakets')
+            ->where('course_id', $courseId)
+            ->where('quiz_paket_id', $paketId)
+            ->delete();
+
+        // course_id menyimpan kursus asal (kolom lama). Bila paket ini berasal
+        // dari kursus yang dilepas, kosongkan supaya tidak tampil lagi di
+        // daftar paket kursus tersebut. Data paket di bank tetap utuh.
+        if ((int) $paket->course_id === $courseId) {
+            $paket->course_id = null;
+            $paket->save();
+        }
+
+        return response()->json([
+            'message' => 'Paket soal dilepas dari kursus',
+            'detached' => $detached,
+            'course_id' => $courseId,
+            'paket_id' => $paketId,
         ]);
     }
 

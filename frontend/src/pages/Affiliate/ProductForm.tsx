@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Swal from 'sweetalert2'
-import api, { productApi, APP_URL } from '../../services/api'
+import api, { productApi, paymentSettingApi, APP_URL } from '../../services/api'
 
 interface KategoriItem {
   name: string
@@ -76,6 +76,15 @@ interface Product {
   batch?: { id: number; nama_batch: string } | null
   biaya_kategoris: (BiayaKategori & { pivot: { harga: number; komisi: number } })[]
   komisi_tiers: KomisiTier[]
+  bank_accounts?: { id: number }[]
+}
+
+interface BankAccountOption {
+  id: number
+  bank_name: string
+  account_holder: string
+  account_number: string
+  is_active: boolean
 }
 
 const TEMPLATE_VARS = [
@@ -133,7 +142,9 @@ export default function ProductForm() {
     batch_id: '' as string,
     kategori_items: [emptyKategoriItem()] as KategoriItem[],
     komisi_tiers: [] as KomisiTier[],
+    bank_account_ids: [] as number[],
   })
+  const [bankAccounts, setBankAccounts] = useState<BankAccountOption[]>([])
   const [gambarFile, setGambarFile] = useState<File | null>(null)
   const [gambarPreview, setGambarPreview] = useState<string | null>(null)
   const [hapusGambar, setHapusGambar] = useState(false)
@@ -143,6 +154,7 @@ export default function ProductForm() {
 
   useEffect(() => {
     api.get('/batches').then(res => setBatches(res.data.data || res.data)).catch(() => {})
+    paymentSettingApi.getBankAccounts().then(res => setBankAccounts(res.data || [])).catch(() => {})
     if (id) {
       setLoading(true)
       productApi.show(parseInt(id)).then(res => {
@@ -198,6 +210,7 @@ export default function ProductForm() {
         }
         return { ...t, batch_id: t.batch_id ?? null, kategori_name: resolvedName }
       }),
+      bank_account_ids: (p.bank_accounts || []).map(b => b.id),
     })
     setGambarFile(null)
     setGambarPreview(p.gambar ? `${APP_URL}/storage/${p.gambar}` : null)
@@ -318,6 +331,7 @@ export default function ProductForm() {
       status: form.status,
       is_affiliable: form.is_affiliable,
       batch_id: form.batch_id ? parseInt(form.batch_id) : null,
+      bank_account_ids: form.bank_account_ids,
       komisi_tiers: form.komisi_tiers.map(t => {
         let kid = t.kategori_id
         if (!kid && t.kategori_name && editing) {
@@ -838,6 +852,43 @@ export default function ProductForm() {
                   </select>
                   <p className="mt-1 text-[11px] text-[#80868b]">Nonaktif = tidak bisa didaftar</p>
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-semibold text-[#202124]">Rekening Pembayaran <span className="text-xs font-normal text-[#80868b]">(opsional)</span></label>
+                {bankAccounts.length === 0 ? (
+                  <p className="text-xs text-[#80868b]">
+                    Belum ada rekening. Tambahkan di <Link to="/pengaturan-pembayaran" className="text-[#1a73e8] hover:underline">Pengaturan Pembayaran</Link>.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    {bankAccounts.map(acc => {
+                      const checked = form.bank_account_ids.includes(acc.id)
+                      return (
+                        <label key={acc.id}
+                          className={`flex cursor-pointer items-start gap-3 border px-3 py-2 transition ${checked ? 'border-[#0E6187] bg-[#e8f0fe]' : 'border-[#dadce0] bg-white hover:bg-[#f8f9fa]'} ${!acc.is_active ? 'opacity-60' : ''}`}>
+                          <input type="checkbox" className="mt-1" checked={checked}
+                            onChange={e => setForm(prev => ({
+                              ...prev,
+                              bank_account_ids: e.target.checked
+                                ? [...prev.bank_account_ids, acc.id]
+                                : prev.bank_account_ids.filter(x => x !== acc.id),
+                            }))} />
+                          <span className="min-w-0">
+                            <span className="block text-sm font-semibold text-[#202124]">
+                              {acc.bank_name} {!acc.is_active && <span className="ml-1 text-[10px] font-normal text-[#d93025]">(nonaktif)</span>}
+                            </span>
+                            <span className="block font-mono text-sm text-[#3c4043]">{acc.account_number}</span>
+                            <span className="block truncate text-xs text-[#5f6368]">a.n {acc.account_holder}</span>
+                          </span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                )}
+                <p className="mt-1 text-[11px] text-[#80868b]">
+                  Hanya rekening yang dipilih yang tampil di halaman pembayaran program ini. Kosongkan = tampilkan semua rekening aktif.
+                </p>
               </div>
             </div>
           )}

@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import type { ReactNode } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Calendar, CheckCircle, X, Plus, Users, User,
   ChevronRight, FileText, Clock,
   QrCode, History, BookOpen, ClipboardList, Camera, MapPin, Notebook,
   Award, BarChart3, Upload, Link2, Paperclip, Trash2, FileCheck2, Banknote,
+  LogIn, LogOut, CalendarCheck, Layers, GraduationCap,
 } from 'lucide-react'
 import api, { guruKelasApi, jadwalLevelApi, APP_URL, quizReferenceApi } from '../../services/api'
 import Swal from 'sweetalert2'
@@ -121,7 +124,20 @@ const quillModules = {
 
 const quillFormats = ['header', 'bold', 'italic', 'underline', 'strike', 'list', 'bullet', 'ordered', 'link']
 
+function SectionTitle({ title, subtitle, right }: { title: string; subtitle?: string; right?: ReactNode }) {
+  return (
+    <div className="mb-3 flex items-end justify-between gap-3 px-1">
+      <div className="min-w-0">
+        <h3 className="text-[15px] font-bold text-[#14182B]">{title}</h3>
+        {subtitle && <p className="mt-0.5 text-[11px] font-medium text-[#8B90A0]">{subtitle}</p>}
+      </div>
+      {right && <div className="shrink-0">{right}</div>}
+    </div>
+  )
+}
+
 export default function GuruDashboard() {
+  const navigate = useNavigate()
   const [data, setData] = useState<DashboardData | null>(null)
   const [kelasList, setKelasList] = useState<KelasItem[]>([])
   const [batches, setBatches] = useState<Batch[]>([])
@@ -443,167 +459,219 @@ export default function GuruDashboard() {
   const shiftInfo = shifts && shifts.length > 0 ? shifts[0] : null
   const cabangNames = cabangs && cabangs.length > 0 ? cabangs.map(c => c.nama_cabang).join(', ') : ''
 
-  const statusDotColor = absenStatus === 'pulang' ? 'bg-[#7C8AA5]' : absenStatus === 'masuk' ? 'bg-[#4ADE80]' : 'bg-[#0069b0]'
-  const statusLabel = absenStatus === 'pulang' ? 'Selesai' : absenStatus === 'masuk' ? 'Sedang Mengajar' : 'Belum Absen'
+  const statusDotColor = absenStatus === 'pulang' ? 'bg-slate-300' : absenStatus === 'masuk' ? 'bg-[#4ADE80]' : 'bg-yellow-300'
+  const statusLabel = absenStatus === 'pulang' ? 'Selesai Mengajar' : absenStatus === 'masuk' ? 'Sedang Mengajar' : 'Belum Absen'
+
+  const hour = new Date().getHours()
+  const greeting = hour < 11 ? 'Selamat pagi' : hour < 15 ? 'Selamat siang' : hour < 18 ? 'Selamat sore' : 'Selamat malam'
+  const todayStart = new Date(new Date().toDateString())
+  const isKelasSelesai = (k: KelasItem) => new Date(k.tanggal_selesai) < todayStart
+  const kelasLabel = (k: KelasItem) => k.batch_relasi?.nama_batch || `Batch #${k.batch_id}`
+  const kelasPeriode = (k: KelasItem) => `${k.tanggal_mulai_formatted || k.tanggal_mulai} – ${k.tanggal_selesai_formatted || k.tanggal_selesai}`
+  const scoreStyle = (v: number) =>
+    v >= 170 ? 'bg-emerald-50 text-emerald-600' : v >= 140 ? 'bg-blue-50 text-[#0069b0]' : v >= 110 ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'
+
+  const riwayatKelasId = selectedKelasId ?? kelasList[0]?.id ?? null
+  const riwayatKelas = kelasList.find(k => k.id === riwayatKelasId)
+  const classRiwayat = riwayatKelas
+    ? riwayat_sensei.filter(r =>
+        r.kelas_sensei?.batch_relasi?.nama_batch === riwayatKelas.batch_relasi?.nama_batch &&
+        String(r.kelas_sensei?.level) === String(riwayatKelas.level))
+    : []
+  const hadirCount = classRiwayat.filter(r => r.status === 'HADIR').length
+
+  const renderAbsenAction = (k: KelasItem, full = false) => {
+    const absen = absenPerKelas[k.id]
+    const size = full ? 'w-full justify-center py-3 rounded-xl text-sm' : 'px-3 py-2 rounded-xl text-[11px]'
+    if (isKelasSelesai(k) || absen?.jam_keluar) {
+      return (
+        <span className={`flex items-center gap-1.5 font-bold text-emerald-600 bg-emerald-50 ${size}`}>
+          <CheckCircle size={full ? 16 : 13} /> Selesai
+        </span>
+      )
+    }
+    const mode: 'masuk' | 'pulang' = !absen ? 'masuk' : 'pulang'
+    const Icon = mode === 'masuk' ? LogIn : LogOut
+    return (
+      <button onClick={() => startCamera(k.id, mode)} disabled={absenLoading[k.id]}
+        className={`flex items-center gap-1.5 font-bold text-white transition active:scale-[0.97] disabled:opacity-50 ${
+          mode === 'masuk'
+            ? 'bg-[#0069b0] hover:bg-[#004d7a] shadow-md shadow-[#0069b0]/25'
+            : 'bg-orange-500 hover:bg-orange-400 shadow-md shadow-orange-500/25'
+        } ${size}`}>
+        {absenLoading[k.id] ? 'Memproses...' : (
+          <>
+            <Icon size={full ? 16 : 13} />
+            {full ? (mode === 'masuk' ? 'Absen Masuk' : 'Absen Pulang') : (mode === 'masuk' ? 'Masuk' : 'Pulang')}
+          </>
+        )}
+      </button>
+    )
+  }
+
+  const quickMenu: { icon: typeof BookOpen; label: string; tone: string; href?: string; action?: () => void }[] = [
+    { icon: Plus, label: 'Tambah Kelas', tone: 'bg-sky-50 text-sky-600', action: () => setShowModal(true) },
+    { icon: ClipboardList, label: 'Data Siswa', tone: 'bg-blue-50 text-blue-600', href: '/guru-data-siswa' },
+    { icon: Notebook, label: 'Penilaian', tone: 'bg-violet-50 text-violet-600', href: '/guru-data-siswa' },
+    { icon: BookOpen, label: 'Kelas Mendunia', tone: 'bg-indigo-50 text-indigo-600', href: '/guru-lms' },
+    { icon: FileText, label: 'Izin Sensei', tone: 'bg-amber-50 text-amber-600', href: '/izin-sensei' },
+    { icon: Clock, label: 'Lembur', tone: 'bg-orange-50 text-orange-600', href: '/lembur-karyawan' },
+    { icon: History, label: 'Riwayat Absen', tone: 'bg-teal-50 text-teal-600', href: '/riwayat-absensi-karyawan' },
+    { icon: Upload, label: 'Referensi Quiz', tone: 'bg-pink-50 text-pink-600', action: () => openRefModal() },
+    { icon: Banknote, label: 'Pengajuan Gaji', tone: 'bg-emerald-50 text-emerald-600', href: '/guru-pengajuan-gaji' },
+  ]
 
   return (
-    <div className="min-h-screen bg-[#F4F5F8] pb-24">
-      {/* Brand accent line */}
-      <div className="h-[3px] bg-gradient-to-r from-[#0069b0] via-[#0069b0] to-[#0069b0]" />
+    <div className="min-h-screen bg-[#F4F5F8] pb-28">
+      {/* ===== HERO HEADER ===== */}
+      <header className="relative overflow-hidden rounded-b-[28px] bg-gradient-to-br from-[#0079c9] via-[#0069b0] to-[#00426f] px-5 pt-6 pb-24">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/[0.07]" />
+        <div className="pointer-events-none absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-white/[0.05]" />
+        <div className="pointer-events-none absolute right-10 bottom-10 h-16 w-16 rounded-full border border-white/10" />
 
-      {/* Top Bar */}
-      <div className="bg-white px-5 py-3.5 border-b border-[#E5E7EF]">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-[#eef1f6] overflow-hidden flex items-center justify-center flex-none">
-              {user?.foto_profil && user.foto_profil.trim() ? (
-                <img src={`${APP_URL}/uploads/foto_profil/${user.foto_profil}`} alt="" className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
-              ) : (
-                <User size={20} className="text-[#8B90A0]" />
+        <div className="relative mx-auto max-w-lg">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-12 w-12 flex-none items-center justify-center overflow-hidden rounded-2xl bg-white/15 ring-2 ring-white/25">
+                {user?.foto_profil && user.foto_profil.trim() ? (
+                  <img src={`${APP_URL}/uploads/foto_profil/${user.foto_profil}`} alt="" className="h-full w-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none' }} />
+                ) : (
+                  <User size={22} className="text-white" />
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-white/70">{greeting},</p>
+                <p className="truncate text-base font-bold leading-tight text-white">{guru?.nama || user.name}</p>
+                <p className="mt-0.5 truncate text-[11px] font-medium text-white/60">Sensei · {guru?.mata_pelajaran || 'Guru'}</p>
+              </div>
+            </div>
+            <div className="flex shrink-0 flex-col items-center rounded-2xl bg-white/10 px-3 py-1.5 ring-1 ring-white/15">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-white/60">{dayAbbr[new Date().getDay()]}</span>
+              <span className="text-lg font-bold leading-none text-white">{new Date().getDate()}</span>
+            </div>
+          </div>
+
+          <div className="mt-6 flex items-end justify-between gap-3">
+            <div>
+              <p className="text-[44px] font-bold leading-none tracking-tight text-white tabular-nums">{time}</p>
+              <p className="mt-2 text-xs font-medium text-white/70">{formatDateLong()} · WIB</p>
+            </div>
+            <div className="mb-1 flex shrink-0 items-center gap-1.5 rounded-full bg-white/15 px-3 py-1.5 ring-1 ring-white/20">
+              <span className={`h-2 w-2 rounded-full ${statusDotColor} ${absenStatus === 'masuk' ? 'animate-pulse' : ''}`} />
+              <span className="text-[11px] font-bold text-white">{statusLabel}</span>
+            </div>
+          </div>
+
+          {(shiftInfo || cabangNames) && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {shiftInfo && (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/90">
+                  <Clock size={12} /> {shiftInfo.nama_shift} · {shiftInfo.jam_masuk.slice(0, 5)}–{shiftInfo.jam_pulang.slice(0, 5)}
+                </span>
               )}
-            </div>
-            <div>
-              <p className="text-sm font-bold text-[#14182B] leading-tight">{guru?.nama || user.name}</p>
-              <p className="text-[11px] text-[#8B90A0] font-medium">Sensei · {guru?.mata_pelajaran || 'Guru'}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-[#F4F5F8] border border-[#E5E7EF] shrink-0">
-            <Calendar size={12} className="text-[#8B90A0]" />
-            <span className="text-[11px] font-semibold text-[#4B5063]">{formatDateShort(new Date().toISOString())}</span>
-          </div>
-        </div>
-        {(shiftInfo || cabangNames) && (
-          <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#F0F1F5]">
-            {shiftInfo && (
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-[#4B5063] bg-[#F4F5F8] px-2 py-1 rounded-md">
-                <Clock size={11} className="text-[#8B90A0]" />
-                Shift: {shiftInfo.nama_shift} · {shiftInfo.jam_masuk.slice(0, 5)}-{shiftInfo.jam_pulang.slice(0, 5)}
-              </div>
-            )}
-            {cabangNames && (
-              <div className="flex items-center gap-1.5 text-[10px] font-semibold text-[#4B5063] bg-[#F4F5F8] px-2 py-1 rounded-md">
-                <MapPin size={11} className="text-[#8B90A0]" />
-                {cabangNames}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="px-4 pt-4 pb-4 space-y-4 max-w-lg mx-auto">
-        {/* Hero Attendance Card */}
-        <div className="relative rounded-2xl bg-[#0069b0] p-6 overflow-hidden border-2 border-yellow-400">
-          <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/[0.03]" />
-          <div className="absolute -right-2 -bottom-10 w-24 h-24 rounded-full bg-[#0069b0]/[0.08]" />
-
-          <div className="relative flex items-center justify-between mb-5">
-            <div>
-              <p className="text-[10px] font-bold tracking-[0.14em] text-white/70 uppercase">Absensi · mendunia.id</p>
-              <p className="text-xs text-white/60 mt-1">{formatDateLong()}</p>
-            </div>
-            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${statusDotColor}`} />
-              <span className="text-[10px] font-bold text-white">{statusLabel}</span>
-            </div>
-          </div>
-
-          <div className="relative mb-4">
-            <p className="text-5xl font-bold text-white tabular-nums tracking-tight">{time}</p>
-            <p className="text-[11px] text-white/50 font-medium mt-1">Waktu Indonesia Barat</p>
-          </div>
-
-          {kelas_aktif.length > 0 && (
-            <div className="relative flex flex-wrap gap-2 mt-2">
-              {kelas_aktif.slice(0, 2).map(k => {
-                const absen = absenPerKelas[k.id]
-                const batchNama = k.batch_relasi?.nama_batch
-                return (
-                  <div key={k.id} className="inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/20 px-3 py-1.5">
-                    <BookOpen size={11} className="text-blue-300" />
-                    <span className="text-xs font-bold text-white">{batchNama || `Batch #${k.batch_id}`}</span>
-                    {absen?.jam_masuk && (
-                      <span className="text-[10px] text-green-300">{absen.jam_masuk.slice(0, 5)}</span>
-                    )}
-                  </div>
-                )
-              })}
+              {cabangNames && (
+                <span className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-semibold text-white/90">
+                  <MapPin size={12} className="shrink-0" /> <span className="truncate">{cabangNames}</span>
+                </span>
+              )}
             </div>
           )}
         </div>
+      </header>
 
-        {/* Jadwal Kelas Hari Ini */}
-        <section className="bg-white rounded-xl border border-[#E5E7EF] p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Kelas Hari Ini</h3>
-            <span className="text-[11px] font-bold text-[#0069b0]">{kelas_aktif.length} kelas</span>
-          </div>
+      <div className="relative mx-auto -mt-16 max-w-lg space-y-6 px-4">
+        {/* ===== STATS ===== */}
+        <div className="grid grid-cols-3 divide-x divide-[#F0F1F5] rounded-2xl border border-[#E5E7EF] bg-white py-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)]">
+          {[
+            { label: 'Kelas Hari Ini', value: kelas_aktif.length, icon: CalendarCheck, tone: 'text-[#0069b0]' },
+            { label: 'Total Kelas', value: total_kelas, icon: Layers, tone: 'text-violet-600' },
+            { label: 'Hadir Bulan Ini', value: kehadiran_bulan_ini, icon: CheckCircle, tone: 'text-emerald-600' },
+          ].map(s => (
+            <div key={s.label} className="flex flex-col items-center px-2 text-center">
+              <s.icon size={16} className={s.tone} />
+              <p className="mt-1.5 text-xl font-bold text-[#14182B] tabular-nums">{s.value ?? 0}</p>
+              <p className="text-[10px] font-semibold leading-tight text-[#8B90A0]">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* ===== KELAS HARI INI ===== */}
+        <section>
+          <SectionTitle title="Kelas Hari Ini" right={<span className="rounded-full bg-[#0069b0]/[0.08] px-2.5 py-1 text-[11px] font-bold text-[#0069b0]">{kelas_aktif.length} kelas</span>} />
           {kelas_aktif.length > 0 ? (
             <div className="space-y-3">
               {kelas_aktif.map(k => {
                 const absen = absenPerKelas[k.id]
-                const batchNama = k.batch_relasi?.nama_batch
                 return (
-                  <div key={k.id} className="flex items-center gap-3 pl-3 border-l-2 border-[#0069b0]">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-bold text-[#14182B]">{batchNama || `Batch #${k.batch_id}`}</p>
-                        <span className="text-[10px] font-semibold text-[#8B90A0] bg-[#F4F5F8] px-1.5 py-0.5 rounded">Level {k.level}</span>
+                  <div key={k.id} className="rounded-2xl border border-[#E5E7EF] bg-white p-4">
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-[#0069b0]/[0.08] text-[#0069b0]">
+                        <span className="text-[9px] font-bold uppercase leading-none tracking-wider">Lv</span>
+                        <span className="text-lg font-bold leading-tight">{k.level}</span>
                       </div>
-                      <p className="text-[11px] text-[#8B90A0] font-medium">
-                        {k.tanggal_mulai_formatted || k.tanggal_mulai} – {k.tanggal_selesai_formatted || k.tanggal_selesai}
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-sm font-bold leading-snug text-[#14182B]">{kelasLabel(k)}</p>
+                        <p className="mt-1 flex items-center gap-1 text-[11px] font-medium text-[#8B90A0]">
+                          <Calendar size={11} className="shrink-0" /> {kelasPeriode(k)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {new Date(k.tanggal_selesai) < new Date(new Date().toDateString()) ? (
-                        <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
-                          <CheckCircle size={12} /> Selesai
-                        </span>
-                      ) : !absen ? (
-                        <button onClick={() => startCamera(k.id, 'masuk')} disabled={absenLoading[k.id]}
-                          className="text-[11px] font-bold text-white bg-[#0069b0] px-3 py-1.5 rounded-lg hover:bg-[#004d7a] transition-colors disabled:opacity-50">
-                          {absenLoading[k.id] ? '...' : 'Masuk'}
-                        </button>
-                      ) : !absen.jam_keluar ? (
-                        <button onClick={() => startCamera(k.id, 'pulang')} disabled={absenLoading[k.id]}
-                          className="text-[11px] font-bold text-white bg-orange-500 px-3 py-1.5 rounded-lg hover:bg-orange-400 transition-colors disabled:opacity-50">
-                          {absenLoading[k.id] ? '...' : 'Pulang'}
-                        </button>
-                      ) : (
-                        <span className="flex items-center gap-1 text-[11px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-lg">
-                          <CheckCircle size={12} /> Selesai
-                        </span>
-                      )}
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <div className="rounded-xl bg-[#F4F5F8] px-3 py-2">
+                        <p className="flex items-center gap-1 text-[10px] font-semibold text-[#8B90A0]"><LogIn size={11} /> Masuk</p>
+                        <p className="text-sm font-bold text-[#14182B] tabular-nums">{absen?.jam_masuk ? absen.jam_masuk.slice(0, 5) : '--:--'}</p>
+                      </div>
+                      <div className="rounded-xl bg-[#F4F5F8] px-3 py-2">
+                        <p className="flex items-center gap-1 text-[10px] font-semibold text-[#8B90A0]"><LogOut size={11} /> Pulang</p>
+                        <p className="text-sm font-bold text-[#14182B] tabular-nums">{absen?.jam_keluar ? absen.jam_keluar.slice(0, 5) : '--:--'}</p>
+                      </div>
                     </div>
+                    <div className="mt-3">{renderAbsenAction(k, true)}</div>
                   </div>
                 )
               })}
             </div>
           ) : (
-            <div className="text-center py-6">
-              <Calendar size={22} className="mx-auto text-[#D5D8E3] mb-2" strokeWidth={1.5} />
-              <p className="text-sm font-semibold text-[#4B5063]">Tidak ada kelas hari ini</p>
-              <p className="text-xs text-[#8B90A0] mt-1">{formatDateLong()}</p>
+            <div className="rounded-2xl border border-dashed border-[#D6D9E1] bg-white px-5 py-8 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F4F5F8]">
+                <Calendar size={22} className="text-[#8B90A0]" strokeWidth={1.6} />
+              </div>
+              <p className="text-sm font-bold text-[#14182B]">Tidak ada kelas hari ini</p>
+              <p className="mt-1 text-xs text-[#8B90A0]">Nikmati waktu istirahat Anda, Sensei</p>
             </div>
           )}
         </section>
 
-        {/* Batch & Nilai */}
+        {/* ===== MENU CEPAT ===== */}
+        <section>
+          <SectionTitle title="Menu Cepat" />
+          <div className="grid grid-cols-3 gap-2.5">
+            {quickMenu.map(item => (
+              <button key={item.label} onClick={() => item.href ? navigate(item.href) : item.action?.()}
+                className="flex flex-col items-center gap-2 rounded-2xl border border-[#E5E7EF] bg-white px-2 py-3.5 transition hover:border-[#D6D9E1] hover:shadow-sm active:scale-95">
+                <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${item.tone}`}>
+                  <item.icon size={19} strokeWidth={2} />
+                </div>
+                <span className="text-center text-[11px] font-semibold leading-tight text-[#4B5063]">{item.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* ===== BATCH & NILAI ===== */}
         {batchNilaiList.some(batch => batch.levels.some(lvl => lvl.total_penilaian > 0)) && (
-          <section className="bg-white rounded-xl border border-[#E5E7EF] p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Batch & Nilai</h3>
-              <BarChart3 size={14} className="text-[#8B90A0]" />
-            </div>
-            <div className="space-y-4">
+          <section>
+            <SectionTitle title="Batch & Nilai" right={<BarChart3 size={15} className="text-[#8B90A0]" />} />
+            <div className="space-y-3">
               {batchNilaiList.map(batch => (
-                <div key={batch.id}>
-                  <div className="flex items-center gap-2.5 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#0069b0]/[0.08] flex items-center justify-center shrink-0">
-                      <BookOpen size={14} className="text-[#0069b0]" strokeWidth={2} />
+                <div key={batch.id} className="rounded-2xl border border-[#E5E7EF] bg-white p-4">
+                  <div className="mb-3 flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0069b0]/[0.08]">
+                      <GraduationCap size={18} className="text-[#0069b0]" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-[#14182B] truncate">{batch.nama_batch}</p>
-                      <p className="text-[10px] text-[#8B90A0] font-medium">{batch.total_siswa} siswa</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="break-words text-sm font-bold leading-snug text-[#14182B]">{batch.nama_batch}</p>
+                      <p className="text-[11px] font-medium text-[#8B90A0]">{batch.total_siswa} siswa</p>
                     </div>
                   </div>
                   <div className="space-y-2">
@@ -611,64 +679,49 @@ export default function GuruDashboard() {
                       const key = `${batch.id}-${lvl.level}`
                       const isExpanded = expandedLevel === key
                       return (
-                        <div key={key} className="rounded-lg border border-[#F0F1F5] overflow-hidden">
-                          <button
-                            onClick={() => setExpandedLevel(isExpanded ? null : key)}
-                            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[#FAFBFD] transition-colors"
-                          >
-                            <span className="text-[11px] font-bold text-[#0069b0] bg-[#0069b0]/[0.07] w-7 h-7 rounded-md flex items-center justify-center shrink-0">
+                        <div key={key} className={`overflow-hidden rounded-xl border transition-colors ${isExpanded ? 'border-[#0069b0]/30' : 'border-[#F0F1F5]'}`}>
+                          <button onClick={() => setExpandedLevel(isExpanded ? null : key)}
+                            className="flex w-full items-center gap-3 px-3 py-2.5 transition-colors hover:bg-[#FAFBFD]">
+                            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F4F5F8] text-[11px] font-bold text-[#4B5063]">
                               L{lvl.level}
                             </span>
-                            <div className="flex-1 text-left">
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-[#14182B]">Level {lvl.level}</span>
-                                <span className="text-[10px] text-[#8B90A0] font-medium">{lvl.total_penilaian} penilaian</span>
-                              </div>
+                            <div className="min-w-0 flex-1 text-left">
+                              <p className="text-xs font-bold text-[#14182B]">Level {lvl.level}</p>
+                              <p className="text-[10px] font-medium text-[#8B90A0]">{lvl.total_penilaian} penilaian</p>
                             </div>
                             {lvl.avg !== null ? (
-                              <span className={`text-sm font-bold tabular-nums ${lvl.avg >= 170 ? 'text-emerald-600' : lvl.avg >= 140 ? 'text-[#0069b0]' : lvl.avg >= 110 ? 'text-amber-600' : 'text-red-600'}`}>
-                                {lvl.avg}
-                              </span>
+                              <span className={`rounded-lg px-2.5 py-1 text-xs font-bold tabular-nums ${scoreStyle(lvl.avg)}`}>{lvl.avg}</span>
                             ) : (
-                              <span className="text-xs text-[#C5C8D4] font-medium">—</span>
+                              <span className="text-xs font-medium text-[#C5C8D4]">—</span>
                             )}
-                            <ChevronRight size={14} className={`text-[#C5C8D4] transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                            <ChevronRight size={15} className={`shrink-0 text-[#C5C8D4] transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
                           </button>
-                          {isExpanded && lvl.categories.length > 0 && (
-                            <div className="px-3 pb-3 space-y-2 border-t border-[#F0F1F5]">
-                              {lvl.categories.map((cat, ci) => (
-                                <div key={ci} className="pt-2">
-                                  <div className="flex items-center justify-between mb-1.5">
-                                    <span className="text-[11px] font-semibold text-[#4B5063]">{cat.nama}</span>
+                          {isExpanded && (
+                            <div className="space-y-2 border-t border-[#F0F1F5] bg-[#FAFBFD] px-3 pb-3">
+                              {lvl.categories.length === 0 ? (
+                                <p className="pt-3 text-center text-[11px] font-medium text-[#8B90A0]">Belum ada komponen penilaian untuk level ini</p>
+                              ) : lvl.categories.map((cat, ci) => (
+                                <div key={ci} className="pt-2.5">
+                                  <div className="mb-1.5 flex items-center justify-between gap-2">
+                                    <span className="text-[11px] font-bold text-[#4B5063]">{cat.nama}</span>
                                     {cat.avg !== null ? (
-                                      <span className={`text-xs font-bold tabular-nums ${cat.avg >= 170 ? 'text-emerald-600' : cat.avg >= 140 ? 'text-[#0069b0]' : cat.avg >= 110 ? 'text-amber-600' : 'text-red-600'}`}>
-                                        {cat.avg}
-                                      </span>
+                                      <span className={`rounded-md px-2 py-0.5 text-[11px] font-bold tabular-nums ${scoreStyle(cat.avg)}`}>{cat.avg}</span>
                                     ) : (
                                       <span className="text-[10px] text-[#C5C8D4]">—</span>
                                     )}
                                   </div>
                                   {cat.components.length > 0 && (
-                                    <div className="space-y-1 ml-2 border-l-2 border-[#F0F1F5] pl-3">
+                                    <div className="ml-1 space-y-1 border-l-2 border-[#E5E7EF] pl-3">
                                       {cat.components.map((comp, cpi) => (
-                                        <div key={cpi} className="flex items-center justify-between">
-                                          <span className="text-[10px] text-[#8B90A0] font-medium">{comp.nama}</span>
-                                          {comp.avg !== null ? (
-                                            <span className="text-[10px] font-semibold text-[#4B5063] tabular-nums">{comp.avg}</span>
-                                          ) : (
-                                            <span className="text-[10px] text-[#C5C8D4]">—</span>
-                                          )}
+                                        <div key={cpi} className="flex items-center justify-between gap-2">
+                                          <span className="text-[11px] font-medium text-[#8B90A0]">{comp.nama}</span>
+                                          <span className="text-[11px] font-semibold text-[#4B5063] tabular-nums">{comp.avg ?? '—'}</span>
                                         </div>
                                       ))}
                                     </div>
                                   )}
                                 </div>
                               ))}
-                            </div>
-                          )}
-                          {isExpanded && lvl.categories.length === 0 && (
-                            <div className="px-3 pb-3 pt-2 border-t border-[#F0F1F5]">
-                              <p className="text-[10px] text-[#C5C8D4] font-medium text-center">Belum ada komponen penilaian untuk level ini</p>
                             </div>
                           )}
                         </div>
@@ -681,194 +734,110 @@ export default function GuruDashboard() {
           </section>
         )}
 
-        {/* Menu Cepat */}
-        <section className="bg-white rounded-xl border border-[#E5E7EF] p-5">
-          <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase mb-4">Menu Cepat</h3>
-          <div className="grid grid-cols-5 gap-2">
-            {[
-              { icon: BookOpen, label: 'Kelas', action: () => setShowModal(true) },
-              { icon: ClipboardList, label: 'Data Siswa', href: '/guru-data-siswa' },
-              { icon: Notebook, label: 'Penilaian', href: '/guru-data-siswa' },
-              { icon: FileText, label: 'Izin Sensei', href: '/izin-sensei' },
-              { icon: History, label: 'Riwayat', href: '/riwayat-absensi-karyawan' },
-              { icon: Clock, label: 'Lembur', href: '/lembur-karyawan' },
-              { icon: BookOpen, label: 'Kelas Mendunia', href: '/guru-lms' },
-              { icon: Upload, label: 'Referensi Quiz', action: () => openRefModal() },
-              { icon: Banknote, label: 'Pengajuan Gaji', href: '/guru-pengajuan-gaji' },
-            ].map((item, i) => (
-              <button key={i} onClick={() => item.href ? window.location.href = item.href : item.action?.()}
-                className="flex flex-col items-center gap-2 py-3 rounded-lg hover:bg-[#F4F5F8] transition-colors">
-                <div className="w-10 h-10 rounded-lg bg-[#0069b0]/[0.06] flex items-center justify-center">
-                  <item.icon size={17} className="text-[#0069b0]" strokeWidth={1.8} />
-                </div>
-                <span className="text-[10.5px] font-semibold text-[#4B5063] leading-tight">{item.label}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Kelas Sensei */}
-        <section className="bg-white rounded-xl border border-[#E5E7EF] p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[11px] font-bold tracking-[0.08em] text-[#4B5063] uppercase">Kelas Sensei</h3>
+        {/* ===== KELAS SENSEI ===== */}
+        <section>
+          <SectionTitle title="Kelas Sensei" right={
             <button onClick={() => setShowModal(true)}
-              className="flex items-center gap-1 text-xs font-bold text-[#0069b0] hover:text-[#004d7a] transition-colors">
+              className="flex items-center gap-1 rounded-full bg-[#0069b0] px-3 py-1.5 text-[11px] font-bold text-white shadow-sm shadow-[#0069b0]/25 transition hover:bg-[#004d7a] active:scale-95">
               <Plus size={13} /> Tambah
             </button>
-          </div>
+          } />
           {kelasList.length > 0 ? (
-            <div className="divide-y divide-[#F0F1F5]">
-              {kelasList.map(k => {
-                const absen = absenPerKelas[k.id]
-                const batchNama = k.batch_relasi?.nama_batch
-                return (
-                  <div key={k.id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                    <div className="w-9 h-9 rounded-lg bg-[#0069b0]/[0.06] flex items-center justify-center flex-none">
-                      <Users size={15} className="text-[#0069b0]" strokeWidth={1.8} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-[#14182B] truncate">{batchNama || `Batch #${k.batch_id}`}</p>
-                        <span className="text-[10px] font-semibold text-[#8B90A0] bg-[#F4F5F8] px-1.5 py-0.5 rounded shrink-0">Level {k.level}</span>
-                      </div>
-                      <p className="text-[11px] text-[#8B90A0] font-medium">
-                        {k.tanggal_mulai_formatted || k.tanggal_mulai} – {k.tanggal_selesai_formatted || k.tanggal_selesai}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {new Date(k.tanggal_selesai) < new Date(new Date().toDateString()) ? (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1.5 rounded-lg">
-                          <CheckCircle size={11} /> Selesai
-                        </span>
-                      ) : !absen ? (
-                        <button onClick={() => startCamera(k.id, 'masuk')} disabled={absenLoading[k.id]}
-                          className="text-[10px] font-bold text-white bg-[#0069b0] px-2.5 py-1.5 rounded-lg hover:bg-[#004d7a] transition-colors disabled:opacity-50">
-                          {absenLoading[k.id] ? '...' : 'Masuk'}
-                        </button>
-                      ) : !absen.jam_keluar ? (
-                        <button onClick={() => startCamera(k.id, 'pulang')} disabled={absenLoading[k.id]}
-                          className="text-[10px] font-bold text-white bg-orange-500 px-2.5 py-1.5 rounded-lg hover:bg-orange-400 transition-colors disabled:opacity-50">
-                          {absenLoading[k.id] ? '...' : 'Pulang'}
-                        </button>
-                      ) : (
-                        <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1.5 rounded-lg">
-                          <CheckCircle size={11} /> Selesai
-                        </span>
-                      )}
+            <div className="divide-y divide-[#F0F1F5] overflow-hidden rounded-2xl border border-[#E5E7EF] bg-white">
+              {kelasList.map(k => (
+                <div key={k.id} className="flex items-center gap-3 px-4 py-3.5">
+                  <div className="flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-[#0069b0]/[0.08]">
+                    <Users size={17} className="text-[#0069b0]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="break-words text-sm font-bold leading-snug text-[#14182B]">{kelasLabel(k)}</p>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] font-medium text-[#8B90A0]">
+                      <span className="font-bold text-[#0069b0]">Level {k.level}</span>
+                      <span>·</span>
+                      <span>{kelasPeriode(k)}</span>
                     </div>
                   </div>
-                )
-              })}
+                  <div className="shrink-0">{renderAbsenAction(k)}</div>
+                </div>
+              ))}
             </div>
           ) : (
-            <div className="text-center py-6">
-              <p className="text-sm font-semibold text-[#4B5063]">Belum ada kelas</p>
-              <p className="text-xs text-[#8B90A0] mt-1">Ketuk "Tambah" untuk membuat kelas baru</p>
-            </div>
+            <button onClick={() => setShowModal(true)}
+              className="w-full rounded-2xl border border-dashed border-[#D6D9E1] bg-white px-5 py-7 text-center transition hover:border-[#0069b0]/40">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#0069b0]/[0.08]">
+                <Plus size={22} className="text-[#0069b0]" />
+              </div>
+              <p className="text-sm font-bold text-[#14182B]">Belum ada kelas</p>
+              <p className="mt-1 text-xs text-[#8B90A0]">Ketuk di sini untuk membuat kelas baru</p>
+            </button>
           )}
         </section>
 
-        {/* Riwayat Absensi */}
-        <section className="bg-white rounded-xl border border-[#E5E7EF] overflow-hidden">
-          <div className="flex items-center justify-between px-5 pt-5 pb-3">
-            <div>
-              <h3 className="text-[13px] font-bold text-[#14182B]">Riwayat Absensi</h3>
-              <p className="text-[11px] text-[#8B90A0] font-medium mt-0.5">
-                {monthNamesID[new Date().getMonth()]} {new Date().getFullYear()}
-                <span className="mx-1.5">·</span>
-                {selectedKelasId !== null
-                  ? riwayat_sensei.filter(r => {
-                      const kelas = kelasList.find(k => k.id === selectedKelasId)
-                      if (!kelas) return false
-                      return r.kelas_sensei?.batch_relasi?.nama_batch === kelas.batch_relasi?.nama_batch &&
-                        String(r.kelas_sensei?.level) === String(kelas.level)
-                    }).filter(r => r.status === 'HADIR').length
-                  : riwayat_sensei.filter(r => r.status === 'HADIR').length} Hari Hadir
-              </p>
-            </div>
-            <ChevronRight size={18} className="text-[#8B90A0]" />
-          </div>
-
-          <div className="px-5 pb-3">
-            <label className="block text-[10px] font-medium text-[#6B7280] mb-2 w-full">Pilih Kelas</label>
-            <div className="flex flex-wrap gap-2">
-              {kelasList.map(k => (
-                <button
-                  key={k.id}
-                  onClick={() => setSelectedKelasId(k.id)}
-                  className={`px-3 py-1.5 rounded-lg border text-xs font-medium whitespace-nowrap transition-colors ${
-                    selectedKelasId === k.id
-                      ? 'bg-[#0069b0] border-[#0069b0] text-white'
-                      : 'bg-white border-[#E5E7EF] text-[#4B5063] hover:bg-[#F4F5F8]'
-                  }`}
-                >
-                  {k.batch_relasi?.nama_batch || `Batch #${k.batch_id}`} · L{k.level}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {selectedKelasId === null ? (
-            <div className="text-center py-8 px-5">
-              <History size={24} className="mx-auto text-[#C5C8D4] mb-2" />
-              <p className="text-sm font-semibold text-[#4B5063]">Pilih kelas untuk melihat riwayat absensi</p>
-              <p className="text-xs text-[#8B90A0] mt-1">Data akan ditampilkan berdasarkan kelas yang Anda pilih</p>
-            </div>
-          ) : (
-            <>
-              {(() => {
-                const kelas = kelasList.find(k => k.id === selectedKelasId)
-                const classRiwayat = riwayat_sensei.filter(r =>
-                  r.kelas_sensei?.batch_relasi?.nama_batch === kelas?.batch_relasi?.nama_batch &&
-                  String(r.kelas_sensei?.level) === String(kelas?.level)
-                )
-                if (classRiwayat.length === 0) {
+        {/* ===== RIWAYAT ABSENSI ===== */}
+        <section>
+          <SectionTitle
+            title="Riwayat Absensi"
+            subtitle={`${monthNamesID[new Date().getMonth()]} ${new Date().getFullYear()}`}
+            right={riwayatKelas ? (
+              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-600">{hadirCount} hari hadir</span>
+            ) : undefined}
+          />
+          <div className="overflow-hidden rounded-2xl border border-[#E5E7EF] bg-white">
+            {kelasList.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto px-4 pt-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {kelasList.map(k => {
+                  const active = riwayatKelasId === k.id
                   return (
-                    <div className="text-center py-8 px-5">
-                      <History size={24} className="mx-auto text-[#C5C8D4] mb-2" />
-                      <p className="text-sm font-semibold text-[#4B5063]">Belum ada riwayat absensi untuk kelas ini</p>
+                    <button key={k.id} onClick={() => setSelectedKelasId(k.id)}
+                      className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                        active ? 'border-[#0069b0] bg-[#0069b0] text-white' : 'border-[#E5E7EF] bg-white text-[#4B5063] hover:bg-[#F4F5F8]'
+                      }`}>
+                      {kelasLabel(k)} · L{k.level}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+
+            {!riwayatKelas || classRiwayat.length === 0 ? (
+              <div className="px-5 py-8 text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#F4F5F8]">
+                  <History size={22} className="text-[#8B90A0]" strokeWidth={1.6} />
+                </div>
+                <p className="text-sm font-bold text-[#14182B]">{riwayatKelas ? 'Belum ada riwayat absensi' : 'Belum ada kelas'}</p>
+                <p className="mt-1 text-xs text-[#8B90A0]">{riwayatKelas ? 'Absensi untuk kelas ini akan muncul di sini' : 'Riwayat akan muncul setelah Anda memiliki kelas'}</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-[#F0F1F5] border-t border-[#F0F1F5]">
+                {classRiwayat.map(r => {
+                  const d = new Date(r.tanggal)
+                  const dayIdx = d.getDay()
+                  const status = r.status
+                  const statusStyle =
+                    status === 'HADIR' ? 'bg-[#DCFCE7] text-[#15803D]' :
+                    status === 'TERLAMBAT' ? 'bg-[#FEF3C7] text-[#B45309]' :
+                    status === 'LIBUR' ? 'bg-[#F0F1F5] text-[#6B7280]' :
+                    'bg-[#FEE2E2] text-[#B91C1C]'
+                  return (
+                    <div key={r.id} className="flex items-center gap-3 px-4 py-3">
+                      <div className="flex h-12 w-12 flex-none flex-col items-center justify-center rounded-xl bg-[#F4F5F8]">
+                        <span className="text-[9px] font-bold tracking-wider text-[#8B90A0]">{dayAbbr[dayIdx]}</span>
+                        <span className="text-base font-bold leading-tight text-[#14182B]">{d.getDate()}</span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-semibold text-[#14182B]">{dayNames[dayIdx]}, {d.getDate()} {monthNamesID[d.getMonth()]}</p>
+                        <div className="mt-1 flex items-center gap-3 text-[11px] font-semibold text-[#4B5063] tabular-nums">
+                          <span className="flex items-center gap-1"><LogIn size={11} className="text-[#0069b0]" />{r.jam_masuk ? r.jam_masuk.slice(0, 5) : '--:--'}</span>
+                          <span className="flex items-center gap-1"><LogOut size={11} className="text-orange-500" />{r.jam_keluar ? r.jam_keluar.slice(0, 5) : '--:--'}</span>
+                        </div>
+                      </div>
+                      <span className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-bold ${statusStyle}`}>{status}</span>
                     </div>
                   )
-                }
-                return (
-                  <div>
-                    {classRiwayat.map(r => {
-                      const d = new Date(r.tanggal)
-                      const dayIdx = d.getDay()
-                      const tgl = d.getDate()
-                      const status = r.status
-                      const statusStyle =
-                        status === 'HADIR' ? 'bg-[#DCFCE7] text-[#15803D]' :
-                        status === 'TERLAMBAT' ? 'bg-[#FEF3C7] text-[#B45309]' :
-                        status === 'LIBUR' ? 'bg-[#F0F1F5] text-[#6B7280]' :
-                        'bg-[#FEE2E2] text-[#B91C1C]'
-                      return (
-                        <div key={r.id} className="flex items-start gap-3 px-5 py-3.5 border-t border-[#F0F1F5]">
-                          <div className="flex flex-col items-center w-10 flex-none">
-                            <span className="text-[10px] font-bold text-[#8B90A0] tracking-wider">{dayAbbr[dayIdx]}</span>
-                            <span className="text-lg font-bold text-[#14182B] -mt-0.5">{tgl}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 mb-0.5">
-                              <span className="text-[9px] font-bold text-[#6B7280] bg-[#F0F1F5] px-1.5 py-0.5 rounded-sm tracking-wide">SENSEI</span>
-                              <span className="text-xs font-semibold text-[#14182B] truncate">{r.kelas_sensei?.batch_relasi?.nama_batch || r.kelas_sensei?.nama_kelas || '-'}</span>
-                            </div>
-                            <p className="text-[11px] text-[#8B90A0] font-medium">{dayNames[dayIdx]}, {tgl} {monthNamesID[d.getMonth()]}</p>
-                            <div className="flex items-center gap-2 mt-1 tabular-nums">
-                              <span className="text-xs font-semibold text-[#14182B]">{r.jam_masuk ? r.jam_masuk.slice(0, 8) : '—'}</span>
-                              <span className="text-[10px] text-[#C5C8D4]">—</span>
-                              <span className="text-xs font-semibold text-[#14182B]">{r.jam_keluar ? r.jam_keluar.slice(0, 8) : '—'}</span>
-                            </div>
-                          </div>
-                          <span className={`shrink-0 px-2 py-1 rounded-md text-[10px] font-bold self-center ${statusStyle}`}>{status}</span>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )
-              })()}
-            </>
-          )}
+                })}
+              </div>
+            )}
+          </div>
         </section>
       </div>
 
@@ -885,8 +854,8 @@ export default function GuruDashboard() {
 
       {/* ===== MODAL TAMBAH KELAS ===== */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowModal(false)}>
-          <div className="w-full max-w-lg mx-3 bg-white rounded-xl shadow-xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={() => setShowModal(false)}>
+          <div className="w-full max-w-lg sm:mx-3 bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[92vh] overflow-y-auto pb-[env(safe-area-inset-bottom)]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
               <h3 className="text-sm font-bold text-gray-900">Tambah Kelas Baru</h3>
               <button onClick={() => setShowModal(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">
@@ -894,7 +863,7 @@ export default function GuruDashboard() {
               </button>
             </div>
             <form onSubmit={handleTambahKelas} className="p-5 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 min-[400px]:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Batch</label>
                   <select value={form.batch_id} onChange={e => setForm(f => ({ ...f, batch_id: e.target.value, level: '' }))}
@@ -961,8 +930,8 @@ export default function GuruDashboard() {
 
       {/* ===== MODAL REFERENSI QUIZ ===== */}
       {showRefModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowRefModal(false)}>
-          <div className="w-full max-w-lg mx-3 bg-white rounded-xl shadow-xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40" onClick={() => setShowRefModal(false)}>
+          <div className="w-full max-w-lg sm:mx-3 bg-white rounded-t-2xl sm:rounded-2xl shadow-xl max-h-[92vh] flex flex-col pb-[env(safe-area-inset-bottom)]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
               <h3 className="text-sm font-bold text-gray-900">Kirim Referensi Quiz</h3>
               <button onClick={() => setShowRefModal(false)} className="rounded-lg p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600">

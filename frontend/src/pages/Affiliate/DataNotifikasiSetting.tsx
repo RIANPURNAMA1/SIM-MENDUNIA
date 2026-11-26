@@ -68,6 +68,23 @@ interface AiSettings {
   modelsstudio_configured?: boolean
   models?: Record<string, string>
   base_urls?: Record<string, string>
+  features?: AiFeature[]
+}
+
+interface AiFeature {
+  key: string
+  label: string
+  description: string
+  provider: AiProvider | 'default'
+  effective_provider: AiProvider
+}
+
+const AI_PROVIDER_LABEL: Record<AiProvider, string> = {
+  groq: 'Groq',
+  gemini: 'Gemini',
+  claude: 'Claude',
+  gpt: 'GPT',
+  modelsstudio: 'Model Studio',
 }
 
 export default function DataNotifikasiSetting() {
@@ -95,6 +112,7 @@ export default function DataNotifikasiSetting() {
   const [aiGptModel, setAiGptModel] = useState('')
   const [aiMsModel, setAiMsModel] = useState('')
   const [aiMsBaseUrl, setAiMsBaseUrl] = useState('')
+  const [aiFeatureProviders, setAiFeatureProviders] = useState<Record<string, string>>({})
 
   const [activeTab, setActiveTab] = useState<TabId>('wa')
 
@@ -149,6 +167,7 @@ export default function DataNotifikasiSetting() {
         setAiGptModel(aiRes.data.models?.gpt || '')
         setAiMsModel(aiRes.data.models?.modelsstudio || '')
         setAiMsBaseUrl(aiRes.data.base_urls?.modelsstudio || '')
+        setAiFeatureProviders(Object.fromEntries((aiRes.data.features || []).map((f: AiFeature) => [f.key, f.provider])))
       }
     } catch {
       setErrorMsg('Gagal memuat data')
@@ -191,6 +210,7 @@ export default function DataNotifikasiSetting() {
         claude_model: aiClaudeModel.trim() || undefined,
         gpt_model: aiGptModel.trim() || undefined,
         modelsstudio_model: aiMsModel.trim() || undefined,
+        feature_providers: aiFeatureProviders,
       })
       setAiGroqKey('')
       setAiGeminiKey('')
@@ -205,6 +225,7 @@ export default function DataNotifikasiSetting() {
       setAiGptModel(aiRes.data.models?.gpt || '')
       setAiMsModel(aiRes.data.models?.modelsstudio || '')
       setAiMsBaseUrl(aiRes.data.base_urls?.modelsstudio || '')
+      setAiFeatureProviders(Object.fromEntries((aiRes.data.features || []).map((f: AiFeature) => [f.key, f.provider])))
       setSuccessMsg('Pengaturan AI Assistant berhasil disimpan')
       setTimeout(() => setSuccessMsg(''), 3000)
     } catch { setErrorMsg('Gagal menyimpan') } finally { setSavingAi(false) }
@@ -1004,7 +1025,7 @@ export default function DataNotifikasiSetting() {
                 </div>
                 <div>
                   <h2 className="font-semibold text-slate-800">AI Assistant</h2>
-                  <p className="text-xs text-slate-500">Isi API key provider AI (Groq / Gemini) agar fitur AI Chat bekerja</p>
+                  <p className="text-xs text-slate-500">Isi API key provider AI, lalu pilih AI yang dipakai tiap fitur sistem</p>
                 </div>
               </div>
               <button onClick={saveAi} disabled={savingAi}
@@ -1014,7 +1035,8 @@ export default function DataNotifikasiSetting() {
             </div>
             <div className="px-6 py-5 space-y-5">
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-1.5">Provider AI</label>
+                <label className="block text-sm font-medium text-slate-600 mb-0.5">Provider Utama</label>
+                <p className="mb-2 text-xs text-slate-400">Dipakai oleh fitur yang diatur &quot;Ikuti Provider Utama&quot; di bawah.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
                   {([
                     ['groq', 'Groq', 'bg-slate-800'],
@@ -1036,6 +1058,47 @@ export default function DataNotifikasiSetting() {
                   ))}
                 </div>
               </div>
+
+              {(aiSettings?.features?.length ?? 0) > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-0.5">AI per Fitur</label>
+                  <p className="mb-2 text-xs text-slate-400">Pilih AI yang dipakai masing-masing fitur sistem. Perubahan berlaku setelah klik Simpan.</p>
+                  <div className="divide-y divide-slate-100 border-2 border-slate-200">
+                    {aiSettings!.features!.map(f => {
+                      const value = aiFeatureProviders[f.key] || 'default'
+                      const effective: AiProvider = value === 'default' ? aiProvider : (value as AiProvider)
+                      const ready = !!getConfigured(effective)
+                      return (
+                        <div key={f.key} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-slate-700">{f.label}</p>
+                            <p className="text-xs text-slate-400">{f.description}</p>
+                          </div>
+                          <div className="flex flex-col items-stretch gap-1 sm:w-72 sm:items-end">
+                            <select
+                              value={value}
+                              onChange={e => setAiFeatureProviders(prev => ({ ...prev, [f.key]: e.target.value }))}
+                              className="w-full border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus:border-fuchsia-500 focus:outline-none"
+                            >
+                              <option value="default">Ikuti Provider Utama ({AI_PROVIDER_LABEL[aiProvider]})</option>
+                              {(Object.keys(AI_PROVIDER_LABEL) as AiProvider[]).map(p => (
+                                <option key={p} value={p}>
+                                  {AI_PROVIDER_LABEL[p]}{providerModels[p] ? ` · ${providerModels[p]}` : ''}{getConfigured(p) ? '' : ' (key belum diisi)'}
+                                </option>
+                              ))}
+                            </select>
+                            <span className={`text-[11px] font-medium ${ready ? 'text-emerald-600' : 'text-amber-600'}`}>
+                              {ready
+                                ? `Memakai ${AI_PROVIDER_LABEL[effective]}`
+                                : `API key ${AI_PROVIDER_LABEL[effective]} belum diisi — fitur ini tidak akan berjalan`}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {([

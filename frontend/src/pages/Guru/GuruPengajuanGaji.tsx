@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Banknote, Plus, X, CalendarCheck, ChevronLeft } from 'lucide-react'
+import { Banknote, Plus, X, CalendarCheck, ChevronLeft, Hourglass, Info, CheckCircle2 } from 'lucide-react'
 import api, { gajiApi, guruProfileApi, izinSenseiApi } from '../../services/api'
 import Swal from 'sweetalert2'
 import KaryawanBottomNav from '../../components/KaryawanBottomNav'
@@ -15,6 +15,9 @@ import KaryawanBottomNav from '../../components/KaryawanBottomNav'
   no_req_list?: string[] | null
   status: string
   catatan: string | null
+  kelas_sensei_id?: number | null
+  jumlah_pertemuan?: number | null
+  kelas_sensei?: { id: number; nama_kelas: string; level: string | number; batch_relasi?: { nama_batch: string } | null } | null
   ringkasan_kehadiran?: {
     total_kelas?: number
     kehadiran_bulan_ini?: number
@@ -49,15 +52,31 @@ interface DashboardRingkasan {
   }[]
 }
 
-interface RiwayatAbsensiRow {
+interface PertemuanRow {
   id: number
   tanggal: string
   jam_masuk: string | null
   jam_keluar: string | null
   status: string
-  kelas: string
-  kelas_id?: number | null
-  pertemuan_ke?: number | null
+  pertemuan_ke: number | null
+}
+
+interface KelasEligibility {
+  id: number
+  nama: string
+  level: string | number
+  periode: string
+  total_pertemuan: number
+  sudah_diajukan: number
+  belum_diajukan: number
+  pertemuan: PertemuanRow[]
+}
+
+interface Eligibility {
+  min_pertemuan: number
+  has_pending: boolean
+  pending: { id: number; status: string; created_at: string; jumlah_pertemuan: number | null } | null
+  kelas: KelasEligibility[]
 }
 
 interface RiwayatIzinItem {
@@ -136,26 +155,53 @@ export default function GuruPengajuanGaji() {
   const [showModal, setShowModal] = useState(false)
   const [gajiForm, setGajiForm] = useState({ keterangan: '' })
   const [gajiSaving, setGajiSaving] = useState(false)
-  const [noReqInputs, setNoReqInputs] = useState<string[]>([''])
   const [rekeningOptions, setRekeningOptions] = useState<any[]>([])
   const [selectedRekeningIdx, setSelectedRekeningIdx] = useState<number>(-1)
   const [ringkasan, setRingkasan] = useState<DashboardRingkasan | null>(null)
   const [ringkasanLoading, setRingkasanLoading] = useState(false)
-  const [riwayatAll, setRiwayatAll] = useState<RiwayatAbsensiRow[]>([])
+  const [eligibility, setEligibility] = useState<Eligibility | null>(null)
   const [riwayatIzin, setRiwayatIzin] = useState<RiwayatIzinItem[]>([])
   const [selectedKelasId, setSelectedKelasId] = useState<number | null>(null)
   const [selectedKelasName, setSelectedKelasName] = useState<string | null>(null)
   const [currentUserRekening, setCurrentUserRekening] = useState<any[]>([])
 
+  const minPertemuan = eligibility?.min_pertemuan ?? 5
+  const selectedKelas = eligibility?.kelas.find(k => k.id === selectedKelasId) ?? null
+  const pertemuanBelumDiajukan = selectedKelas?.pertemuan ?? []
+  const cukupPertemuan = pertemuanBelumDiajukan.length >= minPertemuan
+
+  const fetchEligibility = useCallback(() => {
+    return gajiApi.eligibility()
+      .then(res => setEligibility(res.data))
+      .catch(() => setEligibility(null))
+  }, [])
+
+  useEffect(() => { fetchEligibility() }, [fetchEligibility])
+
+  const openAjukan = async () => {
+    const res = await gajiApi.eligibility().catch(() => null)
+    const el: Eligibility | null = res?.data ?? eligibility
+    if (res?.data) setEligibility(res.data)
+    if (el?.has_pending) {
+      Swal.fire({
+        icon: 'info',
+        title: 'Pengajuan Sebelumnya Belum Di-ACC',
+        html: '<p class="text-sm text-gray-600">Anda masih memiliki pengajuan gaji yang menunggu persetujuan.<br/>Anda bisa mengajukan lagi setelah pengajuan tersebut disetujui.</p>',
+        confirmButtonColor: '#0069b0',
+        confirmButtonText: 'Mengerti',
+      })
+      return
+    }
+    setShowModal(true)
+  }
+
   useEffect(() => {
     if (!showModal) return
     setRingkasan(null)
-    setRiwayatAll([])
     setRiwayatIzin([])
     setSelectedKelasId(null)
     setSelectedKelasName(null)
     setGajiForm({ keterangan: '' })
-    setNoReqInputs([''])
     setSelectedRekeningIdx(-1)
     setRekeningOptions([])
     guruProfileApi.profile().then(res => {
@@ -163,45 +209,17 @@ export default function GuruPengajuanGaji() {
       const rl = Array.isArray(u?.rekening_list) ? u.rekening_list : []
       setRekeningOptions(rl)
       setCurrentUserRekening(rl)
+      setSelectedRekeningIdx(rl.length > 0 ? 0 : -1)
     }).catch(() => {})
     setRingkasanLoading(true)
     izinSenseiApi.list({ my: true, per_page: 10 })
       .then(res => setRiwayatIzin(res.data?.data ?? []))
       .catch(() => setRiwayatIzin([]))
-    api.get('/guru-dashboard')
-      .then(res => {
-        setRingkasan(res.data)
-        return api.get('/kehadiran-sensei', { params: { user_id: res.data.user?.id, start_date: '2020-01-01' } })
-      })
-        .then(res => {
-        const rows: RiwayatAbsensiRow[] = []
-        const groups = res.data?.data || []
-        for (const group of (Array.isArray(groups) ? groups : [])) {
-          for (const a of group.absensis || []) {
-            rows.push({
-              id: a.id,
-              tanggal: a.tanggal,
-              jam_masuk: a.jam_masuk,
-              jam_keluar: a.jam_keluar,
-              status: a.status,
-              kelas: group.kelas?.batch_relasi?.nama_batch || group.kelas?.nama_kelass || '-',
-              kelas_id: group.kelas?.id ?? null,
-              pertemuan_ke: a.pertemuan_ke ?? null,
-            })
-          }
-        }
-        rows.sort((a, b) => {
-          const dateDiff = new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime()
-          if (dateDiff !== 0) return dateDiff
-          const aPertemuan = a.pertemuan_ke ?? 0
-          const bPertemuan = b.pertemuan_ke ?? 0
-          return aPertemuan - bPertemuan
-        })
-        setRiwayatAll(rows)
-      })
-      .catch(() => setRingkasan(null))
-      .finally(() => setRingkasanLoading(false))
-  }, [showModal])
+    Promise.all([
+      api.get('/guru-dashboard').then(res => setRingkasan(res.data)).catch(() => setRingkasan(null)),
+      fetchEligibility(),
+    ]).finally(() => setRingkasanLoading(false))
+  }, [showModal, fetchEligibility])
 
   const fetchData = useCallback((p = page) => {
     setLoading(true)
@@ -220,10 +238,7 @@ export default function GuruPengajuanGaji() {
   useEffect(() => { fetchData(1) }, [fetchData, filterStatus, search])
 
   const hitungStatusAbsensi = () => {
-    const allRows = riwayatAll.length > 0 ? riwayatAll : (ringkasan?.riwayat_sensei ?? [])
-    const rows = selectedKelasId !== null
-      ? allRows.filter(r => (r as RiwayatAbsensiRow).kelas_id === selectedKelasId)
-      : allRows
+    const rows = pertemuanBelumDiajukan
     const count = (statuses: string[]) =>
       rows.filter(r => statuses.includes((r.status || '').toUpperCase())).length
     return {
@@ -239,6 +254,20 @@ export default function GuruPengajuanGaji() {
   const handleKirimGaji = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!selectedKelas) {
+      Swal.fire({ icon: 'warning', title: 'Pilih Kelas', text: 'Pilih kelas yang ingin diajukan terlebih dahulu.', confirmButtonColor: '#0069b0' })
+      return
+    }
+    if (!cukupPertemuan) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Pertemuan Belum Cukup',
+        text: `Pengajuan minimal ${minPertemuan} pertemuan yang belum diajukan. Kelas ini baru ${pertemuanBelumDiajukan.length} pertemuan.`,
+        confirmButtonColor: '#0069b0',
+      })
+      return
+    }
+
     const s = hitungStatusAbsensi()
     const statRow = (label: string, value: number) =>
       `<div class="flex items-center justify-between px-3 py-2 border-b border-gray-100 last:border-b-0">
@@ -246,13 +275,11 @@ export default function GuruPengajuanGaji() {
         <span class="text-sm font-semibold text-gray-900">${value}</span>
       </div>`
 
-    const filteredNoReq = noReqInputs.map(v => v.trim()).filter(v => v !== '')
     const selectedRek = selectedRekeningIdx >= 0 ? rekeningOptions[selectedRekeningIdx] : null
-    const noReqHtml = filteredNoReq.length > 0 || selectedRek
+    const noReqHtml = selectedRek
       ? `<div class="border border-gray-200 rounded-lg overflow-hidden text-left mb-3">
            <div class="px-3 py-2 bg-gray-50 text-[11px] font-bold text-gray-600 uppercase">Data Rekening</div>
            ${selectedRek ? `<div class="px-3 py-2 text-xs text-gray-700 border-t border-gray-100">${[selectedRek.nama_rekening, selectedRek.no_rekening, selectedRek.bank].filter(Boolean).join(' - ')}</div>` : ''}
-           ${filteredNoReq.length > 0 && !selectedRek ? filteredNoReq.map(n => `<div class="px-3 py-2 text-xs text-gray-700 border-t border-gray-100">${n}</div>`).join('') : ''}
          </div>`
       : ''
 
@@ -260,7 +287,7 @@ export default function GuruPengajuanGaji() {
       icon: 'question',
       title: 'Ajukan Pengajuan Gaji?',
       html: `
-        <p class="text-sm text-gray-600 mb-3">Yakin ingin mengajukan gaji? Berikut ringkasan absensi Anda yang akan ikut terkirim:</p>
+        <p class="text-sm text-gray-600 mb-3">Yakin ingin mengajukan gaji untuk <b>${selectedKelas.nama} (Level ${selectedKelas.level})</b> sebanyak <b>${pertemuanBelumDiajukan.length} pertemuan</b>? Berikut ringkasan yang akan ikut terkirim:</p>
         ${noReqHtml}
         <div class="border border-gray-200 rounded-lg overflow-hidden text-left">
           ${statRow('Hadir', s.hadir)}
@@ -268,7 +295,7 @@ export default function GuruPengajuanGaji() {
           ${statRow('Tidak Absen Pulang', s.tidakAbsenPulang)}
           ${statRow('Alpa', s.alpa)}
           ${statRow('Izin', s.izin)}
-          ${statRow('Total Absensi', s.total)}
+          ${statRow('Total Pertemuan Diajukan', s.total)}
           ${statRow('Riwayat Pengajuan Izin', riwayatIzin.length)}
         </div>
       `,
@@ -288,7 +315,7 @@ setGajiSaving(true)
       if (selectedKelasName) fd.append('selected_kelas_name', selectedKelasName)
       const noReqToSend = selectedRekeningIdx >= 0 && rekeningOptions[selectedRekeningIdx]
         ? [`${rekeningOptions[selectedRekeningIdx].nama_rekening || ''} ${rekeningOptions[selectedRekeningIdx].no_rekening || ''} ${rekeningOptions[selectedRekeningIdx].bank || ''}`.trim()]
-        : noReqInputs.map(v => v.trim()).filter(v => v !== '')
+        : []
       if (noReqToSend.length > 0) {
         fd.append('no_req_list', JSON.stringify(noReqToSend))
       }
@@ -302,19 +329,7 @@ setGajiSaving(true)
             level: k.level,
             periode: `${k.tanggal_mulai_formatted || k.tanggal_mulai} – ${k.tanggal_selesai_formatted || k.tanggal_selesai}`,
           })),
-          riwayat: (selectedKelasId !== null
-            ? riwayatAll.filter(r => (r as RiwayatAbsensiRow).kelas_id === selectedKelasId)
-            : riwayatAll
-          ).map(r => ({
-            id: r.id,
-            tanggal: r.tanggal,
-            status: r.status,
-            jam_masuk: r.jam_masuk,
-            jam_keluar: r.jam_keluar,
-            pertemuan_ke: (r as RiwayatAbsensiRow).pertemuan_ke ?? null,
-            kelas_id: (r as RiwayatAbsensiRow).kelas_id ?? null,
-            kelas: r.kelas,
-          })),
+          // Riwayat pertemuan dihitung ulang oleh server (hanya yang belum diajukan).
           riwayat_izin: riwayatIzin.map(i => ({
             id: i.id,
             jenis_izin: i.jenis_izin,
@@ -328,9 +343,10 @@ setGajiSaving(true)
         }))
       }
       await gajiApi.store(fd)
-              setGajiForm({ keterangan: '' })
-              setNoReqInputs([''])
-              setSelectedRekeningIdx(-1)
+      setGajiForm({ keterangan: '' })
+      setSelectedRekeningIdx(-1)
+      setShowModal(false)
+      fetchEligibility()
       await Swal.fire({
         icon: 'success',
         title: 'Pengajuan Gaji Terkirim!',
@@ -370,8 +386,8 @@ setGajiSaving(true)
             </div>
           </div>
           <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 bg-[#0069b0] px-3 py-2 text-sm font-medium text-white transition hover:bg-[#004d7a]"
+            onClick={openAjukan}
+            className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-white transition ${eligibility?.has_pending ? 'bg-slate-400 hover:bg-slate-500' : 'bg-[#0069b0] hover:bg-[#004d7a]'}`}
           >
             <Plus size={16} />
             Ajukan Gaji
@@ -380,6 +396,37 @@ setGajiSaving(true)
       </div>
 
       <div className="px-4 pt-4 pb-4 space-y-4 max-w-5xl mx-auto">
+        {eligibility?.has_pending ? (
+          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <Hourglass size={18} className="mt-0.5 shrink-0 text-amber-600" />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-amber-800">Pengajuan gaji Anda sedang menunggu persetujuan</p>
+              <p className="mt-0.5 text-xs text-amber-700">
+                {eligibility.pending?.jumlah_pertemuan ? `${eligibility.pending.jumlah_pertemuan} pertemuan diajukan. ` : ''}
+                Anda bisa mengajukan lagi setelah pengajuan ini di-ACC.
+              </p>
+            </div>
+          </div>
+        ) : eligibility && (
+          <div className="flex items-start gap-3 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3">
+            <Info size={18} className="mt-0.5 shrink-0 text-[#0069b0]" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[#14182B]">Pengajuan minimal {minPertemuan} pertemuan per kelas</p>
+              <p className="mt-0.5 text-xs text-[#4B5063]">Pertemuan dihitung dari tanggal mulai s/d selesai kelas. Pertemuan yang sudah diajukan tidak dihitung lagi.</p>
+              {eligibility.kelas.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {eligibility.kelas.map(k => (
+                    <span key={k.id} className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${k.belum_diajukan >= minPertemuan ? 'bg-emerald-50 text-emerald-700' : 'bg-white text-[#4B5063]'}`}>
+                      {k.belum_diajukan >= minPertemuan && <CheckCircle2 size={12} />}
+                      {k.nama} L{k.level}: {k.belum_diajukan}/{minPertemuan} pertemuan
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-xl border border-[#E5E7EF] p-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4 border-b border-[#E5E7EF] pb-4">
             <div className="flex flex-wrap gap-2">
@@ -411,6 +458,7 @@ setGajiSaving(true)
               <thead className="text-sm text-[#8B90A0]">
                 <tr>
                   <th className="text-xs font-medium text-[#8B90A0] px-4 py-3">Bulan / Tahun</th>
+                  <th className="text-xs font-medium text-[#8B90A0] px-4 py-3">Kelas / Pertemuan</th>
                   <th className="text-xs font-medium text-[#8B90A0] px-4 py-3">Keterangan</th>
                        <th className="text-xs font-medium text-[#8B90A0] px-4 py-3">Data Rekening</th>
                   <th className="text-xs font-medium text-[#8B90A0] px-4 py-3">Status</th>
@@ -421,14 +469,14 @@ setGajiSaving(true)
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i}>
-                      <td colSpan={5} className="px-6 py-12 text-center">
+                      <td colSpan={6} className="px-6 py-12 text-center">
                         <div className="h-3 bg-[#E5E7EF] w-full animate-pulse" />
                       </td>
                     </tr>
                   ))
                 ) : data.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-6 py-12 text-center">
+                    <td colSpan={6} className="px-6 py-12 text-center">
                       <div className="mx-auto flex h-12 w-12 items-center justify-center bg-[#F4F5F8] text-[#8B90A0]">
                         <Banknote size={24} />
                       </div>
@@ -444,6 +492,18 @@ setGajiSaving(true)
                         <p className="text-xs font-medium text-[#14182B]">
                           {item.bulan ?? '-'} {item.tahun ?? ''}
                         </p>
+                      </td>
+                      <td className="border-t border-[#E5E7EF] px-4 py-3 text-sm">
+                        {item.kelas_sensei || item.jumlah_pertemuan ? (
+                          <>
+                            <p className="text-xs font-medium text-[#14182B]">
+                              {item.kelas_sensei ? `${item.kelas_sensei.batch_relasi?.nama_batch || item.kelas_sensei.nama_kelas} · L${item.kelas_sensei.level}` : '-'}
+                            </p>
+                            {item.jumlah_pertemuan != null && (
+                              <p className="text-[11px] font-semibold text-[#0069b0]">{item.jumlah_pertemuan} pertemuan</p>
+                            )}
+                          </>
+                        ) : <span className="text-[#8B90A0]">-</span>}
                       </td>
                       <td className="border-t border-[#E5E7EF] px-4 py-3 text-sm max-w-[200px] truncate">
                         {item.keterangan || '-'}
@@ -540,45 +600,49 @@ setGajiSaving(true)
                       </tbody>
                     </table>
 
-<table className="w-full border-collapse text-left text-sm text-[#3c4043] bg-white rounded-lg">
-                       <thead>
-                         <tr>
-                           <th colSpan={3} className="text-[10px] font-bold text-[#8B90A0] uppercase tracking-wide border border-[#E5E7EF] px-3 py-1.5 bg-[#FAFBFD]">Pilih Kelas</th>
-                         </tr>
-                       </thead>
-                       <tbody>
-                         <tr>
-                           <td colSpan={3} className="border border-[#E5E7EF] px-3 py-2">
-                             <select
-                               value={selectedKelasId ?? ''}
-                               onChange={e => {
-                                 const val = e.target.value ? Number(e.target.value) : null
-                                 setSelectedKelasId(val)
-                                 const selected = ringkasan?.kelas_aktif.find(k => k.id === val)
-                                 setSelectedKelasName(selected ? (selected.batch_relasi?.nama_batch || selected.nama_kelas) : null)
-                               }}
-                               className="w-full border border-[#E5E7EF] bg-white px-3 py-2 text-[11px] text-[#3c4043] outline-none focus:border-[#0069b0] rounded-lg"
-                             >
-                               <option value="">-- Pilih Kelas Aktif --</option>
-                               {ringkasan.kelas_aktif.map(k => (
-                                 <option key={k.id} value={k.id}>
-                                   {k.batch_relasi?.nama_batch || k.nama_kelas} (Level {k.level})
-                                 </option>
-                               ))}
-                             </select>
-                           </td>
-                         </tr>
-                         {selectedKelasId && (
-                           <tr>
-                             <td className="border border-[#E5E7EF] px-3 py-2 text-[11px] text-[#8B90A0]">
-                               Periode: {ringkasan.kelas_aktif.find(k => k.id === selectedKelasId)?.tanggal_mulai_formatted || ringkasan.kelas_aktif.find(k => k.id === selectedKelasId)?.tanggal_mulai} – {ringkasan.kelas_aktif.find(k => k.id === selectedKelasId)?.tanggal_selesai_formatted || ringkasan.kelas_aktif.find(k => k.id === selectedKelasId)?.tanggal_selesai}
-                             </td>
-                           </tr>
-                         )}
-                       </tbody>
-                     </table>
+                    <div>
+                      <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-[#8B90A0]">Pilih Kelas</p>
+                      {!eligibility || eligibility.kelas.length === 0 ? (
+                        <p className="rounded-lg border border-[#E5E7EF] bg-white px-3 py-3 text-[11px] text-[#8B90A0]">Belum ada kelas yang sudah berjalan.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {eligibility.kelas.map(k => {
+                            const active = selectedKelasId === k.id
+                            const cukup = k.belum_diajukan >= minPertemuan
+                            return (
+                              <button type="button" key={k.id}
+                                onClick={() => { setSelectedKelasId(k.id); setSelectedKelasName(k.nama) }}
+                                className={`w-full rounded-lg border bg-white px-3 py-2.5 text-left transition ${active ? 'border-[#0069b0] ring-1 ring-[#0069b0]/20' : 'border-[#E5E7EF] hover:border-[#D6D9E1]'}`}>
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <p className="break-words text-xs font-bold text-[#14182B]">{k.nama} (Level {k.level})</p>
+                                    <p className="text-[10px] text-[#8B90A0]">Periode: {k.periode}</p>
+                                  </div>
+                                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${cukup ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+                                    {k.belum_diajukan}/{minPertemuan}
+                                  </span>
+                                </div>
+                                <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#F0F1F5]">
+                                  <div className={`h-full rounded-full ${cukup ? 'bg-emerald-500' : 'bg-amber-400'}`}
+                                    style={{ width: `${Math.min(100, (k.belum_diajukan / minPertemuan) * 100)}%` }} />
+                                </div>
+                                <p className="mt-1.5 text-[10px] text-[#8B90A0]">
+                                  {k.belum_diajukan} belum diajukan · {k.sudah_diajukan} sudah diajukan · {k.total_pertemuan} total pertemuan
+                                </p>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
 
-                    <div className="max-h-56 overflow-y-auto overflow-x-auto border border-t-0 border-[#E5E7EF] rounded-b-lg">
+                    {selectedKelas && !cukupPertemuan && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-700">
+                        Kelas ini baru memiliki {pertemuanBelumDiajukan.length} pertemuan yang belum diajukan. Pengajuan minimal {minPertemuan} pertemuan.
+                      </div>
+                    )}
+
+                    <div className="max-h-56 overflow-y-auto overflow-x-auto border border-[#E5E7EF] rounded-lg">
                     <table className="w-full border-collapse text-left text-sm text-[#3c4043] bg-white rounded-lg overflow-hidden">
                       <thead>
                         <tr>
@@ -590,16 +654,16 @@ setGajiSaving(true)
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedKelasId === null ? (
+                        {!selectedKelas ? (
                           <tr>
-                            <td colSpan={5} className="px-3 py-4 text-[11px] text-[#8B90A0] text-center border-b border-[#E5E7EF]">Silakan pilih kelas terlebih dahulu untuk melihat riwayat kehadiran</td>
+                            <td colSpan={5} className="px-3 py-4 text-[11px] text-[#8B90A0] text-center border-b border-[#E5E7EF]">Pilih kelas untuk melihat pertemuan yang akan diajukan</td>
                           </tr>
-                        ) : riwayatAll.filter(r => (r as RiwayatAbsensiRow).kelas_id === selectedKelasId).length === 0 ? (
+                        ) : pertemuanBelumDiajukan.length === 0 ? (
                           <tr>
-                            <td colSpan={5} className="px-3 py-4 text-[11px] text-[#8B90A0] text-center border-b border-[#E5E7EF]">Belum ada riwayat absensi untuk kelas ini</td>
+                            <td colSpan={5} className="px-3 py-4 text-[11px] text-[#8B90A0] text-center border-b border-[#E5E7EF]">Semua pertemuan di kelas ini sudah diajukan</td>
                           </tr>
                         ) : (
-                          riwayatAll.filter(r => (r as RiwayatAbsensiRow).kelas_id === selectedKelasId).map(r => (
+                          pertemuanBelumDiajukan.map(r => (
                             <tr key={r.id} className="border-b border-[#E5E7EF]">
                               <td className="px-3 py-2 text-[11px] font-semibold text-[#14182B] whitespace-nowrap">{formatTanggalRiwayat(r.tanggal)}</td>
                               <td className="px-3 py-2 text-[11px] text-center whitespace-nowrap">
@@ -613,8 +677,7 @@ setGajiSaving(true)
                                 <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-bold ${
                                   r.status === 'HADIR' ? 'bg-[#DCFCE7] text-[#15803D]' :
                                   r.status === 'TERLAMBAT' ? 'bg-[#FEF3C7] text-[#B45309]' :
-                                  r.status === 'LIBUR' ? 'bg-[#F0F1F5] text-[#6B7280]' :
-                                  'bg-[#FEE2E2] text-[#B91C1C]'
+                                  'bg-[#F0F1F5] text-[#6B7280]'
                                 }`}>{r.status}</span>
                               </td>
                             </tr>
@@ -673,89 +736,29 @@ setGajiSaving(true)
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Data Rekening <span className="text-gray-400">(Opsional)</span></label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Data Rekening</label>
                 {rekeningOptions.length > 0 ? (
-                  <select
-                    value={selectedRekeningIdx}
-                    onChange={e => setSelectedRekeningIdx(Number(e.target.value))}
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
-                  >
-                    <option value={-1}>Pilih Rekening</option>
-                    {rekeningOptions.map((r, idx) => {
-                      const label = [r.nama_rekening, r.no_rekening, r.bank].filter(Boolean).join(' - ')
-                      return <option key={idx} value={idx}>{label || `Rekening ${idx + 1}`}</option>
-                    })}
-                  </select>
-                ) : (
-                  <div className="space-y-2">
-                    {noReqInputs.map((val, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <input
-                          value={val}
-                          onChange={e => {
-                            const next = [...noReqInputs]
-                            next[idx] = e.target.value
-                            setNoReqInputs(next)
-                          }}
-                          placeholder="Masukkan Data Rekening"
-                          className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
-                        />
-                        {noReqInputs.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => setNoReqInputs(noReqInputs.filter((_, i) => i !== idx))}
-                            className="rounded-lg border border-gray-300 px-2 py-2 text-gray-500 hover:bg-gray-50"
-                          >
-                            <X size={14} />
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={() => setNoReqInputs([...noReqInputs, ''])}
-                      className="text-xs font-semibold text-[#0069b0] hover:text-[#004d7a]"
+                  <>
+                    <select
+                      value={selectedRekeningIdx}
+                      onChange={e => setSelectedRekeningIdx(Number(e.target.value))}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
                     >
-                      + Tambah Rekening
+                      {rekeningOptions.map((r, idx) => {
+                        const label = [r.nama_rekening, r.no_rekening, r.bank].filter(Boolean).join(' - ')
+                        return <option key={idx} value={idx}>{label || `Rekening ${idx + 1}`}</option>
+                      })}
+                    </select>
+                    <p className="mt-1 text-[11px] text-[#8B90A0]">Diambil dari data rekening di profil Anda.</p>
+                  </>
+                ) : (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11px] text-amber-700">
+                    Belum ada data rekening di profil.{' '}
+                    <button type="button" onClick={() => navigate('/guru-profil')} className="font-bold underline hover:text-amber-800">
+                      Tambahkan di Profil
                     </button>
                   </div>
                 )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Data Rekening <span className="text-gray-400">(Opsional)</span></label>
-                <div className="space-y-2">
-                  {noReqInputs.map((val, idx) => (
-                    <div key={idx} className="flex items-center gap-2">
-                      <input
-                        value={val}
-                        onChange={e => {
-                          const next = [...noReqInputs]
-                          next[idx] = e.target.value
-                          setNoReqInputs(next)
-                        }}
-                        placeholder="Masukkan No. Req"
-                        className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-[#0069b0] focus:outline-none focus:ring-1 focus:ring-[#0069b0]"
-                      />
-                      {noReqInputs.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setNoReqInputs(noReqInputs.filter((_, i) => i !== idx))}
-                          className="rounded-lg border border-gray-300 px-2 py-2 text-gray-500 hover:bg-gray-50"
-                        >
-                          <X size={14} />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setNoReqInputs([...noReqInputs, ''])}
-                    className="text-xs font-semibold text-[#0069b0] hover:text-[#004d7a]"
-                  >
-                    + Tambah No. Req
-                  </button>
-                </div>
               </div>
 
               <div>
@@ -769,7 +772,7 @@ setGajiSaving(true)
                   className="rounded-lg border border-gray-300 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition">
                   Batal
                 </button>
-                <button type="submit" disabled={gajiSaving}
+                <button type="submit" disabled={gajiSaving || !selectedKelas || !cukupPertemuan}
                   className="rounded-lg bg-[#0069b0] px-4 py-2 text-xs font-semibold text-white hover:bg-[#004d7a] transition disabled:opacity-50 flex items-center gap-1.5">
                   {gajiSaving ? 'Mengirim...' : 'Kirim Pengajuan'}
                 </button>
